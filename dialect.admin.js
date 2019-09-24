@@ -186,13 +186,23 @@ module.exports=function(app, prefix) {
       case 'tokens':
         const tokenIn = req.body;
         //console.log('creating token', tokenIn);
-        cache.addUnconstrainedAPIUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, tokenIn.token, tokenIn.expireInMinds, function(token, err, meta) {
-          const resObj={
-            meta: meta,
-            data: token,
-          }
-          return sendresponse(resObj, res);
-        })
+        if (tokenIn.expireInMins && tokenIn.token) {
+          cache.addUnconstrainedAPIUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, tokenIn.token, tokenIn.expireInMins, function(token, err, meta) {
+            const resObj={
+              meta: meta,
+              data: token,
+            }
+            return sendresponse(resObj, res);
+          })
+        } else {
+          cache.createOrFindUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, function(usertoken, err, meta) {
+            const resObj={
+              meta: meta,
+              data: usertoken,
+            }
+            return sendresponse(resObj, res);
+          })
+        }
       break;
       default:
         res.status(200).end("{}");
