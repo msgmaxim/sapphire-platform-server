@@ -101,12 +101,15 @@ async function setupTesting() {
       console.log('server is started')
 
     })
+    // need the following in an `it` to make sure it only happens after the server is set up
+    it('setting up token to use with testing', async() => {
+      testUserId = await findOrCreateUser('test')
+      token = await findOrCreateToken(testUserId)
+      platformApi.token = token
+      //console.log('got token', token, 'for user @test')
+      // assert we have a token...
+    })
   })
-
-  testUserId = await findOrCreateUser('test')
-  token = await findOrCreateToken(testUserId)
-  platformApi.token = token
-  console.log('got token', token, 'for user @test')
 
 }
 
