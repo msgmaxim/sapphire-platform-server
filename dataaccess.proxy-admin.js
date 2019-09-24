@@ -24,7 +24,9 @@ let modKey = '';
 
 function start(nconf) {
   /** @todo make count configureable, low latency=20count, aggressive cache=200count */
-  modKey = '';
+  modKey = nconf.get('admin:modKey')
+  module.exports.apiroot = 'http://127.0.0.1:' + nconf.get('web:port')
+  module.exports.adminroot = 'http://' + nconf.get('admin:listen') + ':' + nconf.get('admin:port')
 }
 
 // make a request to the server
@@ -142,7 +144,7 @@ module.exports = {
       } else {
         console.log('dataccess.proxy.js:getUserID - request failure');
         console.log('error', e);
-        console.log('statusCode', r.statusCode);
+        console.log('statusCode', r && r.statusCode);
         console.log('body', body);
         callback(null, e, null);
       }
@@ -290,6 +292,17 @@ module.exports = {
       },
     });
     callback(newTokenRes.response, newTokenRes.err);
+  },
+  createOrFindUserToken: async function(user_id, client_id, scopes, callback) {
+    const newTokenRes = await serverRequest('tokens', {
+      method: 'POST',
+      objBody: {
+        user_id: user_id,
+        client_id: client_id,
+        scopes: scopes,
+      },
+    });
+    callback(newTokenRes.response.data, newTokenRes.err);
   },
   /*
    * user upstream tokens
