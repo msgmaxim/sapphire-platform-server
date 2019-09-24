@@ -75,7 +75,8 @@ function start(nconf) {
     // alter table post MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
     // alter table message MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
     // alter table message MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
-    // TODO: user name
+    // alter table annotation MODIFY `value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+    // alter table user MODIFY `name` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
   }
 
   // Auth models and accessors can be moved into own file?
