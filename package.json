@@ -5,6 +5,7 @@
   "description": "App.net Alternative API",
   "main": "app.js",
   "dependencies": {
+    "loki-launcher": "1.0.0",
     "body-parser": "1.14.x",
     "caminte": "0.0.33",
     "cookies": "0.5.x",
