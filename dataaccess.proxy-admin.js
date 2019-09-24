@@ -99,7 +99,7 @@ module.exports = {
         password: password,
       },
     });
-    callback(newUserRes.response, newUserRes.err);
+    callback(newUserRes.response && newUserRes.response.data, newUserRes.err);
   },
   setUser: function(iuser, ts, callback) {
     if (this.next) {
