@@ -1,90 +1,138 @@
 const path = require('path')
 const nconf = require('nconf')
-const request = require("request")
 const assert = require('assert')
+const lokinet = require('loki-launcher/lokinet')
+
+const ADN_SCOPES = 'stream'
 
 // Look for a config file
-const config_path = path.join(__dirname, '/config.json');
+const config_path = path.join(__dirname, '/../config.json')
 // and a model file
-const config_model_path = path.join(__dirname, '/config.models.json');
-nconf.argv().env('__').file({file: config_path}).file('model', {file: config_model_path});
+const config_model_path = path.join(__dirname, '/config.models.json')
+nconf.argv().env('__').file({file: config_path}).file('model', {file: config_model_path})
 
-let webport = nconf.get('web:port') || 7070;
+const cache = require('../dataaccess.proxy-admin')
+cache.start(nconf)
+cache.dispatcher = {
+  // ignore local user updates
+  updateUser: (user, ts, cb) => { cb(user) },
+  // ignore local message updates
+  setMessage: (message, cb) => { if (cb) cb(message) },
+}
+
+let webport = nconf.get('web:port') || 7070
 const base_url = 'http://localhost:' + webport + '/'
+const platform_admin_url = 'http://' + nconf.get('admin:listen') + ':' + nconf.get('admin:port')
 console.log('read', base_url)
 
-const token = ''
+let token = ''
 
-function harness200(options, nextTest) {
-  it("returns status code 200", function(done) {
-    request(options, function(error, response, body) {
-      assert.equal(200, response.statusCode)
-      done()
-      if (nextTest) nextTest(body)
+const adnServerAPI = require('../fetchWrapper')
+const platformApi = new adnServerAPI(base_url)
+// do we need this?
+const adminApi    = new adnServerAPI(platform_admin_url, nconf.get('admin:modKey'))
+
+// FIXME: username should be configurable
+function findOrCreateUser(username) {
+  if (!username) return false
+  return new Promise((resolve, rej) => {
+
+    // does our test user exist?
+    cache.getUserID(username, function(user, err) {
+      if (err) {
+        console.error('findOrCreateUser::getUserID', err)
+        return rej(err)
+      }
+      if (user !== null) {
+        // console.log('found user', user.toString())
+        return resolve(user.id)
+      }
+      // create test user
+      console.log('creating test user', username)
+      cache.addUser(username, '', function(user, err) {
+        if (err) {
+          console.error('findOrCreateUser::addUser', err)
+          return rej(err)
+        }
+        // console.log('created user', user.toString())
+        resolve(user.id)
+      })
     })
   })
 }
 
-describe("Hello World Server", function() {
-  describe("GET /", function() {
-    harness200({ url: base_url, method: 'GET' })
+function findOrCreateToken(userid) {
+  if (!userid) return false
+  return new Promise((resolve, rej) => {
+    cache.createOrFindUserToken(userid, 'mocha_platform_test', ADN_SCOPES, function(usertoken, err) {
+      if (err) {
+        console.error('findOrCreateToken::addAPIUserToken', err)
+        rej(err)
+      }
+      resolve(usertoken.token)
+    })
   })
+}
 
-  describe("create /channels", function() {
-    const str = {
-      type: 'moe.sapphire.test',
-    }
-    harness200({
-      method: 'POST',
-      url: base_url + 'channels',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token
-      },
-      json: true,
-      body: str
-    }, function(body) {
-      const channelId = body.data.id
-      describe("create /channels/"+channelId+"/messages", function() {
-        const createMsgParams = {
-          text: 'integration test😋',
-        }
-        harness200({
-          method: 'POST',
-          url: base_url + 'channels/' + channelId + '/messages',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token
-          },
-          json: true,
-          body: createMsgParams
-        }, function(body) {
-          const messageId = body.data.id
+const ensureServer = () => {
+  return new Promise((resolve, rej) => {
+    const platformURL = new URL(base_url)
+    console.log('platform port', platformURL.port)
+    lokinet.portIsFree(platformURL.hostname, platformURL.port, function(free) {
+      if (free) {
+        // we need to configure this to ensure there's an admin api mounted...
+        // well we know the config file...
+        const startPlatform = require('../app')
+      } else {
+        console.log('detected running server')
+      }
+      resolve()
+    })
+  })
+}
 
-          // delete message
-          describe("delete /channels/"+channelId+"/messages/" + messageId, function() {
-            harness200({
-              method: 'DELETE',
-              url: base_url + 'channels/' + channelId + '/messages/' + messageId,
-              headers: {
-                'Authorization': 'Bearer ' + token
-              },
-            }, function(body) {
-              // delete channel
-              describe("delete /channel", function() {
-                harness200({
-                  method: 'DELETE',
-                  url: base_url + 'channels/' + channelId,
-                  headers: {
-                    'Authorization': 'Bearer ' + token
-                  },
-                })
-              })
-            })
-          })
-        })
-      })
+let testUserId
+
+async function setupTesting() {
+
+  describe('ensureServer', async () => {
+    it('make sure we have something to test', async () => {
+      await ensureServer()
+      console.log('server is started')
+
     })
   })
 
+  testUserId = await findOrCreateUser('test')
+  token = await findOrCreateToken(testUserId)
+  platformApi.token = token
+  console.log('got token', token, 'for user @test')
+
+}
+
+setupTesting()
+
+const testConfig = {
+  platformApi,
+  testUsername: '@test',
+  testUserid: testUserId,
+}
+
+describe('#token', async () => {
+  require('./test.tokens').runTests(platformApi)
 })
+  describe('#users', async () => {
+    require('./test.users').runTests(platformApi)
+  })
+    describe('#mutes', async () => {
+      require('./test.mutes').runTests(platformApi)
+    })
+    describe('#posts', async () => {
+      require('./test.posts').runTests(platformApi)
+    })
+      describe('#markers', async () => {
+        require('./test.markers').runTests(platformApi)
+      })
+      describe('#interactions', async () => {
+        require('./test.interactions').runTests(platformApi)
+      })
