@@ -44,7 +44,7 @@ function findOrCreateUser(username) {
         return rej(err)
       }
       if (user !== null) {
-        // console.log('found user', user.toString())
+        //console.log('found user', user)
         return resolve(user.id)
       }
       // create test user
@@ -54,8 +54,8 @@ function findOrCreateUser(username) {
           console.error('findOrCreateUser::addUser', err)
           return rej(err)
         }
-        console.log('created user', user.toString())
-        console.log('created user id', user.id)
+        //console.log('created user', user.toString())
+        console.log('created user', user)
         resolve(user.id)
       })
     })
