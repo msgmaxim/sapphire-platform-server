@@ -54,7 +54,8 @@ function findOrCreateUser(username) {
           console.error('findOrCreateUser::addUser', err)
           return rej(err)
         }
-        // console.log('created user', user.toString())
+        console.log('created user', user.toString())
+        console.log('created user id', user.id)
         resolve(user.id)
       })
     })
@@ -104,10 +105,11 @@ async function setupTesting() {
     // need the following in an `it` to make sure it only happens after the server is set up
     it('setting up token to use with testing', async() => {
       testUserId = await findOrCreateUser('test')
+      console.log('testUserId', testUserId);
       token = await findOrCreateToken(testUserId)
-      platformApi.token = token
-      //console.log('got token', token, 'for user @test')
       // assert we have a token...
+      console.log('got token', token, 'for user @test')
+      platformApi.token = token
     })
   })
 
