@@ -185,8 +185,8 @@ module.exports=function(app, prefix) {
       break;
       case 'tokens':
         const tokenIn = req.body;
-        //console.log('creating token', tokenIn);
-        if (tokenIn.expireInMins && tokenIn.token) {
+        // console.log('creating token', tokenIn);
+        if (tokenIn.expireInMins !== undefined && tokenIn.token) {
           cache.addUnconstrainedAPIUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, tokenIn.token, tokenIn.expireInMins, function(token, err, meta) {
             const resObj={
               meta: meta,
