@@ -2959,7 +2959,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       ownerid: userid,
       created_at: now,
       last_updated: now,
-      inactive: null,
+      inactive: new Date(0),
       type: channel.type,
       reader: channel.reader,
       writer: channel.writer,
@@ -3009,7 +3009,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     // null is an object... which breaks the memory type driver rn
     // we'll remove this for now and do our own filtering for now
     // , inactive: null
-    var criteria={ where: { id: id } };
+    var criteria={ where: { id: id, inactive: new Date(0) } };
     if (params.channelParams && params.channelParams.types) {
       criteria.where['type']={ in: params.channelParams.types.split(/,/) };
       //console.log('dataaccess.caminte.js::getChannel - types', criteria.where['type']);
@@ -3018,11 +3018,12 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       criteria.where['id']={ in: id };
     }
     if (params.channelParams && params.channelParams.inactive) {
-      criteria.where['inactive']= { ne: null }
+      criteria.where['inactive']= { ne: new Date(0) }
     }
     //console.log('dataaccess.caminte.js::getChannel - criteria', criteria);
     channelModel.find(criteria, function(err, channels) {
       //console.log('dataaccess.caminte.js::getChannel - found', channels.length)
+      //console.log('dataaccess.caminte.js::getChannel - found', channels)
       if (channels==null && err==null) {
         if (ref.next) {
           ref.next.getChannel(id, callback);
@@ -3034,12 +3035,13 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
         // we want inactive
         nchannels = channels;
       } else {
+        var zeroDate = new Date(0).getTime()
         // we don't want inactive
         for(var i in channels) {
           var channel = channels[i]
           //console.log('dataaccess.caminte.js::getChannel - channel', channel);
           // is it active?
-          if (channel.inactive === null) {
+          if (channel.inactive === null || (channel.inactive.getTime && channel.inactive.getTime() === zeroDate)) {
             // add active channels
             nchannels.push(channel)
           }
@@ -3063,9 +3065,9 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       query = query.where('ownerid', criteria.ownerid);
     }
     if (params.channelParams && params.channelParams.inactive) {
-      query = query.where('inactive', { ne: null });
+      query = query.where('inactive', { ne: new Date(0) });
     } else {
-      query = query.where('inactive', null);
+      query = query.where('inactive', new Date(0));
     }
     // paging is broken because no channel permissions handle after query
     // actually no because we insert blank stubs
@@ -3081,14 +3083,14 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       return;
     }
     var ref=this;
-    var criteria={ where: { ownerid: userid, inactive: null } };
+    var criteria={ where: { ownerid: userid, inactive: new Date(0) } };
     if (params.channelParams && params.channelParams.types) {
       //console.log('dataaccess.caminte.js::getUserChannels - type param', params.channelParams.types);
       criteria.where['type']={ in: params.channelParams.types.split(/,/) };
       //console.log('dataaccess.caminte.js::getUserChannels - types', criteria.where['type']);
     }
     if (params.channelParams && params.channelParams.inactive) {
-      criteria.where['inactive']= { ne: null }
+      criteria.where['inactive']= { ne: new Date(0) }
     }
     //console.log('dataaccess.caminte.js::getUserChannels - criteria', criteria);
     channelModel.find(criteria, function(err, channels) {
