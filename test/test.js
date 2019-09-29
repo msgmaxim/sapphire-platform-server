@@ -141,3 +141,6 @@ describe('#token', async () => {
       describe('#interactions', async () => {
         require('./test.interactions').runTests(platformApi)
       })
+    describe('#channels', async () => {
+      require('./test.channels').runTests(platformApi)
+    })
