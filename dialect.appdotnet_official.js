@@ -262,6 +262,8 @@ module.exports=function(app, prefix) {
       } else {
         //console.log('ADNO::users/ID/follow - user_id', followsid);
         // data.user.id, data.follows_user.id
+
+        //console.log('ADNO::users/ID/follow - token user id', usertoken.userid, 'creating a follow for', followsid)
         dispatcher.setFollows({
           user: { id: usertoken.userid }, follows_user: { id: followsid },
         }, 0, 0, Date.now(), callbacks.userCallback(resp, req.token));
@@ -851,6 +853,7 @@ module.exports=function(app, prefix) {
         userObj.name = req.body.name;
         userObj.locale = req.body.locale;
         userObj.timezone = req.body.timezone;
+        if (userObj.description === undefined) userObj.description = {}
         userObj.description.text = req.body.description.text;
         // optional fields
         if (req.body.annotations) {
@@ -1304,7 +1307,7 @@ module.exports=function(app, prefix) {
         var res={
           "meta": {
             "code": 401,
-            "error_message": "Call requires authentication: Authentication required to fetch token."
+            "error_message": "Call requires authentication: Valid token required to create message."
           }
         };
         resp.status(401).type('application/json').send(JSON.stringify(res));
@@ -1314,6 +1317,7 @@ module.exports=function(app, prefix) {
       req.apiParams.tokenobj=usertoken;
       req.apiParams.client_id=usertoken.client_id; // is this needed?
       if (!req.body.text) {
+        console.warn('dialect.appdotnet_official.js:POSTchannelsXmessages - body', req.body)
         var res={
           "meta": {
             "code": 500,
