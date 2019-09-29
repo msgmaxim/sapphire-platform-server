@@ -32,7 +32,7 @@ module.exports=function(app, prefix) {
     console.log('admin::list model', model);
     switch(model) {
       case 'channels':
-        cache.searchChannels({}, req.apiParams, function(channels, err, meta) {
+        cache.searchChannels({}, req.apiParams, function(err, channels, meta) {
           const resObj={
             meta: meta,
             data: channels,
@@ -64,7 +64,7 @@ module.exports=function(app, prefix) {
       case 'tokens':
         // look up by token string
         if (id[0] == '@') {
-          cache.getAPITokenByUsername(id.substring(1), function(usertoken, err, meta) {
+          cache.getAPITokenByUsername(id.substring(1), function(err, usertoken, meta) {
             const resObj={
               meta: meta,
               data: usertoken,
@@ -72,7 +72,7 @@ module.exports=function(app, prefix) {
             return sendresponse(resObj, res);
           });
         } else {
-          cache.getAPIUserToken(id, function(usertoken, err, meta) {
+          cache.getAPIUserToken(id, function(err, usertoken, meta) {
             const resObj={
               meta: meta,
               data: usertoken,
@@ -82,7 +82,7 @@ module.exports=function(app, prefix) {
         }
       break;
       case 'channels':
-        cache.getChannel(id, req.apiParams, function(channel, err, meta) {
+        cache.getChannel(id, req.apiParams, function(err, channel, meta) {
           const resObj={
             meta: meta,
             data: channel,
@@ -100,7 +100,7 @@ module.exports=function(app, prefix) {
   app.get(prefix + '/channels/:cid/interactions', (req, res) => {
     const cid = req.params.cid;
     //console.log('loading channel', cid);
-    cache.getChannelDeletions(cid, req.apiParams, function(interactions, err, meta) {
+    cache.getChannelDeletions(cid, req.apiParams, function(err, interactions, meta) {
       if (err) {
         console.error('getMessage err', err);
         const resObj={
@@ -124,7 +124,7 @@ module.exports=function(app, prefix) {
     const cid = req.params.cid;
     const mid = req.params.mid;
     //console.log('message id', mid);
-    cache.getMessage(mid, function(message, err, meta) {
+    cache.getMessage(mid, function(err, message, meta) {
       if (err) {
         console.error('getMessage err', err);
         const resObj={
@@ -149,7 +149,7 @@ module.exports=function(app, prefix) {
     const mid = req.params.mid;
     //console.log('message id', mid);
     // marks it is_deleted: 1
-    cache.deleteMessage(mid, cid, function(message, err, meta) {
+    cache.deleteMessage(mid, cid, function(err, message, meta) {
       if (err) {
         console.error('getMessage err', err);
         const resObj={
@@ -175,7 +175,7 @@ module.exports=function(app, prefix) {
     switch(model) {
       case 'users':
         // "password" (2nd) parameter is not saved/used
-        cache.addUser(req.body.username, '', function(user, err, meta) {
+        cache.addUser(req.body.username, '', function(err, user, meta) {
           const resObj={
             meta: meta,
             data: user,
@@ -187,7 +187,7 @@ module.exports=function(app, prefix) {
         const tokenIn = req.body;
         // console.log('creating token', tokenIn);
         if (tokenIn.expireInMins !== undefined && tokenIn.token) {
-          cache.addUnconstrainedAPIUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, tokenIn.token, tokenIn.expireInMins, function(token, err, meta) {
+          cache.addUnconstrainedAPIUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, tokenIn.token, tokenIn.expireInMins, function(err, token, meta) {
             const resObj={
               meta: meta,
               data: token,
@@ -195,7 +195,7 @@ module.exports=function(app, prefix) {
             return sendresponse(resObj, res);
           })
         } else {
-          cache.createOrFindUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, function(usertoken, err, meta) {
+          cache.createOrFindUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, function(err, usertoken, meta) {
             const resObj={
               meta: meta,
               data: usertoken,
@@ -217,7 +217,7 @@ module.exports=function(app, prefix) {
     console.log('admin::update model', model, 'id', id);
     switch(model) {
       case 'channels':
-        cache.getChannel(id, req.apiParams, function(channel, err, meta) {
+        cache.getChannel(id, req.apiParams, function(err, channel, meta) {
           // FIXME: WRITE ME
           const resObj={
             meta: meta,
