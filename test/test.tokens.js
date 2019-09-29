@@ -2,10 +2,9 @@ const assert = require('assert')
 
 module.exports = {
   runTests: function(platformApi) {
-    describe('token', () => {
-      it('read token', async () => {
-        const res = await platformApi.serverRequest('token')
-        assert.equal(200, res.statusCode)
+    it('read token', async () => {
+      const res = await platformApi.serverRequest('token')
+      assert.equal(200, res.statusCode)
 /*
 res {
   app: {
@@ -37,8 +36,28 @@ res {
   invite_link: 'https://join.app.net/from/notareallink'
 }
 */
-        //console.log('res', res.response.data)
+      //console.log('res', res.response.data)
+    })
+    it('read config', async () => {
+      const configRes = await platformApi.serverRequest('config')
+      assert.equal(200, configRes.statusCode)
+    })
+    it('read oembed', async () => {
+      const oembedRes = await platformApi.serverRequest('oembed', {
+        params: {
+          url: '',
+        }
       })
+      assert.equal(200, oembedRes.statusCode)
+    })
+    it('process text', async () => {
+      const textRes = await platformApi.serverRequest('text/process', {
+        method: 'POST',
+        objBody: {
+          text: "This is #awesome tell @voidfiles about http://google.com",
+        }
+      })
+      assert.equal(200, textRes.statusCode)
     })
   },
 }
