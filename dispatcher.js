@@ -75,7 +75,7 @@ function normalizeUserID(input, tokenobj, callback) {
   var ref=module.exports;
   if (input[0]=='@') {
     //console.log('dispatcher::normalizeUserID @', input.substr(1))
-    ref.cache.getUserID(input.substr(1), function(userobj, err) {
+    ref.cache.getUserID(input.substr(1), function(err, userobj) {
       if (err) {
         console.log('dispatcher.js::normalizeUserID err', err);
       }
@@ -197,7 +197,7 @@ module.exports = {
     function makePost() {
       //console.log('dispatcher::addPost annotations - ', post.annotations);
       // text, entities, postcontext, callback
-      ref.cache.addPost(post, tokenObj, function(dbpost, err, meta) {
+      ref.cache.addPost(post, tokenObj, function(err, dbpost, meta) {
         if (dbpost) {
           // FIXME: annotations may not be returned on post creation
           if (post.annotations) {
@@ -234,7 +234,7 @@ module.exports = {
               //console.log('dispatcher.js::addPost - rewriting HTML to', dbpost.html, 'for', dbpost.id);
               //updatePostHTML: function(postid, html, callback) {
               //ref.cache.setPost(dbpost, function(fixedPost, err) {
-              ref.cache.updatePostHTML(dbpost.id, textProc.html, function(fixedPost, err) {
+              ref.cache.updatePostHTML(dbpost.id, textProc.html, function(err, fixedPost) {
                 if (err) console.error('dispatcher.js::addPost - fixedPost', err);
                 if (fixedPost) {
                   //console.log('dispatcher.js::addPost - fixedPost', fixedPost);
@@ -291,7 +291,7 @@ module.exports = {
         cb();
         return;
       }
-      ref.cache.getUser(post.userid, function(user, err, meta) {
+      ref.cache.getUser(post.userid, function(err, user, meta) {
         if (post.text && post.text.match(/{username}/)) {
           post.text=post.text.replace(new RegExp('{username}', 'g'), user.username);
         }
@@ -305,7 +305,7 @@ module.exports = {
       // cache expects post to be in our internal db format
       console.log('post.reply_to', post.reply_to);
       if (post.reply_to) {
-        ref.cache.getPost(post.reply_to, function(parentPost, err, meta) {
+        ref.cache.getPost(post.reply_to, function(err, parentPost, meta) {
           post.thread_id=parentPost.thread_id;
           console.log('post.threadid', post.thread_id);
           cb();
@@ -338,7 +338,7 @@ module.exports = {
         });
         return
       }
-      ref.cache.delPost(postid, function(delRes, dbErr, dbMeta) {
+      ref.cache.delPost(postid, function(dbErr, delRes, dbMeta) {
         // delRes are
         /*
         OkPacket {
@@ -467,7 +467,7 @@ module.exports = {
     }
     dataPost.created_at=new Date(post.created_at); // fix incoming created_at iso date to Date
 
-    function finishSending(dataPost, err, meta) {
+    function finishSending(err, dataPost, meta) {
       module.exports.pumpStreams({
         id:   post.id,
         type: 'post',
@@ -480,7 +480,7 @@ module.exports = {
     //console.log('dispatcher::setPost - user is', post.userid);
     if (post.source) {
       var ref=this;
-      this.cache.setSource(post.source, function(client, err) {
+      this.cache.setSource(post.source, function(err, client) {
         // param order is correct
         //console.log('addPost setSource returned ', client, err, dataPost);
         if (err) {
@@ -539,7 +539,7 @@ module.exports = {
     if (post.source) {
       var ref=this;
       // find it (or create it for caching later)
-      this.cache.setSource(post.source, function(client, err) {
+      this.cache.setSource(post.source, function(err, client) {
         if (err) {
           console.log('can\'t setSource ', err);
         } else {
@@ -637,7 +637,7 @@ module.exports = {
       if (params.generalParams.starred_by) {
         //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - write me!');
         postDone.starred_by=false;
-        this.cache.getPostStars(post.id, {}, function(interactions, err, meta) {
+        this.cache.getPostStars(post.id, {}, function(err, interactions, meta) {
           if (!interactions || !interactions.length) {
             data.starred_by=[];
             setDone('starred_by');
@@ -649,15 +649,15 @@ module.exports = {
             userids.push(action.userid);
           }
           //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - getting users', userids);
-          ref.cache.getUsers(userids, params, function(userObjs, userErr, meta) {
+          ref.cache.getUsers(userids, params, function(userErr, userObjs, meta) {
             //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - got', userObjs.length);
             var rUsers=[]
             for(var i in userObjs) {
-              ref.userToAPI(userObjs[i], tokenObj, function(adnUserObj, err) {
+              ref.userToAPI(userObjs[i], tokenObj, function(err, adnUserObj) {
                 //console.log('dispatcher.js::postToAPI - got', adnUserObj, 'for', users[i])
                 rUsers.push(adnUserObj)
                 //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - ', rUsers.length, 'vs', userids.length);
-                if (rUsers.length==userids.length) {
+                if (rUsers.length===userids.length) {
                   data.starred_by=rUsers;
                   //console.log('marking starred_by done');
                   setDone('starred_by');
@@ -670,7 +670,7 @@ module.exports = {
       if (params.generalParams.reposters) {
         //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - write me!');
         postDone.reposters=false;
-        this.cache.getReposts(post.id, {}, tokenObj, function(posts, err, meta) {
+        this.cache.getReposts(post.id, {}, tokenObj, function(err, posts, meta) {
           if (!posts || !posts.length) {
             data.reposters=[];
             setDone('reposters');
@@ -684,7 +684,7 @@ module.exports = {
             }
           }
           //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - getting users', userids);
-          ref.cache.getUsers(userids, params, function(userObjs, userErr, meta) {
+          ref.cache.getUsers(userids, params, function(userErr, userObjs, meta) {
             //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - got', userObjs.length);
             var rUsers=[]
             for(var i in userObjs) {
@@ -761,7 +761,7 @@ module.exports = {
 
     function loadUser(userid, params, cb) {
       //console.log('dispatcher.js::postToAPI('+post.id+') - getting user '+post.userid);
-      ref.getUser(userid, params, function(user, userErr, userMeta) {
+      ref.getUser(userid, params, function(userErr, user, userMeta) {
         //console.log('dispatcher.js::postToAPI('+post.id+') - got user '+post.userid, err);
         if (!user) {
           user={
@@ -884,7 +884,7 @@ module.exports = {
             cb();
           }
         }
-        ref.cache.getUserStarPost(tokenObj.userid, data.id, function(res, err) {
+        ref.cache.getUserStarPost(tokenObj.userid, data.id, function(err, res) {
           //console.log('dispatcher.js::postToAPI -  getUserStarPost got', res);
           starDone=true;
           //repostDone=true
@@ -895,7 +895,7 @@ module.exports = {
         //console.log('is this post', data.id, 'by', tokenObj.userid);
 
         // what if this isn't repost but we did retweet
-        ref.cache.getUserRepostPost(tokenObj.userid, post.id, function(res, err) {
+        ref.cache.getUserRepostPost(tokenObj.userid, post.id, function(err, res) {
           //console.log('dispatcher.js::postToAPI:::loadContext -', post.id, 'hasRepost', res.id);
           data.you_reposted=false;
           if (res && res.id) {
@@ -909,7 +909,7 @@ module.exports = {
         // well we only need if this is a repost
         if (post.repost_of) {
           // we'll need to look at it
-          ref.cache.getUserRepostPost(tokenObj.userid, post.thread_id, function(res, err) {
+          ref.cache.getUserRepostPost(tokenObj.userid, post.thread_id, function(err, res) {
             //console.log('dispatcher.js::postToAPI:::loadContext -', post.id, 'isRepost', res.id);
             repostRepostDone=true;
             data.you_reposted=false;
@@ -1033,12 +1033,12 @@ module.exports = {
     //console.log('dispatcher.js::addRepost - start', postid);
     var ref=this;
     // if postid is a repost_of
-    this.cache.getPost(postid, function(srcPost, err) {
+    this.cache.getPost(postid, function(err, srcPost) {
       var originalPost=postid
       if (srcPost.repost_of) {
         originalPost=srcPost.thread_id
       }
-      ref.cache.addRepost(postid, originalPost, tokenObj, function(dbPost, err, meta) {
+      ref.cache.addRepost(postid, originalPost, tokenObj, function(err, dbPost, meta) {
         if (err) {
           console.error('dispatcher.js::addRepost - err', err);
         }
@@ -1050,7 +1050,7 @@ module.exports = {
   },
   delRepost: function(postid, tokenObj, callback) {
     var ref = this;
-    this.cache.delRepost(postid, tokenObj, function(success, err, meta) {
+    this.cache.delRepost(postid, tokenObj, function(err, success, meta) {
       // postToAPI function(post, params, token, callback, meta) {
       ref.getPost(postid, { generalParams: { deleted: true } }, callback);
     });
@@ -1078,7 +1078,7 @@ module.exports = {
     }
     var ref=this;
     //console.log('dispatcher.js::getPost - getting id',id);
-    this.cache.getPost(id, function(post, err, meta) {
+    this.cache.getPost(id, function(err, post, meta) {
       if (post) {
         //console.log('dispatcher.js::getPost - GotPost', post);
         //console.log('dispatcher.js::getPost - GotPost',post.id);
@@ -1099,7 +1099,7 @@ module.exports = {
     // userid can't be me without a token
     // userid could be a username though
     // FIXME: make sure postid is a number
-    this.cache.getPost(postid, function(post, err) {
+    this.cache.getPost(postid, function(err, post) {
       if (!post || err) {
         callback([], 'no posts for replies: '+err);
         return;
@@ -1110,7 +1110,7 @@ module.exports = {
       if (downloader.apiroot != 'NotSet') {
         downloader.downloadThread(post.thread_id, token);
       }
-      ref.cache.getReplies(post.thread_id, params, token, function(posts, err, meta) {
+      ref.cache.getReplies(post.thread_id, params, token, function(err, posts, meta) {
         //console.log('dispatcher.js::getReplies - returned meta ', meta);
         // data is an array of entities
         var apiposts={}, postcounter=0;
@@ -1163,7 +1163,7 @@ module.exports = {
     }
     var ref=this;
     // is this blocking execution? yes, I think it is
-    this.cache.getUser(userid, function(user, err) {
+    this.cache.getUser(userid, function(err, user) {
       if (err) {
         console.log('dispatcher.js::getMentions - getUser err', err);
       }
@@ -1176,7 +1176,7 @@ module.exports = {
       }
     });
     // userid could be a username though
-    this.cache.getMentions(userid, params, function(entities, err, meta) {
+    this.cache.getMentions(userid, params, function(err, entities, meta) {
       // data is an array of entities
       var apiposts={};
       var count=0;
@@ -1219,7 +1219,7 @@ module.exports = {
   getGlobal: function(params, callback) {
     var ref=this;
     //console.log('dispatcher.js::getGlobal - start');
-    this.cache.getGlobal(params, function(posts, err, meta) {
+    this.cache.getGlobal(params, function(err, posts, meta) {
       // meta is garbage
       // more yes or no
       //console.log('dispatcher.js::getGlobal - returned meta', meta);
@@ -1277,7 +1277,7 @@ module.exports = {
    */
   getExplore: function(params, callback) {
     var ref=this;
-    this.cache.getExplore(params, function(endpoints, err, meta) {
+    this.cache.getExplore(params, function(err, endpoints, meta) {
       //console.log('dispatcher.js::getExplore - returned meta', meta);
       callback(endpoints, null, meta);
     });
@@ -1288,8 +1288,8 @@ module.exports = {
     normalizeUserID(user, tokenObj, function(userid, err) {
       //console.log('dispatcher.js::getUserStream - got', userid);
       if (downloader.apiroot != 'NotSet') {
-        ref.cache.getUser(userid, function(userdata, err, meta) {
-          ref.cache.getFollowing(user, {}, function(followings, err) {
+        ref.cache.getUser(userid, function(err, userdata, meta) {
+          ref.cache.getFollowing(user, {}, function(err, followings) {
             if (!followings || !followings.length) {
               // Yer following no one
               console.log('likely we need to sync followers for', user);
@@ -1313,7 +1313,7 @@ module.exports = {
       //params.pageParams.count+=1; // add one at the end to check if there's more
       // before_id
       //console.log('dispatcher.js::getUserStream - count', params.count);
-      ref.cache.getUserPostStream(userid, params, tokenObj, function(posts, err, meta) {
+      ref.cache.getUserPostStream(userid, params, tokenObj, function(err, posts, meta) {
         // data is an array of entities
         var apiposts={}, postcounter=0;
         //if (posts) console.log('dispatcher.js:getUserStream - mapping '+posts.length);
@@ -1369,7 +1369,7 @@ module.exports = {
   getUnifiedStream: function(user, params, token, callback) {
     console.log('dispatcher.js::getUnifiedStream', user);
     var ref=this;
-    this.cache.getUnifiedStream(user, params, function(posts, err, meta) {
+    this.cache.getUnifiedStream(user, params, function(err, posts, meta) {
       // data is an array of entities
       var apiposts={}, postcounter=0;
       //console.log('dispatcher.js:getUserPosts - mapping '+posts.length);
@@ -1411,7 +1411,7 @@ module.exports = {
     var ref=this;
     normalizeUserID(user, params.tokenobj, function(userid) {
       //console.log('dispatcher.js::getUserPosts - userid:', userid);
-      ref.cache.getUserPosts(userid, params, function(posts, err, meta) {
+      ref.cache.getUserPosts(userid, params, function(err, posts, meta) {
         // data is an array of entities
         var apiposts={}, postcounter=0;
         //console.log('dispatcher.js:getUserPosts - mapping '+posts.length);
@@ -1419,7 +1419,7 @@ module.exports = {
           posts.map(function(current, idx, Arr) {
             //console.log('dispatcher.js:getUserPosts - map postid: '+current.id);
             // get the post in API foromat
-            ref.postToAPI(current, params, params.tokenobj, function(post, err, postmeta) {
+            ref.postToAPI(current, params, params.tokenobj, function(err, post, postmeta) {
               // cache?? no
               apiposts[post.id]=post;
               postcounter++;
@@ -1497,7 +1497,7 @@ module.exports = {
       }
     }
 
-    this.cache.getInteractions('star', userid, params, function(interactions, err, meta) {
+    this.cache.getInteractions('star', userid, params, function(err, interactions, meta) {
       // make sure stars are up to date
       if (downloader.apiroot != 'NotSet') {
         console.log('dispatcher.js::getUserStars - start d/l');
@@ -1547,7 +1547,7 @@ module.exports = {
   getHashtag: function(hashtag, params, callback) {
     var ref=this;
     //console.log('dispatcher.js:getHashtag - start #'+hashtag);
-    this.cache.getHashtagEntities(hashtag, params, function(entities, err, meta) {
+    this.cache.getHashtagEntities(hashtag, params, function(err, entities, meta) {
       // data is an array of entities
       var apiposts=[];
       //console.log('dispatcher.js:getHashtag - mapping '+entities.length);
@@ -1574,7 +1574,7 @@ module.exports = {
   getExploreFeed: function(feed, params, callback) {
     //console.log('dispatcher.js::getExploreFeed(', feed, ',...,...) - start');
     var ref=this;
-    this.cache.getExploreFeed(feed, params, function(posts, err, meta) {
+    this.cache.getExploreFeed(feed, params, function(err, posts, meta) {
       //console.log('dispatcher.js::getExploreFeed - gotExploreFeed');
       // definitely need this system
       ref.idsToAPI(posts, params, callback, meta);
@@ -1629,7 +1629,7 @@ module.exports = {
   postSearch: function(query, params, tokenObj, callback) {
     var ref=this;
     console.log('postSearch query', query)
-    this.cache.searchPosts(query, params, function(users, err, meta) {
+    this.cache.searchPosts(query, params, function(err, users, meta) {
       //console.log('dispatcher.js::userSearch - got', users.length, 'users')
       if (!users.length) {
         callback([], null, meta);
@@ -1847,7 +1847,7 @@ module.exports = {
       if (tokenObj.subscribedOpt===undefined && tokenObj.unsubscribedOpt===undefined) {
         //console.log('dispatcher.js::channelToAPI - are you subscribed?', tokenObj.userid);
         channelDone.subscribed = false
-        ref.cache.getSubscription(api.id, tokenObj.userid, function(subed, err) {
+        ref.cache.getSubscription(api.id, tokenObj.userid, function(err, subed) {
           //console.log('dispatcher.js::channelToAPI - are you subscribed?', subed);
           api.you_subscribed=false;
           if (subed) {
@@ -1939,7 +1939,7 @@ module.exports = {
     var ref=this;
     // map API to DB
     this.apiToChannel(json, {}, function(channel, convertErr) {
-      ref.cache.setChannel(channel, ts, function(chnl, err) {
+      ref.cache.setChannel(channel, ts, function(err, chnl) {
         // if newer update annotations
         if (callback) {
           callback(chnl, err || convertErr);
@@ -1956,7 +1956,7 @@ module.exports = {
     // (and the ACLs can only be updated if immutable=false).
     // The you_can_edit property tells you if you are allowed to update a channel. Currently, only the Channel owner can edit a channel.
     var ref = this;
-    this.cache.getChannel(channelid, params, function(channel, err, meta) {
+    this.cache.getChannel(channelid, params, function(err, channel, meta) {
       if (err) {
         console.error('dispatcher.js::updateChannel - err', err)
         return callback(err, false, meta)
@@ -2038,7 +2038,7 @@ module.exports = {
       api.owner={};
       ref.apiToChannel(api, {}, function(channel, err, meta) {
         delete channel.id;
-        ref.cache.addChannel(token.userid, channel, function(channelRes, createErr, createMeta) {
+        ref.cache.addChannel(token.userid, channel, function(createErr, channelRes, createMeta) {
           //console.log('dispatcher::addChannel', channelRes.id);
           ref.setAnnotations('channel', channelRes.id, api.annotations, function() {
             ref.channelToAPI(channelRes, params, token, callback, createMeta);
@@ -2053,7 +2053,7 @@ module.exports = {
       }
       console.log('dispatcher.addChannel - detecting pm channel creation, dedupe check for', group);
       // destinations is input string (comma sep list: @,ints)
-      this.cache.getPMChannel(group, function(nChannel_id, err, createMeta) {
+      this.cache.getPMChannel(group, function(err, nChannel_id, createMeta) {
         console.log('dispatcher.addChannel - dedupe result', nChannel_id);
         if (nChannel_id) {
           ref.getChannel(nChannel_id, params, callback);
@@ -2081,17 +2081,17 @@ module.exports = {
         inactive: new Date(),
       }
       //console.log('dispatcher::deactiveChannel', channelid, params, token);
-      ref.cache.updateChannel(channelid, chnl, function(success, err2, meta2) {
+      ref.cache.updateChannel(channelid, chnl, function(err2, success, meta2) {
         //channel.is_deleted = true;
         channel.is_inactive = true;
         callback(channel, '', meta);
         //ref.channelToAPI(channel, params, token, callback, meta2);
       })
       // FIXME: get rid of the N+1 and delete all in one query
-      ref.cache.getChannelSubscriptions(channelid, { }, function(subs, err, meta) {
+      ref.cache.getChannelSubscriptions(channelid, { }, function(err, subs, meta) {
         for(var i in subs) {
           var userid = subs[i].userid
-          ref.cache.setSubscription(channelid, userid, true, new Date(), function(subscription, err) {
+          ref.cache.setSubscription(channelid, userid, true, new Date(), function(err, subscription) {
             console.log('dispatcher::deactiveChannel - remove used from channel', channelid)
           })
         }
@@ -2164,7 +2164,7 @@ module.exports = {
     var ref=this;
     //console.log('dispatcher::getUserChannels - userid', tokenobj.userid)
     //console.log('dispatcher::getUserChannels - params', params)
-    this.cache.getUserChannels(tokenobj.userid, params, function(channels, err, meta) {
+    this.cache.getUserChannels(tokenobj.userid, params, function(err, channels, meta) {
       if (err) console.error('dispatcher.js::getUserChannels - getUserChannels', err)
       //console.log('dispatcher::getUserChannels - channels', channels.length)
       if (!channels.length) {
@@ -2206,7 +2206,7 @@ module.exports = {
     }
     //console.log('dispatcher.js::getChannel - ids', ids);
     var ref=this;
-    this.cache.getChannel(ids, params, function(channels, err, meta) {
+    this.cache.getChannel(ids, params, function(err, channels, meta) {
       if (channels === undefined) {
         callback([], err, meta);
         return;
@@ -2278,7 +2278,7 @@ module.exports = {
   },
   channelSearch: function(criteria, params, tokenObj, callback) {
     var ref = this;
-    this.cache.searchChannels(criteria, params, function(channels, err, meta) {
+    this.cache.searchChannels(criteria, params, function(err, channels, meta) {
       if (!channels.length) {
         callback([], err, meta);
         return;
@@ -2519,7 +2519,7 @@ module.exports = {
       is_deleted: json.is_deleted,
       created_at: json.created_at
     };
-    this.cache.setMessage(message, function(msg, err) {
+    this.cache.setMessage(message, function(err, msg) {
       // if current, extract annotations too
       if (callback) {
         callback(msg, err);
@@ -2535,7 +2535,7 @@ module.exports = {
     // change channel permissions
     function continueAddMessage(channel_id) {
       //console.log('dispatcher.js::addMessage - checking channel', channel_id, 'permission for token user', tokenobj?tokenobj.userid:0)
-      ref.cache.getChannel(channel_id, params, function(channel, channelErr, channelMeta) {
+      ref.cache.getChannel(channel_id, params, function(channelErr, channel, channelMeta) {
         if (channelErr) console.error('dispatcher::addMessage - channelErr', channelErr)
         if (!channel) {
           console.warn('dispatcher::addMessage - no channel for', channel_id)
@@ -2552,7 +2552,7 @@ module.exports = {
     }
 
     function getMessageThreadID(reply_to, cb) {
-      ref.cache.getMessage(reply_to, function(message, err) {
+      ref.cache.getMessage(reply_to, function(err, message) {
         if (err) {
           console.error('message getThreadID', err);
           return cb();
@@ -2601,7 +2601,7 @@ module.exports = {
           cb();
           return;
         }
-        ref.cache.getUser(message.userid, function(user, err, meta) {
+        ref.cache.getUser(message.userid, function(err, user, meta) {
           if (message.text && message.text.match(/{username}/)) {
             message.text=message.text.replace(new RegExp('{username}', 'g'), user.username);
           }
@@ -2616,7 +2616,7 @@ module.exports = {
         // after username is in place, we'll have better positions
         getEntities(message, function() {
           //console.log('dispatcher.js::addMessage - message', message);
-          ref.cache.addMessage(message, function(msg ,err, meta) {
+          ref.cache.addMessage(message, function(err, msg, meta) {
             if (err) {
               console.log('dispatcher.js::addMessage - err', err);
               callback([], err, {
@@ -2633,7 +2633,7 @@ module.exports = {
                 ref.cache.setMessage({
                   id: msg.id,
                   channel_id: channel_id
-                }, function(omsg) {
+                }, function(err, omsg) {
                   // omsg will be 1 if it's an update
                   //console.log('channel set', channel_id, 'for', msg.id, omsg);
                 });
@@ -2668,7 +2668,7 @@ module.exports = {
         callback({}, 'no destinations passed');
         return;
       }
-      this.cache.getPMChannel(postdata.destinations, function(nChannel_id, err) {
+      this.cache.getPMChannel(postdata.destinations, function(err, nChannel_id) {
         //console.log('dispatcher.js::addMessage - pm channel is', nChannel_id, err);
         continueAddMessage(nChannel_id);
       });
@@ -2695,7 +2695,7 @@ module.exports = {
     }
     var ref=this;
     //console.log('dispatcher.js::deleteMessage - checking channel', channel_id, 'permission for token user', tokenobj?tokenobj.userid:0)
-    ref.cache.getChannel(channel_id, params, function(channel, channelErr, channelMeta) {
+    ref.cache.getChannel(channel_id, params, function(channelErr, channel, channelMeta) {
       if (!ref.checkWriteChannelAccess(channel, tokenObj?tokenObj.userid:0)) {
         console.log('dispatcher.js::deleteMessage - denying channel access')
         callback({}, 'access denied to channel', {
@@ -2726,7 +2726,7 @@ module.exports = {
           });
           return;
         }
-        ref.cache.deleteMessage(message_id, channel_id, function(msg, err, meta) {
+        ref.cache.deleteMessage(message_id, channel_id, function(err, msg, meta) {
           //console.log('dispatcher.js::deleteMessage - api1', msg);
           apiMsg.is_deleted = true;
           callback(apiMsg, apiErr, apiMeta);
@@ -2745,7 +2745,7 @@ module.exports = {
   getMessage: function(mids, params, tokenObj, callback) {
     //console.log('dispatcher.js::getMessage - mids', mids);
     var ref=this;
-    this.cache.getMessage(mids, function(messages, err, meta) {
+    this.cache.getMessage(mids, function(err, messages, meta) {
       // make messages an array if not
       if (!(messages instanceof Array)) {
         messages = [ messages ];
@@ -2782,7 +2782,7 @@ module.exports = {
       return;
     }
     //getChannel: function(ids, params, callback) {
-    this.cache.getChannel(cid, params, function(channel, channelErr, channelMeta) {
+    this.cache.getChannel(cid, params, function(channelErr, channel, channelMeta) {
       //console.log('dispatcher.js:getChannelMessages - check', channel)
       if (!channel) {
         callback([], 'no such channel', {
@@ -2812,7 +2812,7 @@ module.exports = {
       if (nParams.before_id===undefined) nParams.before_id=-1; // -1 being the very end
       */
 
-      ref.cache.getChannelMessages(cid, params, function(messages, err, meta) {
+      ref.cache.getChannelMessages(cid, params, function(err, messages, meta) {
         //console.log('dispatcher.js::getChannelMessages -', cid, 'has', messages.length);
         if (!messages.length) {
           callback([], err);
@@ -2840,7 +2840,7 @@ module.exports = {
           }
         }
         if (params.tokenobj && params.tokenobj.userid) {
-          ref.cache.getStreamMarker(params.tokenobj.userid, "channel:"+cid, function(marker, mErr) {
+          ref.cache.getStreamMarker(params.tokenobj.userid, "channel:"+cid, function(mErr, marker) {
             meta = {
               code: 200,
               marker: {
@@ -2897,7 +2897,7 @@ module.exports = {
     //If a user has muted this Channel, this call will automatically unmute the Channel
     var ref=this;
     //addSubscription: function (channel_id, userid, callback) {
-    this.cache.addSubscription(channel_id, tokenobj.userid, function(subscription, err) {
+    this.cache.addSubscription(channel_id, tokenobj.userid, function(err, subscription) {
       params.subscribedOpt = true;
       ref.getChannel(channel_id, params, callback);
     });
@@ -2905,7 +2905,7 @@ module.exports = {
   delChannelSubscription: function(tokenobj, channel_id, params, callback) {
     var ref=this;
     //channel_id, userid, del, ts, callback
-    this.cache.setSubscription(channel_id, tokenobj.userid, true, new Date(), function(subscription, err) {
+    this.cache.setSubscription(channel_id, tokenobj.userid, true, new Date(), function(err, subscription) {
       //delSubscription: function (channel_id, userid, callback) {
       //this.cache.delSubscription(channel_id, tokenobj.userid, function(subscription, err) {
       params.unsubscribedOpt = true;
@@ -2944,7 +2944,7 @@ module.exports = {
     }
     */
 
-    this.cache.getUserSubscriptions(userid, params, function(subs, subsErr, subsMeta) {
+    this.cache.getUserSubscriptions(userid, params, function(subsErr, subs, subsMeta) {
       //console.log('dispatcher.js::getUserSubscriptions - ', userid, 'has', subs.length)
       if (!subs.length) {
         callback([], subsErr, { code: 200, more: false});
@@ -3049,7 +3049,7 @@ module.exports = {
   getChannelSubscriptions: function(channelid, params, callback) {
     var ref = this;
     //console.log('dispatcher.js::getChannelSubscriptions - start');
-    this.cache.getChannelSubscriptions(channelid, params, function(subs, err, meta) {
+    this.cache.getChannelSubscriptions(channelid, params, function(err, subs, meta) {
       if (!subs.length) {
         callback([], '', meta);
       }
@@ -3156,6 +3156,9 @@ module.exports = {
   // id is meta.id, not sure what this is yet
   addStar: function(postid, token, callback) {
     var ref=this
+    // FIXME: get post first
+    // manually hack the output with the incremented counts
+    // then write to db after returned
     // supposed to return post
     this.cache.addStar(postid, token, function() {
       ref.getPost(postid, {}, callback)
@@ -3217,7 +3220,7 @@ module.exports = {
       //console.log('getInteractions - gotUser');
       // was base class getting in the way
       //console.log('getInteractions - calling', userid, params, tokenObj);
-      ref.cache.getNotices(userid, params, tokenObj, function(notices, err) {
+      ref.cache.getNotices(userid, params, tokenObj, function(err, notices) {
         //console.log('dispatcher.js::getInteractions - gotNotice', notices.length);
 
         // actionuserid <= may have to look this up too
@@ -3421,7 +3424,7 @@ module.exports = {
     console.log('getting followers for', userid);
     // lookup self first, and then get down to business
     this.getUser(userid, null, function(user, err) {
-      ref.cache.getFollows(userid, { count: 20 }, function(follows, err) {
+      ref.cache.getFollows(userid, { count: 20 }, function(err, follows) {
         if (!follows.length) {
           done_follows=1;
           checkdone();
@@ -3455,7 +3458,7 @@ module.exports = {
     var starlist=[]
     // not that I starred a post...
     /*
-    this.cache.getInteractions('star', userid, { count: 20 }, function(stars, err) {
+    this.cache.getInteractions('star', userid, { count: 20 }, function(err, stars) {
       if (!stars.length) {
         done_stars=1;
       } else {
@@ -3505,7 +3508,7 @@ module.exports = {
         // reposts
         // get a list of all my posts, did any of them were a repost_of
         // up to 20 reposts (as long as their reposts replies)
-        ref.cache.getReposts(post.id, { count: 20 }, token, function(reposts, err) {
+        ref.cache.getReposts(post.id, { count: 20 }, token, function(err, reposts) {
           /*
           if (!reposts.length) {
             console.log('well no reposts, let\'s check on things. posts: ',postcalls,'postrepostcalls',postrepostcalls);
@@ -3544,7 +3547,7 @@ module.exports = {
         // get a list of all my posts, reply_to
         //console.log('Calling getReplies');
         // up to 20 replies (as long as their recent replies)
-        ref.cache.getReplies(post.id, { count: 20 }, token, function(replies, err) {
+        ref.cache.getReplies(post.id, { count: 20 }, token, function(err, replies) {
           //if (!replies.length) {
             //done_replies=1;
           //} else {
@@ -3577,7 +3580,7 @@ module.exports = {
         });
         // get people that have starred your posts
         // up to 20 stars (as long as their recent stars)
-        ref.cache.getPostStars(post.id, { count: 20 }, function(starredposts, err) {
+        ref.cache.getPostStars(post.id, { count: 20 }, function(err, starredposts) {
           starcount+=starredposts.length;
           for(var j in starredposts) {
             var starpost=starredposts[j];
@@ -3665,7 +3668,7 @@ module.exports = {
       //console.log('made '+data.created_at+' become '+userData.created_at);
       // can we tell the difference between an add or update?
       //console.log('dispatcher.js::updateUser - final', userData)
-      ref.cache.setUser(userData, ts, function(user, err, meta) {
+      ref.cache.setUser(userData, ts, function(err, user, meta) {
         // TODO: define signal if ts is old
         if (callback) {
           callback(user, err, meta);
@@ -3736,7 +3739,7 @@ module.exports = {
       console.log('dispatcher.js::patchUser - annotations', request.annotations);
       this.setAnnotations('user', tokenObj.userid, request.annotations);
     }
-    this.cache.patchUser(tokenObj.userid, changes, function(user, err, meta) {
+    this.cache.patchUser(tokenObj.userid, changes, function(err, user, meta) {
       if (callback) {
         ref.userToAPI(user, tokenObj, function(apiUser, apiErr, apiMeta) {
           callback(apiUser, apiErr, apiMeta);
@@ -3965,7 +3968,7 @@ module.exports = {
       //console.log('dispatcher.js::userToAPI - need tokenFollow');
       // follows_you
       // you_follow
-      this.cache.follows(token.userid, user.id, function(following, err) {
+      this.cache.follows(token.userid, user.id, function(err, following) {
         //console.log('do we follow this guy?', following, 'err', err);
         if (following && following.active) {
           //console.log('flagging as followed');
@@ -4004,7 +4007,7 @@ module.exports = {
       }
       // maybe just spare caminte all together and just callback now
       if (!userid) userid = 0 // don't break caminte
-      ref.cache.getUser(userid, function(userobj, userErr, userMeta) {
+      ref.cache.getUser(userid, function(userErr, userobj, userMeta) {
         if (userErr) {
           console.log('dispatcher.js::getUser - cant get user', userid, userErr);
         }
@@ -4101,7 +4104,7 @@ module.exports = {
     for(var i in users) {
       //console.log('dispatcher.js::getUsers - user', users[i]);
       normalizeUserID(users[i], params.tokenobj, function(userid, err) {
-        ref.cache.getUser(userid, function(userobj, userErr, userMeta) {
+        ref.cache.getUser(userid, function(userErr, userobj, userMeta) {
           //console.log('dispatcher.js::getUsers - gotUser', userErr);
           ref.userToAPI(userobj, params.tokenobj, function(adnUserObj, err) {
             //console.log('dispatcher.js::getUsers - got', adnUserObj, 'for', users[i])
@@ -4116,7 +4119,7 @@ module.exports = {
   },
   userSearch: function(query, params, tokenObj, callback) {
     var ref=this;
-    this.cache.searchUsers(query, params, function(users, err, meta) {
+    this.cache.searchUsers(query, params, function(err, users, meta) {
       //console.log('dispatcher.js::userSearch - got', users.length, 'users')
       if (!users.length) {
         callback([], null, meta);
@@ -4181,7 +4184,7 @@ module.exports = {
     //console.log('dispatcher.js::getFollowing - for', userid);
     var ref=this;
     normalizeUserID(user, tokenObj, function(userid) {
-      ref.cache.getFollowing(userid, params, function(follows, err, meta) {
+      ref.cache.getFollowing(userid, params, function(err, follows, meta) {
         if (err || !follows || !follows.length) {
           callback([], err);
           return;
@@ -4245,7 +4248,7 @@ module.exports = {
     //console.log('dispatcher.js::getFollowers - for', userid);
     var ref=this;
     normalizeUserID(user, tokenObj, function(userid) {
-      ref.cache.getFollows(userid, params, function(follows, err, meta) {
+      ref.cache.getFollows(userid, params, function(err, follows, meta) {
         if (err || !follows || !follows.length) {
           if (err) console.error('dispatcher::getFollowers', err);
           callback([], err);
@@ -4294,8 +4297,8 @@ module.exports = {
     if (userids == 'me') {
       userid = tokenObj.userid;
     }
-    this.cache.getMutes(userid, params, function(mutes, err, meta) {
-      if (!mutes.length) {
+    this.cache.getMutes(userid, params, function(err, mutes, meta) {
+      if (mutes === false || !mutes.length) {
         callback([], err, meta);
         return;
       }
@@ -4319,7 +4322,7 @@ module.exports = {
   addMute: function(userid, params, tokenObj, callback) {
     var ref = this;
     console.log('dispatcher::addMute', userid, 'for', tokenObj.userid);
-    this.cache.addMute(tokenObj.userid, userid, params, function(mute, err) {
+    this.cache.addMute(tokenObj.userid, userid, params, function(err, mute) {
       var nParams = params;
       delete nParams.before_id;
       delete nParams.since_id;
@@ -4329,7 +4332,7 @@ module.exports = {
   deleteMute: function(userid, params, tokenObj, callback) {
     var ref = this;
     console.log('dispatcher::deleteMute', userid, 'for', tokenObj.userid);
-    this.cache.delMute(tokenObj.userid, userid, params, function(mute, err) {
+    this.cache.delMute(tokenObj.userid, userid, params, function(err, mute) {
       var nParams = params;
       delete nParams.before_id;
       delete nParams.since_id;
@@ -4384,9 +4387,9 @@ module.exports = {
     callback(null, null);
   },
   getFiles: function(userid, params, callback) {
+    //console.log('dispatcher.js::getFiles - for user', userid, params);
     var ref=this
-    //console.log('dispatcher.js::getFiles - for user', userid);
-    this.cache.getFiles(userid, params, function(dbFiles, err, meta) {
+    this.cache.getFiles(userid, params, function(err, dbFiles, meta) {
       if (!dbFiles.length) {
         callback([], null)
       }
@@ -4410,7 +4413,7 @@ module.exports = {
     file.total_size=file.size;
     file.created_at=new Date();
     var ref=this;
-    this.cache.addFile(file, tokenObj, function(dbFile, err, meta) {
+    this.cache.addFile(file, tokenObj, function(err, dbFile, meta) {
       // and convert back
       ref.fileToAPI(dbFile, params, tokenObj, function(api, err) {
         callback(api, err);
@@ -4459,7 +4462,7 @@ module.exports = {
     //console.dir(source);
     var ref=this.cache;
     console.log('dispatcher.js::getSource ', source.client_id);
-    this.cache.getClient(source.client_id, function(client, err, meta) {
+    this.cache.getClient(source.client_id, function(err, client, meta) {
       if (client==null || err) {
         //console.log('dispatcher.js::getSource failure ', err, client);
         // we need to create it
@@ -4483,7 +4486,7 @@ module.exports = {
     }
     var ref=this.cache;
     //console.log('dispatcher.js::getClient', client_id);
-    this.cache.getClient(client_id, function(client, err, meta) {
+    this.cache.getClient(client_id, function(err, client, meta) {
       if (err) {
         console.error('dispatcher.js::getClient - err', err);
       }
@@ -4526,7 +4529,7 @@ module.exports = {
     }
     // I'm pretty sure these arrays are always set
     if (entities.mentions && entities.mentions.length) {
-      this.cache.extractEntities(type, id, entities.mentions, 'mention', function(nEntities, err, meta) {
+      this.cache.extractEntities(type, id, entities.mentions, 'mention', function(err, nEntities, meta) {
         mentionsDone=true;
         checkDone();
       });
@@ -4538,7 +4541,7 @@ module.exports = {
       checkDone();
     }
     if (entities.hashtags && entities.hashtags.length) {
-      this.cache.extractEntities(type, id, entities.hashtags, 'hashtag', function(nEntities, err, meta) {
+      this.cache.extractEntities(type, id, entities.hashtags, 'hashtag', function(err, nEntities, meta) {
         hashtagsDone=true;
         checkDone();
       });
@@ -4550,7 +4553,7 @@ module.exports = {
       checkDone();
     }
     if (entities.links && entities.links.length) {
-      this.cache.extractEntities(type, id, entities.links, 'link', function(nEntities, err, meta) {
+      this.cache.extractEntities(type, id, entities.links, 'link', function(err, nEntities, meta) {
         linksDone=true;
         checkDone();
       });
@@ -4565,7 +4568,7 @@ module.exports = {
   /** annotations */
   getAnnotation: function(type, id, callback) {
     var ref=this;
-    this.cache.getAnnotations(type, id, function(notes, err, meta) {
+    this.cache.getAnnotations(type, id, function(err, notes, meta) {
       //console.log('start notes', notes);
       //var fixedNotes=[];
       if (!notes.length) {
@@ -4621,7 +4624,7 @@ module.exports = {
               var scope=function(k, oldValue, fixedSet,i ) {
                 //console.log('oldValue', oldValue);
                 //console.log('looking up', oldValue[k].file_id);
-                ref.cache.getFile(oldValue[k].file_id, function(fData, fErr, fMeta) {
+                ref.cache.getFile(oldValue[k].file_id, function(fErr, fData, fMeta) {
                   //console.log('looking at', oldValue);
                   //console.log('looking at', oldValue[k]);
                   fixedSet.file_id=oldValue[k].file_id;
@@ -4676,7 +4679,7 @@ module.exports = {
         // insert into idtype, id, type, value
         // type, id, note.type, note.value
         //console.log('dispatcher.js::setAnnotations - insert', note.type, note.value);
-        ref.cache.addAnnotation(type, id, note.type, note.value, function(nNote, err) {
+        ref.cache.addAnnotation(type, id, note.type, note.value, function(err, nNote) {
           if (err) {
             console.log('dispatcher.js::setAnnotations - addAnnotation failure', err);
           //} else {
@@ -4916,7 +4919,7 @@ module.exports = {
           }
         } else {
           console.log('Searching for', username);
-          ref.cache.getUserID(username, function(user, userErr, userMeta) {
+          ref.cache.getUserID(username, function(userErr, user, userMeta) {
             if (user) {
               console.log('got', user.id);
               // save in cache
