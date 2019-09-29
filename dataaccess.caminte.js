@@ -55,25 +55,24 @@ memoryUpdate = function (model, filter, data, callback) {
       if (exists) {
         mem.save(model, Object.assign(exists, cleanData), callback)
       } else {
-        callback(err, data)
+        callback(err, cleanData)
       }
     })
   } else {
-    console.log('memoryUpdate - not implemented, search by?', filter, data)
+    //console.log('memoryUpdate - not implemented, search by?', filter, data)
     this.all(model, filter, function(err, nodes) {
-      console.log('memoryUpdate - records', nodes)
+      //console.log('memoryUpdate - records', nodes)
       var count = nodes.length
       if (!count) {
-        return callback(false, false)
+        return callback(false, cleanData)
       }
       nodes.forEach(function(node) {
         mem.cache[model][node.id] = Object.assign(node, cleanData)
         if (--count === 0) {
-          callback(false, false)
+          callback(false, cleanData)
         }
       })
     })
-    callback('not implemented', false)
   }
 }
 
