@@ -51,7 +51,7 @@ module.exports=function(app, prefix) {
     //console.log('dialect.*.js::/token  - looking up usertoken', req.token);
     if (req.token!==null && req.token!==undefined && req.token!='') {
       // need to translate token...
-      dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+      dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
         //console.log('usertoken',usertoken);
         //console.log('dialect.*.js::/token  - got usertoken');
         if (usertoken==null) {
@@ -81,7 +81,7 @@ module.exports=function(app, prefix) {
     }
   });
   app.post(prefix+'/posts/marker', function(req, resp) {
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('usertoken', usertoken);
       if (usertoken==null) {
         // could be they didn't log in through a server restart
@@ -101,7 +101,7 @@ module.exports=function(app, prefix) {
   app.get(prefix+'/users/:user_id/interactions', function(req, resp) {
     // req.token
     // req.token convert into userid/sourceid
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('usertoken', usertoken);
       if (usertoken==null) {
         // could be they didn't log in through a server restart
@@ -126,7 +126,7 @@ module.exports=function(app, prefix) {
   });
   // Token: Any
   app.get(prefix+'/posts/:post_id/replies', function(req, resp) {
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       dispatcher.getReplies(req.params.post_id, req.apiParams, usertoken, callbacks.postsCallback(resp, req.token));
     });
   });
@@ -135,7 +135,7 @@ module.exports=function(app, prefix) {
   app.get(prefix+'/users/me/files', function(req, resp) {
     // req.token
     // req.token convert into userid/sourceid
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('usertoken', usertoken);
       if (usertoken==null) {
         // could be they didn't log in through a server restart
@@ -145,18 +145,17 @@ module.exports=function(app, prefix) {
             "error_message": "Call requires authentication: Authentication required to fetch token."
           }
         };
-        resp.status(401).type('application/json').send(JSON.stringify(res));
-      } else {
-        // This endpoint accepts the interaction_actions as a query string parameter whose value
-        // is a comma separated list of actions you’re interested in. For instance, if you’re
-        // only interested in repost and follow interactions you could request
-        // users/me/interactions?interaction_actions=repost,follow.
-
-        // I don't think we want to pass the full token
-        // wut? why not?
-
-        dispatcher.getFiles(usertoken.userid, req.apiParams, callbacks.dataCallback(resp));
+        return resp.status(401).type('application/json').send(JSON.stringify(res));
       }
+      // This endpoint accepts the interaction_actions as a query string parameter whose value
+      // is a comma separated list of actions you’re interested in. For instance, if you’re
+      // only interested in repost and follow interactions you could request
+      // users/me/interactions?interaction_actions=repost,follow.
+
+      // I don't think we want to pass the full token
+      // wut? why not?
+
+      dispatcher.getFiles(usertoken.userid, req.apiParams, callbacks.dataCallback(resp));
     });
   });
 
@@ -165,7 +164,7 @@ module.exports=function(app, prefix) {
   app.get(prefix+'/users/:user_id/muted', function(req, resp) {
     // req.token
     // req.token convert into userid/sourceid
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('usertoken', usertoken);
       if (usertoken==null) {
         // could be they didn't log in through a server restart
@@ -185,7 +184,7 @@ module.exports=function(app, prefix) {
   app.post(prefix+'/users/:user_id/mute', function(req, resp) {
     // req.token
     // req.token convert into userid/sourceid
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('usertoken', usertoken);
       if (usertoken==null) {
         // could be they didn't log in through a server restart
@@ -206,7 +205,7 @@ module.exports=function(app, prefix) {
   app.delete(prefix+'/users/:user_id/mute', function(req, resp) {
     // req.token
     // req.token convert into userid/sourceid
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('usertoken', usertoken);
       if (usertoken==null) {
         // could be they didn't log in through a server restart
@@ -227,7 +226,7 @@ module.exports=function(app, prefix) {
   app.get(prefix+'/users/search', function(req, resp) {
     // req.token
     // req.token convert into userid/sourceid
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('usertoken', usertoken);
       if (usertoken==null) {
         // could be they didn't log in through a server restart
@@ -248,7 +247,7 @@ module.exports=function(app, prefix) {
   function followHandler(req, resp) {
     // can also be @username
     var followsid=req.params.user_id;
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('usertoken', usertoken);
       if (usertoken==null) {
         // could be they didn't log in through a server restart
@@ -278,7 +277,7 @@ module.exports=function(app, prefix) {
     // can also be @username
     var followsid=req.params.user_id;
     console.log('body', req.body);
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('usertoken', usertoken);
       if (usertoken==null) {
         // could be they didn't log in through a server restart
@@ -324,7 +323,7 @@ module.exports=function(app, prefix) {
       if (req.body.annotations) {
         postdata.annotations=req.body.annotations;
       }
-      dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+      dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
         if (err) {
           console.error('ADNO::POST/posts - token err', err);
         }
@@ -352,7 +351,7 @@ module.exports=function(app, prefix) {
   });
   app.delete(prefix+'/posts/:post_id', function(req, resp) {
     // can also be @username
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       if (usertoken==null) {
         console.log('dialect.appdotnet_official.js:DELETE/posts - no token');
         // could be they didn't log in through a server restart
@@ -402,7 +401,7 @@ module.exports=function(app, prefix) {
     //console.log('looking for type - params:', req.params, 'body:', req.body);
     // type is in req.body.type
     //console.log('POSTfiles - req token', req.token);
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       if (err) {
         console.log('dialect.appdotnet_official.js:POSTfiles - token err', err);
       }
@@ -523,7 +522,7 @@ module.exports=function(app, prefix) {
 
   function starHandler(req, resp) {
     // req.apiParams.tokenobj isn't set because IO
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       if (usertoken==null) {
         console.log('dialect.appdotnet_official.js:POST/posts/ID/star - no token');
         // could be they didn't log in through a server restart
@@ -544,7 +543,7 @@ module.exports=function(app, prefix) {
   app.put(prefix+'/posts/:post_id/star', starHandler);
   app.delete(prefix+'/posts/:post_id/star', function(req, resp) {
     // req.apiParams.tokenobj isn't set because IO
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       if (usertoken==null) {
         console.log('dialect.appdotnet_official.js:DELETE/posts/ID/star - no token');
         // could be they didn't log in through a server restart
@@ -564,7 +563,7 @@ module.exports=function(app, prefix) {
 
   function repostHandler(req, resp) {
     // req.apiParams.tokenobj isn't set because IO
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       if (usertoken==null) {
         console.log('dialect.appdotnet_official.js:DELETE/posts/ID/star - no token');
         // could be they didn't log in through a server restart
@@ -585,7 +584,7 @@ module.exports=function(app, prefix) {
   app.put(prefix+'/posts/:post_id/repost', repostHandler);
   app.delete(prefix+'/posts/:post_id/repost', function(req, resp) {
     // req.apiParams.tokenobj isn't set because IO
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       if (usertoken==null) {
         console.log('dialect.appdotnet_official.js:DELETE/posts/ID/star - no token');
         // could be they didn't log in through a server restart
@@ -606,7 +605,7 @@ module.exports=function(app, prefix) {
   app.get(prefix+'/posts/stream', function(req, resp) {
     //console.log('dialect.appdotnet_official.js:postsStream - start', req.token);
     // don't we already handle this in the middleware
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('usertoken',usertoken);
       if (usertoken==null) {
         console.log('dialect.appdotnet_official.js:postsStream - no token');
@@ -636,7 +635,7 @@ module.exports=function(app, prefix) {
   app.get(prefix+'/posts/search', function(req, resp) {
     //console.log('dialect.appdotnet_official.js:postsSearch - start', req.token);
     // don't we already handle this in the middleware
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:postsSearch - ',usertoken);
       if (usertoken==null) {
         //console.log('dialect.appdotnet_official.js:postsSearch - no token');
@@ -670,7 +669,7 @@ module.exports=function(app, prefix) {
       };
       resp.status(401).type('application/json').send(JSON.stringify(res));
     } else {
-      dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+      dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
         //console.log('usertoken',usertoken);
         if (usertoken==null) {
           console.log('dialect.appdotnet_official.js:postsStreamUnified - no token');
@@ -696,7 +695,7 @@ module.exports=function(app, prefix) {
     }
   });
   app.get(prefix+'/users/:user_id/mentions', function(req, resp) {
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       if (usertoken!=null) {
         //console.log('dialect.appdotnet_official.js:GETchannels - found a token', usertoken);
         req.apiParams.tokenobj=usertoken;
@@ -714,7 +713,7 @@ module.exports=function(app, prefix) {
   });
   */
   app.get(prefix+'/users/:user_id/following', function(req, resp) {
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       if (usertoken===null) {
         var res={
           "meta": {
@@ -732,7 +731,7 @@ module.exports=function(app, prefix) {
     //cb(notimplemented, 'not implemented', { code: 200 });
   });
   app.get(prefix+'/users/:user_id/followers', function(req, resp) {
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       if (usertoken===null) {
         var res={
           "meta": {
@@ -769,7 +768,7 @@ module.exports=function(app, prefix) {
       dispatcher.getUsers(ids, req.apiParams, callbacks.usersCallback(resp));
       return;
     }
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:GETusers/ID - ', usertoken);
       if (usertoken!=null) {
         //console.log('dialect.appdotnet_official.js:GETusers/ID - found a token');
@@ -795,7 +794,7 @@ module.exports=function(app, prefix) {
       dispatcher.getUser(req.params.user_id, req.apiParams, callbacks.dataCallback(resp));
       return;
     }
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:GETusers/ID - ', usertoken);
       if (usertoken!=null) {
         //console.log('dialect.appdotnet_official.js:GETusers/ID - found a token');
@@ -808,7 +807,7 @@ module.exports=function(app, prefix) {
   // Token: User Scope: update_profile
   app.put(prefix+'/users/me', function updateUser(req, resp) {
     //console.log('dialect.appdotnet_official.js:PUTusersX - token', req.token)
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:PUTusersX - usertoken', usertoken)
       if (usertoken===null) {
         var res={
@@ -878,7 +877,7 @@ module.exports=function(app, prefix) {
   // partially update a user (Token: User Scope: update_profile)
   app.patch(prefix+'/users/me', function updateUser(req, resp) {
     //console.log('dialect.appdotnet_official.js:PATCHusersX - token', req.token)
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:PATCHusersX - usertoken', usertoken)
       if (usertoken===null) {
         var res={
@@ -931,7 +930,7 @@ module.exports=function(app, prefix) {
 
   app.get(prefix+'/users/:user_id/posts', function(req, resp) {
     // we need token for stars/context
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('usertoken', usertoken);
       if (usertoken!=null) {
         req.apiParams.pageParams.tokenobj=usertoken;
@@ -947,7 +946,7 @@ module.exports=function(app, prefix) {
       dispatcher.getUserStars(req.params.user_id, req.apiParams, callbacks.dataCallback(resp));
       return;
     }
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:GETusers/ID/stars - ', usertoken);
       if (usertoken!=null) {
         //console.log('dialect.appdotnet_official.js:GETusers/ID/stars - found a token');
@@ -957,7 +956,7 @@ module.exports=function(app, prefix) {
     });
   });
   app.get(prefix+'/posts/tag/:hashtag', function(req, resp) {
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       console.log('dialect.appdotnet_official.js:GETusers/ID/stars - ', usertoken);
       if (usertoken!=null) {
         //console.log('dialect.appdotnet_official.js:GETusers/ID/stars - found a token');
@@ -968,7 +967,7 @@ module.exports=function(app, prefix) {
   });
   app.get(prefix+'/posts/stream/global', function(req, resp) {
     // why data instead of posts?
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       req.apiParams.tokenobj=usertoken;
       dispatcher.getGlobal(req.apiParams, callbacks.postsCallback(resp, req.token));
     });
@@ -989,7 +988,7 @@ module.exports=function(app, prefix) {
   // also Retrieve multiple Channels (token: any)
   app.get(prefix+'/channels', function(req, resp) {
     //console.log('dialect.appdotnet_official.js:GETchannels - token:', req.token);
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:GETchannels - got token:', usertoken);
       var userid='';
       if (usertoken!=null) {
@@ -1023,7 +1022,7 @@ module.exports=function(app, prefix) {
   // token: user, scope: public_messages or messages
   app.get(prefix+'/users/me/channels', function(req, resp) {
     //console.log('dialect.appdotnet_official.js:GETusersMEchannels - token:', req.token);
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:GETusersMEchannels - got token:', usertoken);
       if (usertoken===null) {
         console.log('dialect.appdotnet_official.js:GETchannels - failed to get token:', req.token, typeof(req.token));
@@ -1046,7 +1045,7 @@ module.exports=function(app, prefix) {
   // Create a channel (token: user)
   app.post(prefix+'/channels', function(req, resp) {
     //console.log('dialect.appdotnet_official.js:POSTchannels - token', req.token);
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:POSTchannels - usertoken', usertoken);
       if (usertoken===null) {
         var res={
@@ -1086,7 +1085,7 @@ module.exports=function(app, prefix) {
   app.get(prefix+'/channels/search', function(req, resp) {
     //console.log('dialect.appdotnet_official.js:channelsSearch - start', req.token);
     // don't we already handle this in the middleware
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('usertoken',usertoken);
       if (usertoken==null) {
         //console.log('dialect.appdotnet_official.js:channelsSearch - no token');
@@ -1121,7 +1120,7 @@ module.exports=function(app, prefix) {
   });
 
   app.get(prefix+'/channels/messages', function(req, resp) {
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:GETchannelsMESSAGES - got token:', usertoken);
       var userid='';
       if (usertoken!=null) {
@@ -1137,7 +1136,7 @@ module.exports=function(app, prefix) {
   // channel_id 1383 was always good for testing
   // Retrieve a Channel && Retrieve multiple Channels
   app.get(prefix+'/channels/:channel_id', function(req, resp) {
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:GETchannels - got token:', usertoken);
       var userid='';
       if (usertoken!=null) {
@@ -1153,7 +1152,7 @@ module.exports=function(app, prefix) {
   // update channel (Token: User / Scope: public_messages or messages)
   // maybe a app.patch that calls this too?
   app.put(prefix+'/channels/:channel_id', function(req, resp) {
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:PUTchannels - got token:', usertoken);
       var userid='';
       if (usertoken==null) {
@@ -1196,7 +1195,7 @@ module.exports=function(app, prefix) {
   });
 
   app.delete(prefix+'/channels/:channel_id', function(req, resp) {
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:DELETEchannels - got token:', usertoken);
       var userid='';
       if (usertoken==null) {
@@ -1220,7 +1219,7 @@ module.exports=function(app, prefix) {
 
   // subscribe to a channel (token: user / scope: public_messages or messages)
   app.post(prefix+'/channels/:channel_id/subscribe', function(req, resp) {
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:POSTchannelsXsubscribe - got token:', usertoken);
       var userid='';
       if (usertoken==null) {
@@ -1242,7 +1241,7 @@ module.exports=function(app, prefix) {
 
   // unsubscribe to a channel (token: user / scope: public_messages or messages)
   app.delete(prefix+'/channels/:channel_id/subscribe', function(req, resp) {
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:DELETEchannelsXsubscribe - got token:', usertoken);
       var userid='';
       if (usertoken==null) {
@@ -1265,7 +1264,7 @@ module.exports=function(app, prefix) {
 
   // Retrieve users subscribed to a Channel (Token: Any, Scope: public_messages or messages)
   app.get(prefix+'/channels/:channel_id/subscribers', function(req, resp) {
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       var userid='';
       if (usertoken==null) {
         var res={
@@ -1290,7 +1289,7 @@ module.exports=function(app, prefix) {
       dispatcher.getChannelMessages(req.params.channel_id, req.apiParams, callbacks.dataCallback(resp));
       return;
     }
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       if (usertoken) {
         req.apiParams.tokenobj=usertoken;
       }
@@ -1300,7 +1299,7 @@ module.exports=function(app, prefix) {
   // create message (token: user)
   app.post(prefix+'/channels/:channel_id/messages', function(req, resp) {
     //console.log('dialect.appdotnet_official.js:POSTchannelsXmessages - token', req.token)
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:POSTchannelsXmessages - got token:', usertoken, 'for', req.token);
       var userid='';
       if (usertoken===null) {
@@ -1357,7 +1356,7 @@ module.exports=function(app, prefix) {
   // delete message in channel
   app.delete(prefix+'/channels/:channel_id/messages/:message_id', function(req, resp) {
     //console.log('dialect.appdotnet_official.js:DELETEmessages - channel', req.params.channel_id, 'message', req.params.message_id);
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       //console.log('dialect.appdotnet_official.js:DELETEmessages - got token:', usertoken);
       var userid='';
       if (usertoken==null) {
