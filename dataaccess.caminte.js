@@ -44,18 +44,35 @@ memoryUpdate = function (model, filter, data, callback) {
   }
   filter = filter.where ? filter.where : filter
   var mem = this
-  console.log('memoryUpdate - model', model, 'fitler', filter, 'data', data, 'callback', callback)
+  //console.log('memoryUpdate - model', model, 'fitler', filter, 'data', data, 'callback', callback)
+
+  // filter input to make sure it only contains valid fields
+  var cleanData = this.toDatabase(model, data)
 
   if (data.id) {
+    // should find one and only one
     this.exists(model, data.id, function (err, exists) {
       if (exists) {
-        mem.save(model, data, callback)
+        mem.save(model, Object.assign(exists, cleanData), callback)
       } else {
         callback(err, data)
       }
     })
   } else {
-    console.log('memoryUpdate - not implemented, search by?', data)
+    console.log('memoryUpdate - not implemented, search by?', filter, data)
+    this.all(model, filter, function(err, nodes) {
+      console.log('memoryUpdate - records', nodes)
+      var count = nodes.length
+      if (!count) {
+        return callback(false, false)
+      }
+      nodes.forEach(function(node) {
+        this.cache[model][node.id] = Object.assign(node, cleanData)
+        if (--count === 0) {
+          callback(false, false)
+        }
+      })
+    })
     callback('not implemented', false)
   }
 }
