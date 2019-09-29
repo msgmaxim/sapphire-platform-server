@@ -2,6 +2,9 @@ const path = require('path')
 const nconf = require('nconf')
 const assert = require('assert')
 const lokinet = require('loki-launcher/lokinet')
+const URL = require('url').URL // node 8.x backfill
+
+//require('longjohn')
 
 const ADN_SCOPES = 'stream'
 
@@ -11,7 +14,7 @@ const config_path = path.join(__dirname, '/../config.json')
 const config_model_path = path.join(__dirname, '/config.models.json')
 nconf.argv().env('__').file({file: config_path}).file('model', {file: config_model_path})
 
-const cache = require('../dataaccess.proxy-admin')
+const cache = require('../dataaccess/dataaccess.proxy-admin')
 cache.start(nconf)
 cache.dispatcher = {
   // ignore local user updates
@@ -38,24 +41,25 @@ function findOrCreateUser(username) {
   return new Promise((resolve, rej) => {
 
     // does our test user exist?
-    cache.getUserID(username, function(user, err) {
+    cache.getUserID(username, function(err, user) {
       if (err) {
         console.error('findOrCreateUser::getUserID', err)
         return rej(err)
       }
+      console.log('findOrCreateUser::getUserID result', user)
       if (user !== null) {
         //console.log('found user', user)
         return resolve(user.id)
       }
       // create test user
       console.log('creating test user', username)
-      cache.addUser(username, '', function(user, err) {
+      cache.addUser(username, '', function(err, user) {
         if (err) {
           console.error('findOrCreateUser::addUser', err)
           return rej(err)
         }
         //console.log('created user', user.toString())
-        console.log('created user', user)
+        console.log('created user', user.id)
         resolve(user.id)
       })
     })
@@ -65,7 +69,7 @@ function findOrCreateUser(username) {
 function findOrCreateToken(userid) {
   if (!userid) return false
   return new Promise((resolve, rej) => {
-    cache.createOrFindUserToken(userid, 'mocha_platform_test', ADN_SCOPES, function(usertoken, err) {
+    cache.createOrFindUserToken(userid, 'mocha_platform_test', ADN_SCOPES, function(err, usertoken) {
       if (err) {
         console.error('findOrCreateToken::addAPIUserToken', err)
         rej(err)
@@ -83,6 +87,7 @@ const ensureServer = () => {
       if (free) {
         // we need to configure this to ensure there's an admin api mounted...
         // well we know the config file...
+        console.log('server is started')
         const startPlatform = require('../app')
       } else {
         console.log('detected running server')
@@ -99,13 +104,15 @@ async function setupTesting() {
   describe('ensureServer', async () => {
     it('make sure we have something to test', async () => {
       await ensureServer()
-      console.log('server is started')
-
     })
     // need the following in an `it` to make sure it only happens after the server is set up
     it('setting up token to use with testing', async() => {
       testUserId = await findOrCreateUser('test')
-      console.log('testUserId', testUserId);
+      //console.log('testUserId', testUserId);
+      if (testUserId === undefined) {
+        console.error('Couldnt create/find user to test with');
+        process.exit(1);
+      }
       token = await findOrCreateToken(testUserId)
       // assert we have a token...
       console.log('got token', token, 'for user @test')
