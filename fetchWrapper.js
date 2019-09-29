@@ -1,3 +1,6 @@
+const urlLib = require('url') // node 8.x backfill
+const URL = urlLib.URL
+const URLSearchParams = urlLib.URLSearchParams
 
 // ES2015 arrow functions cannot be constructors
 const adnServerAPI = function(url, token) {
