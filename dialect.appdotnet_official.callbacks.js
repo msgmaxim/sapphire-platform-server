@@ -144,7 +144,7 @@ function formatpost(post, token) {
 module.exports = {
   'postsCallback' : function(resp, token) {
     return function(posts, err, meta) {
-      //console.log('dialect.appdotnet_official.callback.js::postsCallback - in posts callback',posts.length);
+      //console.log('dialect.appdotnet_official.callback.js::postsCallback - in posts callback', posts.length, 'posts');
       for(var i in posts) {
         var post=posts[i];
         //console.log('dialect.appdotnet_official.callback.js::postsCallback - looking at ',post.id,post.created_at,post.userid);
@@ -161,6 +161,7 @@ module.exports = {
           posts[i].user=formatuser(post.user, token);
         }
       }
+      //console.log('dialect.appdotnet_official.callback.js::postsCallback - sending', posts.length, 'posts');
       // meta order: min_id, code, max_id, more
       var res={
         meta: meta,
