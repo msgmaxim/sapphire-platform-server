@@ -1,8 +1,9 @@
 // get request http library
 var request = require('request');
+const URLSearchParams = require('url').URLSearchParams // node 8.x backfill
 
 // managed downloader (paging?)
-var downloader=require('./downloader.js');
+var downloader=require(__dirname + '/../downloader.js');
 //var rateLimiter = require('./ratelimiter.js');
 
 //FIXME: 429 handling
@@ -11,7 +12,7 @@ var downloader=require('./downloader.js');
 // backwards compatibility to allow us to do the right thing
 // this doesn't give us QoS but does allow us to say put in the background
 // does defer to immediate IO
-require("setimmediate");
+require('setimmediate');
 
 // remove 5 connections to upstream at a time
 // we definitely want to burst when we need it
@@ -47,12 +48,16 @@ const serverRequest = async (endpoint, options = {}) => {
     };
     if (method) {
       requestOptions.method = method;
+      proxywrites++;
     }
     if (objBody) {
       headers['Content-Type'] = 'application/json';
       requestOptions.body = JSON.stringify(objBody);
     }
     requestOptions.headers = headers;
+
+    proxycalls++;
+
     //result = await nodeFetch(url, fetchOptions || undefined);
     request(requestOptions, function(err, response, body) {
       console.log('serverRequest body', body);
@@ -83,9 +88,9 @@ setInterval(function () {
 
 // pass in proxy settings or just conf it?
 module.exports = {
-  next: null,
+  next: false,
   start: start,
-  dispatcher: null,
+  dispatcher: false,
   apiroot: '',
   adminroot: '',
   /*
@@ -99,7 +104,7 @@ module.exports = {
         password: password,
       },
     });
-    callback(newUserRes.response && newUserRes.response.data, newUserRes.err);
+    callback(newUserRes.err, newUserRes.response && newUserRes.response.data);
   },
   setUser: function(iuser, ts, callback) {
     if (this.next) {
@@ -111,53 +116,36 @@ module.exports = {
       this.next.delUser(userid, callback);
     }
   },
-  getUserID: function(username, callback) {
+  getUserID: async function(username, callback) {
     if (!username) {
-      callback(null, 'dataccess.proxy.js::getUserID() - username was not set');
+      callback('dataccess.proxy.js::getUserID() - username was not set', false, false);
       return;
     }
-    var ref=this;
-    console.log('dataccess.proxy.js:getUserID - proxying user @'+username);
-    proxycalls++;
-    request.get({
-      url: ref.apiroot+'/users/@'+username
-    }, function(e, r, body) {
-      if (!e && r.statusCode == 200) {
-        var res=JSON.parse(body);
-        // upload fresh proxy data back into dataSource
-        ref.dispatcher.updateUser(res.data,new Date().getTime(),function(user,err) {
-          if (user==null & err==null) {
-            if (this.next) {
-              this.next.getUserID(username, callback);
-              return;
-            }
-          } else if (err) {
-            console.log("dataccess.proxy.js:getUserID - User get err: ",err);
-          //} else {
-            //console.log("User Updated");
-          }
-          // FIXME: convert ADN to API
-          //console.log('getUserID result for', username, 'is', user);
-          // finally return
-          callback(user,err,res.meta);
-        });
-      } else {
-        console.log('dataccess.proxy.js:getUserID - request failure');
-        console.log('error', e);
-        console.log('statusCode', r && r.statusCode);
-        console.log('body', body);
-        callback(null, e, null);
+    const getUserIDRes = await serverRequest('users/@' + username)
+    if (getUserIDRes.err) {
+      return callback(getUserIDRes.err, false, false);
+    }
+    if (!getUserIDRes.response) {
+      // try getting from next layer
+      if (this.next) {
+        this.next.getUserID(username, callback);
+        return;
       }
-    });
+    }
+    // upload fresh proxy data back into dataSource
+    this.dispatcher.updateUser(getUserIDRes.response.data, new Date().getTime(),function(user, err) {
+      // FIXME: convert ADN to API
+      callback(getUserIDRes.err, getUserIDRes.response.data);
+    })
   },
   // callback is user,err,meta
   getUser: function(userid, callback) {
     if (userid==undefined) {
-      callback(null, 'dataccess.proxy.js:getUser - userid is undefined');
+      callback(false, 'dataccess.proxy.js:getUser - userid is undefined');
       return;
     }
     if (!userid) {
-      callback(null, 'dataccess.proxy.js:getUser - userid isn\'t set');
+      callback(false, 'dataccess.proxy.js:getUser - userid isn\'t set');
       return;
     }
     var ref=this;
@@ -170,9 +158,9 @@ module.exports = {
         var res=JSON.parse(body);
         // upload fresh proxy data back into dataSource
         //console.log('dataccess.proxy.js:getUser - writing to user db ',res.data.id);
-        ref.dispatcher.updateUser(res.data, new Date().getTime(), function(user, err) {
+        ref.dispatcher.updateUser(res.data, new Date().getTime(), function(err, user) {
           //console.log('dataccess.proxy.js:getUser - proxy response received');
-          if (user==null & err==null) {
+          if (user==false & err==false) {
             if (this.next) {
               this.next.getUser(userid, callback);
               return;
@@ -183,24 +171,24 @@ module.exports = {
             //console.log("User Updated");
           }
           // finally reutrn
-          callback(user, err, res.meta);
+          callback(err, user, res.meta);
         });
       } else {
         console.log('dataccess.proxy.js:getUser - request failure');
         console.log('error', e);
         console.log('statusCode', r.statusCode);
         console.log('body', body);
-        callback(null, e, null);
+        callback(e, false, false);
       }
     });
   },
   getUsers: function(userids, params, callback) {
     if (userids==undefined) {
-      callback(null, 'dataccess.proxy.js:getUsers - userids is undefined');
+      callback('dataccess.proxy.js:getUsers - userids is undefined', false);
       return;
     }
     if (!userids) {
-      callback(null, 'dataccess.proxy.js:getUsers - userids isn\'t set');
+      callback('dataccess.proxy.js:getUsers - userids isn\'t set', false);
       return;
     }
     var ref=this;
@@ -215,7 +203,7 @@ module.exports = {
         //console.log('dataccess.proxy.js:getUser - writing to user db ',res.data.id);
         ref.dispatcher.updateUser(res.data, new Date().getTime(), function(users, err) {
           //console.log('dataccess.proxy.js:getUsers - proxy response received');
-          if (users==null & err==null) {
+          if (users==false & err==false) {
             if (this.next) {
               this.next.getUsers(userids, params, callback);
               return;
@@ -226,14 +214,14 @@ module.exports = {
             //console.log("User Updated");
           }
           // finally reutrn
-          callback(users, err, res.meta);
+          callback(err, users, res.meta);
         });
       } else {
         console.log('dataccess.proxy.js:getUsers - request failure');
         console.log('error', e);
         console.log('statusCode', r.statusCode);
         console.log('body', body);
-        callback(null, e, null);
+        callback(e, false, false);
       }
     });
   },
@@ -254,7 +242,7 @@ module.exports = {
   },
   getAPIUserToken: function(token, callback) {
     if (token==undefined) {
-      callback(null, 'dataccess.proxy.js::getAPIUserToken - token is undefined');
+      callback('dataccess.proxy.js::getAPIUserToken - token is undefined', false);
       return;
     }
     var ref=this;
@@ -270,13 +258,13 @@ module.exports = {
           var msg=res.data[i];
           ref.dispatcher.setMessage(msg);
         }
-        callback(res.data, null, res.meta);
+        callback(false, res.data, res.meta);
       } else {
         console.log('dataccess.proxy.js:getAPIUserToken - request failure');
         console.log('error', e);
         console.log('statusCode', r.statusCode);
         console.log('body', body);
-        callback(null, e, null);
+        callback(e, false, false);
       }
     });
   },
@@ -291,7 +279,7 @@ module.exports = {
         expireInMins: expireInMins,
       },
     });
-    callback(newTokenRes.response, newTokenRes.err);
+    callback(newTokenRes.err, newTokenRes.response)
   },
   createOrFindUserToken: async function(user_id, client_id, scopes, callback) {
     const newTokenRes = await serverRequest('tokens', {
@@ -302,7 +290,7 @@ module.exports = {
         scopes: scopes,
       },
     });
-    callback(newTokenRes.response.data, newTokenRes.err);
+    callback(newTokenRes.err, newTokenRes.response.data)
   },
   /*
    * user upstream tokens
@@ -418,17 +406,17 @@ module.exports = {
             // it's formatted as ADN format
             // callback needs to expect DB format...
             // mainly the created_at
-            callback(data.data, null);
+            callback(false, data.data, data.meta);
           });
         } else {
           console.log('failure? ',data.meta);
-          callback(null, e);
+          callback(e, false, false);
         }
       } else {
         console.log('error', e);
         console.log('statusCode', r.statusCode);
         console.log('body', body);
-        callback(null, e);
+        callback(e, false, false);
       }
     });
     /*
@@ -464,16 +452,16 @@ module.exports = {
           // it's formatted as ADN format
           // callback needs to expect DB format...
           // mainly the created_at
-          callback(data.data, null);
+          callback(false, data.data, data.meta);
         } else {
           console.log('failure? ',data.meta);
-          callback(null, e);
+          callback(e, false, false);
         }
       } else {
         console.log('error', e);
         console.log('statusCode', r.statusCode);
         console.log('body', body);
-        callback(null, e);
+        callback(e, false, false);
       }
       /*
       if (this.next) {
@@ -507,16 +495,16 @@ module.exports = {
           // it's formatted as ADN format
           // callback needs to expect DB format...
           // mainly the created_at
-          callback(data.data, null);
+          callback(false, data.data, data.meta);
         } else {
           console.log('failure? ',data.meta);
-          callback(null, e);
+          callback(e, false, data.meta);
         }
       } else {
         console.log('error', e);
         console.log('statusCode', r.statusCode);
         console.log('body', body);
-        callback(null, e);
+        callback(e, false, false);
       }
       /*
       if (this.next) {
@@ -1304,7 +1292,7 @@ module.exports = {
     const deleteRes = await serverRequest(`channels/${channel_id}/messages/${message_id}`, {
       method: 'DELETE',
     });
-    callback(deleteRes.response, deleteRes.err);
+    callback(deleteRes.err, deleteRes.response);
   },
   getMessage: function(id, callback) {
     if (id==undefined) {
