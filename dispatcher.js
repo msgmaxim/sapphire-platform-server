@@ -329,8 +329,10 @@ module.exports = {
   delPost: function(postid, token, callback) {
     var ref = this;
     this.getPost(postid, {}, function(post, err, postMeta) {
-      if (post.userid != token.userid) {
-        console.warn('permissions denied')
+      //console.log('dispatcher.js::delPost - getPost', post)
+      // this is the adn version of the post...
+      if (post.user.id != token.userid) {
+        console.warn('permissions denied, post owner', post.userid, 'token owner', token.userid)
         callback(post, 'access denied to post', {
           code: token?403:401,
         });
@@ -1424,11 +1426,13 @@ module.exports = {
               // join
               //console.log(postcounter+'/'+posts.length);
               if (postcounter==posts.length) {
-                //console.log('dispatcher.js::getUserPosts - finishing');
+                //console.log('dispatcher.js::getUserPosts - finishing', posts);
                 var res=[];
                 for(var i in posts) {
+                  //console.log(i, 'dispatcher.js::getUserPosts - copying', posts[i].id);
                   res.push(apiposts[posts[i].id]);
                 }
+                //console.log('dispatcher.js::getUserPosts - callingback', res.length, 'posts');
                 callback(res, null, meta);
                 /*
                 var res={};
@@ -2070,7 +2074,8 @@ module.exports = {
       }
       //console.log('dispatcher::deactiveChannel', channelid, params, token);
       ref.cache.updateChannel(channelid, chnl, function(success, err2, meta2) {
-        channel.is_deleted = true;
+        //channel.is_deleted = true;
+        channel.is_inactive = true;
         callback(channel, '', meta);
         //ref.channelToAPI(channel, params, token, callback, meta2);
       })
@@ -4143,8 +4148,14 @@ module.exports = {
         //console.log('dispatcher.js::setFollows - no follows_user', data);
       }
       // set relationship status
-      //console.log('dispatcher.js::setFollows - has data', data.user.id, data.follows_user.id, id, deleted, ts);
-      this.cache.setFollow(data.user.id, data.follows_user.id, id, deleted, ts);
+      console.log('dispatcher.js::setFollows - has data', data.user.id, data.follows_user.id, 'id', id, 'deleted', deleted, 'ts', ts);
+      // probably dont' need this first one but we're an internal API
+      // maybe something will need it eventually
+      normalizeUserID(data.user.id, {}, function(normalUserId) {
+        normalizeUserID(data.follows_user.id, {}, function(normalFollowId) {
+          this.cache.setFollow(normalUserId, normalFollowId, id, deleted, ts);
+        })
+      })
     } else {
       // likely deleted is true in this path
       this.cache.setFollow(0, 0, id, deleted, ts);
@@ -4691,6 +4702,7 @@ module.exports = {
   textProcess: function(text, entities, postcontext, callback) {
     var ref=this;
     var html=escapeHTML(text);
+    //console.log('dispatcher.js::textProcess - html', html)
     var hashtags=[];
     var links=[];
     // from patter @duerig
@@ -4853,14 +4865,20 @@ module.exports = {
 
       // unicode chars
       // <>\&
+      //console.log('dispatcher.js::textProcess - html unicoding', html)
       html = html.replace(/[\u00A0-\u9999]/gim, function(i) {
-         return '&#'+i.charCodeAt(0)+';';
+        if (i === 's') return 's';
+        if (i.charCodeAt(0) == 115) return 's';
+        console.log('i', i, 'code', i.charCodeAt(0))
+        return '&#'+i.charCodeAt(0)+';';
       });
 
       // remove line breaks
-      html=html.replace(/\r/g, '&#13;');
+      //console.log('dispatcher.js::textProcess - html line breaking', html)
+      html=html.replace(/\r/g, '&#10;');
       html=html.replace(/\n/g, '<br>');
 
+      //console.log('dispatcher.js::textProcess - html wrapping', html)
       var res={
         entities: entities,
         html: '<span itemscope="https://app.net/schemas/Post">'+html+'</span>',
