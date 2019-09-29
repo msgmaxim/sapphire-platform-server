@@ -67,7 +67,7 @@ memoryUpdate = function (model, filter, data, callback) {
         return callback(false, false)
       }
       nodes.forEach(function(node) {
-        this.cache[model][node.id] = Object.assign(node, cleanData)
+        mem.cache[model][node.id] = Object.assign(node, cleanData)
         if (--count === 0) {
           callback(false, false)
         }
