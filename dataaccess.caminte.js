@@ -34,6 +34,17 @@ channelModel, messageModel, subscriptionModel, followModel, interactionModel,
 starModel, noticeModel, fileModel, streamMarkersModel, emptyModel,
 appStreamModel, userStreamModel, userStreamSubscriptionModel, sessionModel;
 
+Memory.prototype.update = function (model, data, callback) {
+  var mem = this
+  this.exists(model, data.id, function (err, exists) {
+    if (exists) {
+      mem.save(model, data, callback)
+    } else {
+      callback(err, data)
+    }
+  })
+}
+
 // set up the configureable model pools
 function start(nconf) {
   // 6379 is default redis port number
