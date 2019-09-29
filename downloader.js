@@ -133,7 +133,7 @@ module.exports = {
           console.log('error', e);
           console.log('statusCode', r && r.statusCode);
           console.log('body', body);
-          callback(null, e, null);
+          if (callback) callback(null, e, null);
         }
       });
     });
