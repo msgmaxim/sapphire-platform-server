@@ -34,7 +34,8 @@ channelModel, messageModel, subscriptionModel, followModel, interactionModel,
 starModel, noticeModel, fileModel, streamMarkersModel, emptyModel,
 appStreamModel, userStreamModel, userStreamSubscriptionModel, sessionModel;
 
-Schema.adapter.update = function (model, data, callback) {
+console.log('Sceham')
+memoryUpdate = function (model, data, callback) {
   var mem = this
   this.exists(model, data.id, function (err, exists) {
     if (exists) {
@@ -61,12 +62,19 @@ function start(nconf) {
   var schemaDataType = nconf.get('database:tokenModel:type') || defaultSchemaType;
   //console.log('configuring data', configData)
   var schemaData = new Schema(schemaDataType, configData);
+  if (schemaDataType === 'memory') {
+    schemaData.adapter = memoryUpdate
+  }
 
   /** set up where we're storing the tokens */
   var configToken = nconf.get('database:dataModel:options') || defaultOptions;
   var schemaTokenType = nconf.get('database:tokenModel:type') || defaultSchemaType;
   //console.log('configuring token', configData)
   var schemaToken = new Schema(schemaTokenType, configToken);
+
+  if (schemaTokenType === 'memory') {
+    schemaToken.adapter = memoryUpdate
+  }
 
   if (schemaDataType==='mysql') {
     //console.log('MySQL is active');
