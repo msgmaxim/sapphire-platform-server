@@ -1957,7 +1957,15 @@ module.exports = {
     // The you_can_edit property tells you if you are allowed to update a channel. Currently, only the Channel owner can edit a channel.
     var ref = this;
     this.cache.getChannel(channelid, params, function(channel, err, meta) {
-      console.log('dispatcher.js::updateChannel - got channel', typeof(channel), Object.keys(channel), channel);
+      if (err) {
+        console.error('dispatcher.js::updateChannel - err', err)
+        return callback(err, false, meta)
+      }
+      if (!channel) {
+        console.warn('dispatcher.js::updateChannel - channelid', channelid, 'has no data')
+        return callback(false, false, meta)
+      }
+      //console.log('dispatcher.js::updateChannel - got channel', typeof(channel), channel && Object.keys(channel), channel);
       // FIXME: use apiToChannel
       if (!token.userid || channel.ownerid != token.userid) {
         callback({}, 'access denied to channel', {
@@ -1998,7 +2006,7 @@ module.exports = {
           channel.writers = ''
         }
       }
-      console.log('dispatcher.js::updateChannel - updating channel', channel.id, 'to', channel);
+      //console.log('dispatcher.js::updateChannel - updating channel', channel.id, 'to', channel);
       channel.save(function(){
         //ref.cache.setChannel(channel, Date.now()/1000, function(ochnl, chanUpdErr) {
         //ref.cache.updateChannel(channelid, channel, function(ochnl, chanUpdErr) {
@@ -2031,7 +2039,7 @@ module.exports = {
       ref.apiToChannel(api, {}, function(channel, err, meta) {
         delete channel.id;
         ref.cache.addChannel(token.userid, channel, function(channelRes, createErr, createMeta) {
-          console.log('dispatcher::addChannel', channelRes.id);
+          //console.log('dispatcher::addChannel', channelRes.id);
           ref.setAnnotations('channel', channelRes.id, api.annotations, function() {
             ref.channelToAPI(channelRes, params, token, callback, createMeta);
           });
