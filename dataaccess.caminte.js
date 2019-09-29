@@ -34,16 +34,21 @@ channelModel, messageModel, subscriptionModel, followModel, interactionModel,
 starModel, noticeModel, fileModel, streamMarkersModel, emptyModel,
 appStreamModel, userStreamModel, userStreamSubscriptionModel, sessionModel;
 
-console.log('Sceham')
 memoryUpdate = function (model, data, callback) {
+  console.log('memoryUpdate - model', model, 'data', data, 'callback', callback)
   var mem = this
-  this.exists(model, data.id, function (err, exists) {
-    if (exists) {
-      mem.save(model, data, callback)
-    } else {
-      callback(err, data)
-    }
-  })
+  if (data.id) {
+    this.exists(model, data.id, function (err, exists) {
+      if (exists) {
+        mem.save(model, data, callback)
+      } else {
+        callback(err, data)
+      }
+    })
+  } else {
+    console.log('memoryUpdate - not implemented, search by?', data)
+    callback('not implemented', false)
+  }
 }
 
 // set up the configureable model pools
