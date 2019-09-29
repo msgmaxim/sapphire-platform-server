@@ -34,9 +34,18 @@ channelModel, messageModel, subscriptionModel, followModel, interactionModel,
 starModel, noticeModel, fileModel, streamMarkersModel, emptyModel,
 appStreamModel, userStreamModel, userStreamSubscriptionModel, sessionModel;
 
-memoryUpdate = function (model, data, callback) {
-  console.log('memoryUpdate - model', model, 'data', data, 'callback', callback)
+memoryUpdate = function (model, filter, data, callback) {
+  'use strict';
+  if ('function' === typeof filter) {
+    return filter(new Error('Get parametrs undefined'), null)
+  }
+  if ('function' === typeof data) {
+    return data(new Error('Set parametrs undefined'), null)
+  }
+  filter = filter.where ? filter.where : filter
   var mem = this
+  console.log('memoryUpdate - model', model, 'fitler', filter, 'data', data, 'callback', callback)
+
   if (data.id) {
     this.exists(model, data.id, function (err, exists) {
       if (exists) {
