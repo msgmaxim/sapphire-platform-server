@@ -54,7 +54,7 @@ module.exports = {
         }
       }, function(e, r, body) {
         rateLimiter.logRequest(token?1:0, 0);
-        if (!e && r.statusCode == 200) {
+        if (!e && r && r.statusCode == 200) {
           var res=JSON.parse(body);
           for(var i in res.data) {
             var post=res.data[i];
@@ -77,7 +77,7 @@ module.exports = {
           console.log('downloader.js:downloadThread - request failure');
           console.log('error', e);
           if (r) {
-            console.log('statusCode', r.statusCode);
+            console.log('statusCode', r && r.statusCode);
           }
           console.log('body', body);
           if (callback) {
@@ -117,7 +117,7 @@ module.exports = {
         }
       }, function(e, r, body) {
         rateLimiter.logRequest(token?1:0, 0);
-        if (!e && r.statusCode == 200) {
+        if (!e && r && r.statusCode == 200) {
           var res=JSON.parse(body);
           //console.dir(res);
           for(var i in res.data) {
@@ -148,7 +148,7 @@ module.exports = {
         url: ref.apiroot+'/users/'+userid+'/stars?count=200'
       }, function(e, r, body) {
         rateLimiter.logRequest(1, 0);
-        if (!e && r.statusCode == 200) {
+        if (!e && r && r.statusCode == 200) {
           var res=JSON.parse(body);
           // returns a list of posts but not what this function normally returns
           // a list of interactions
@@ -236,7 +236,7 @@ module.exports = {
           }
         }, function(e, r, body) {
           rateLimiter.logRequest(token?1:0, 0);
-          if (!e && r.statusCode == 200) {
+          if (!e && r && r.statusCode == 200) {
             var res=JSON.parse(body);
             console.log('retrieved followings '+res.data.length);
             // post process
@@ -336,7 +336,7 @@ module.exports = {
             console.log('error');
             console.dir(e);
             if (r) {
-              console.log('statusCode', r.statusCode);
+              console.log('statusCode', r && r.statusCode);
             }
             console.log('body', body);
           }
