@@ -34,7 +34,7 @@ channelModel, messageModel, subscriptionModel, followModel, interactionModel,
 starModel, noticeModel, fileModel, streamMarkersModel, emptyModel,
 appStreamModel, userStreamModel, userStreamSubscriptionModel, sessionModel;
 
-Memory.prototype.update = function (model, data, callback) {
+Schema.adapter.update = function (model, data, callback) {
   var mem = this
   this.exists(model, data.id, function (err, exists) {
     if (exists) {
