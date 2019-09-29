@@ -959,7 +959,27 @@ module.exports = {
       //console.log('camtinejs::setUser - got res', user);
       if (user) {
         //console.log('camtinejs::setUser - updating user', user.id);
+        //console.log('camtinejs::setUser - updating data', iuser);
+        // make sure this is a string..
+        /*
+        if (iuser.type === null) iuser.type = ''
+        if (iuser.avatar_image === null) iuser.avatar_image = ''
+        if (iuser.avatar_width === null) iuser.avatar_width = 0
+        if (iuser.avatar_height === null) iuser.avatar_height = 0
+        if (iuser.cover_image === null) iuser.cover_image = ''
+        if (iuser.cover_width === null) iuser.cover_width = 0
+        if (iuser.cover_height === null) iuser.cover_height = 0
+        */
+        if (iuser.descriptionhtml === undefined) iuser.descriptionhtml = ''
+        //if (iuser.counts) delete iuser.counts
+        //if (iuser.annotations) delete iuser.annotations
+        //iuser.created_at =
+        //console.log('camtinejs::setUser - final data', iuser);
+        // wiki says we don't need where and need where at the same time...
         userModel.update({ where: { id: iuser.id } }, iuser, function(err, userRes) {
+          if (err) {
+            console.error('camtinejs::setUser - ', err);
+          }
           // userRes is the number of updated rows I think
           if (callback) callback(user, err);
         });
