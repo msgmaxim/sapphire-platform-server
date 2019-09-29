@@ -60,9 +60,9 @@ var proxy = null
 if (upstream_client_id!='NotSet') {
   proxy = require('./dataaccess.proxy.js');
 }
-var db=require('./dataaccess.caminte.js');
+var db=require('./dataaccess/dataaccess.caminte.js');
 db.start(nconf);
-var cache=require('./dataaccess.base.js');
+var cache=require('./dataaccess/dataaccess.base.js');
 var dispatcher=require('./dispatcher.js');
 var streamEngine = false
 if (nconf.get('stream:host')) {
