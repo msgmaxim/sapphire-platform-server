@@ -63,7 +63,7 @@ function start(nconf) {
   //console.log('configuring data', configData)
   var schemaData = new Schema(schemaDataType, configData);
   if (schemaDataType === 'memory') {
-    schemaData.adapter = memoryUpdate
+    schemaData.adapter.update = memoryUpdate
   }
 
   /** set up where we're storing the tokens */
@@ -73,7 +73,7 @@ function start(nconf) {
   var schemaToken = new Schema(schemaTokenType, configToken);
 
   if (schemaTokenType === 'memory') {
-    schemaToken.adapter = memoryUpdate
+    schemaToken.adapter.update = memoryUpdate
   }
 
   if (schemaDataType==='mysql') {
