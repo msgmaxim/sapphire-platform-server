@@ -2207,6 +2207,7 @@ module.exports = {
     //console.log('dispatcher.js::getChannel - ids', ids);
     var ref=this;
     this.cache.getChannel(ids, params, function(channels, err, meta) {
+      //console.log('dispatcher.js::getChannel - got array', channels);
       if (channels === undefined) {
         callback([], err, meta);
         return;
@@ -2341,6 +2342,7 @@ module.exports = {
       num_replies: 0,
       source: {},
       thread_id: message.id,
+      reply_to: null,
     };
     if (message.is_deleted) {
       api.is_deleted = true
@@ -2350,6 +2352,9 @@ module.exports = {
       api.text = message.text;
       api.html = message.html;
       api.source = {};
+    }
+    if (message.reply_to) {
+      api.reply_to = message.reply_to;
     }
     var ref=this;
 
