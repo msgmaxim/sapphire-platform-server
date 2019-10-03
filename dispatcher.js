@@ -4108,6 +4108,14 @@ module.exports = {
       normalizeUserID(users[i], params.tokenobj, function(userid, err) {
         ref.cache.getUser(userid, function(userobj, userErr, userMeta) {
           //console.log('dispatcher.js::getUsers - gotUser', userErr);
+
+          if (userobj && params.generalParams) {
+            // FIXME: temp hack (until we can change the userToAPI prototype)
+            userobj.annotations = params.generalParams.annotations || params.generalParams.user_annotations
+          //} else {
+            //console.log('dispatcher.js::getUser - not such user?', userid, 'or no generalParams?', params)
+          }
+
           ref.userToAPI(userobj, params.tokenobj, function(adnUserObj, err) {
             //console.log('dispatcher.js::getUsers - got', adnUserObj, 'for', users[i])
             rUsers.push(adnUserObj)
