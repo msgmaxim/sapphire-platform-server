@@ -766,6 +766,10 @@ module.exports=function(app, prefix) {
       if (ids && ids.match(/,/)) {
         ids = ids.split(/,/)
       }
+      if (typeof(ids) === 'string') {
+        ids = [ ids ];
+      }
+      //console.log('dialect.appdotnet_official.js:GETusers/ID - ids', ids)
       dispatcher.getUsers(ids, req.apiParams, callbacks.usersCallback(resp));
       return;
     }
