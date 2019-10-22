@@ -3066,9 +3066,12 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       query = query.where('ownerid', criteria.ownerid);
     }
     if (params.channelParams && params.channelParams.inactive) {
-      query = query.where('inactive', { ne: new Date(0) });
+      // if you want to include inactive, you're going to show everything
+      // so no clause
+      //query = query.where('inactive', { ne: new Date(0) });
+      //query = query.where('inactive', { ne: null }); // old way
     } else {
-      query = query.where('inactive', new Date(0));
+      query = query.where('inactive', { in: new Date(0) });
     }
     // paging is broken because no channel permissions handle after query
     // actually no because we insert blank stubs
@@ -3475,6 +3478,8 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       // our local is the network tbh
       // already done in dialect
       //ipost.client_id=tokenObj.client_id;
+      if (file.urlexpires === undefined) file.urlexpires=new Date(0);
+      if (file.sha1 === undefined) file.sha1='';
       db_insert(new fileModel(file), fileModel, function(rec, err) {
         //console.log('camintejs::addPost - res', rec, err);
         // process id
