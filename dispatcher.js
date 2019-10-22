@@ -2280,10 +2280,14 @@ module.exports = {
   channelSearch: function(criteria, params, tokenObj, callback) {
     var ref = this;
     this.cache.searchChannels(criteria, params, function(channels, err, meta) {
+      if (err) {
+        console.error('searchChannels error', err)
+      }
       if (!channels.length) {
         callback([], err, meta);
         return;
       }
+      //console.log('channelSearch', channels)
       var apis=[];
       for(var i in channels) {
         var channel=channels[i];
@@ -4633,31 +4637,38 @@ module.exports = {
               // look up file
               var scope=function(k, oldValue, fixedSet,i ) {
                 //console.log('oldValue', oldValue);
-                //console.log('looking up', oldValue[k].file_id);
+                console.log('looking up', oldValue[k].file_id);
                 ref.cache.getFile(oldValue[k].file_id, function(fData, fErr, fMeta) {
+                  if (fErr) {
+                    console.error('getFile error', fErr);
+                  }
                   //console.log('looking at', oldValue);
                   //console.log('looking at', oldValue[k]);
-                  fixedSet.file_id=oldValue[k].file_id;
-                  fixedSet.file_token=oldValue[k].file_token;
-                  fixedSet.url=fData.url;
-                  if (notes[i].type==='net.app.core.oembed') {
-                    if (fData.kind==='image') {
-                      fixedSet.type='photo';
-                      fixedSet.version='1.0';
-                      fixedSet.width=128;
-                      fixedSet.height=128;
-                      fixedSet.thumbnail_url=fData.url;
-                      fixedSet.thumbnail_url_secure=fData.url;
-                      //fixedSet.thumbnail_url_immediate=fData.url;
-                      fixedSet.thumbnail_width=128;
-                      fixedSet.thumbnail_height=128;
-                      fixedSet.title=fData.name;
-                      // author_name from the external site
-                      // author_url for the external site
-                      fixedSet.provider=ref.appConfig.provider;
-                      fixedSet.provider_url=ref.appConfig.provider_url;
-                      fixedSet.embeddable_url=fData.url;
+                  if (fData)  {
+                    fixedSet.file_id=oldValue[k].file_id;
+                    fixedSet.file_token=oldValue[k].file_token;
+                    fixedSet.url=fData.url;
+                    if (notes[i].type==='net.app.core.oembed') {
+                      if (fData.kind==='image') {
+                        fixedSet.type='photo';
+                        fixedSet.version='1.0';
+                        fixedSet.width=128;
+                        fixedSet.height=128;
+                        fixedSet.thumbnail_url=fData.url;
+                        fixedSet.thumbnail_url_secure=fData.url;
+                        //fixedSet.thumbnail_url_immediate=fData.url;
+                        fixedSet.thumbnail_width=128;
+                        fixedSet.thumbnail_height=128;
+                        fixedSet.title=fData.name;
+                        // author_name from the external site
+                        // author_url for the external site
+                        fixedSet.provider=ref.appConfig.provider;
+                        fixedSet.provider_url=ref.appConfig.provider_url;
+                        fixedSet.embeddable_url=fData.url;
+                      }
                     }
+                  } else {
+                    console.log('file', oldValue[k].file_id, 'not found')
                   }
                   checkDone(i);
                 });
