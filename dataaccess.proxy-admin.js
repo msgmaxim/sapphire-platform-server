@@ -25,8 +25,8 @@ let modKey = '';
 function start(nconf) {
   /** @todo make count configureable, low latency=20count, aggressive cache=200count */
   modKey = nconf.get('admin:modKey')
-  module.exports.apiroot = 'http://127.0.0.1:' + nconf.get('web:port')
-  module.exports.adminroot = 'http://' + nconf.get('admin:listen') + ':' + nconf.get('admin:port')
+  module.exports.apiroot = 'http://127.0.0.1:' + (nconf.get('web:port') || 7070)
+  module.exports.adminroot = 'http://' + (nconf.get('admin:listen') || '127.0.0.1') + ':' + (nconf.get('admin:port') || 3000)
 }
 
 // make a request to the server
