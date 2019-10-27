@@ -2207,6 +2207,7 @@ module.exports = {
     //console.log('dispatcher.js::getChannel - ids', ids);
     var ref=this;
     this.cache.getChannel(ids, params, function(err, channels, meta) {
+      //console.log('dispatcher.js::getChannel - got array', channels);
       if (channels === undefined) {
         callback([], err, meta);
         return;
@@ -2279,10 +2280,14 @@ module.exports = {
   channelSearch: function(criteria, params, tokenObj, callback) {
     var ref = this;
     this.cache.searchChannels(criteria, params, function(err, channels, meta) {
+      if (err) {
+        console.error('searchChannels error', err)
+      }
       if (!channels.length) {
         callback([], err, meta);
         return;
       }
+      //console.log('channelSearch', channels)
       var apis=[];
       for(var i in channels) {
         var channel=channels[i];
@@ -2341,6 +2346,7 @@ module.exports = {
       num_replies: 0,
       source: {},
       thread_id: message.id,
+      reply_to: null,
     };
     if (message.is_deleted) {
       api.is_deleted = true
@@ -2350,6 +2356,9 @@ module.exports = {
       api.text = message.text;
       api.html = message.html;
       api.source = {};
+    }
+    if (message.reply_to) {
+      api.reply_to = message.reply_to;
     }
     var ref=this;
 
@@ -4106,6 +4115,14 @@ module.exports = {
       normalizeUserID(users[i], params.tokenobj, function(userid, err) {
         ref.cache.getUser(userid, function(userErr, userobj, userMeta) {
           //console.log('dispatcher.js::getUsers - gotUser', userErr);
+
+          if (userobj && params.generalParams) {
+            // FIXME: temp hack (until we can change the userToAPI prototype)
+            userobj.annotations = params.generalParams.annotations || params.generalParams.user_annotations
+          //} else {
+            //console.log('dispatcher.js::getUser - not such user?', userid, 'or no generalParams?', params)
+          }
+
           ref.userToAPI(userobj, params.tokenobj, function(adnUserObj, err) {
             //console.log('dispatcher.js::getUsers - got', adnUserObj, 'for', users[i])
             rUsers.push(adnUserObj)
@@ -4625,29 +4642,36 @@ module.exports = {
                 //console.log('oldValue', oldValue);
                 //console.log('looking up', oldValue[k].file_id);
                 ref.cache.getFile(oldValue[k].file_id, function(fErr, fData, fMeta) {
+                  if (fErr) {
+                    console.error('getFile error', fErr);
+                  }
                   //console.log('looking at', oldValue);
                   //console.log('looking at', oldValue[k]);
-                  fixedSet.file_id=oldValue[k].file_id;
-                  fixedSet.file_token=oldValue[k].file_token;
-                  fixedSet.url=fData.url;
-                  if (notes[i].type==='net.app.core.oembed') {
-                    if (fData.kind==='image') {
-                      fixedSet.type='photo';
-                      fixedSet.version='1.0';
-                      fixedSet.width=128;
-                      fixedSet.height=128;
-                      fixedSet.thumbnail_url=fData.url;
-                      fixedSet.thumbnail_url_secure=fData.url;
-                      //fixedSet.thumbnail_url_immediate=fData.url;
-                      fixedSet.thumbnail_width=128;
-                      fixedSet.thumbnail_height=128;
-                      fixedSet.title=fData.name;
-                      // author_name from the external site
-                      // author_url for the external site
-                      fixedSet.provider=ref.appConfig.provider;
-                      fixedSet.provider_url=ref.appConfig.provider_url;
-                      fixedSet.embeddable_url=fData.url;
+                  if (fData)  {
+                    fixedSet.file_id=oldValue[k].file_id;
+                    fixedSet.file_token=oldValue[k].file_token;
+                    fixedSet.url=fData.url;
+                    if (notes[i].type==='net.app.core.oembed') {
+                      if (fData.kind==='image') {
+                        fixedSet.type='photo';
+                        fixedSet.version='1.0';
+                        fixedSet.width=128;
+                        fixedSet.height=128;
+                        fixedSet.thumbnail_url=fData.url;
+                        fixedSet.thumbnail_url_secure=fData.url;
+                        //fixedSet.thumbnail_url_immediate=fData.url;
+                        fixedSet.thumbnail_width=128;
+                        fixedSet.thumbnail_height=128;
+                        fixedSet.title=fData.name;
+                        // author_name from the external site
+                        // author_url for the external site
+                        fixedSet.provider=ref.appConfig.provider;
+                        fixedSet.provider_url=ref.appConfig.provider_url;
+                        fixedSet.embeddable_url=fData.url;
+                      }
                     }
+                  } else {
+                    console.log('file', oldValue[k].file_id, 'not found')
                   }
                   checkDone(i);
                 });
