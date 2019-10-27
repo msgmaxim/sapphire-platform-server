@@ -421,7 +421,7 @@ module.exports=function(app, prefix) {
           req.body.type = ''
         }
         console.log('dialect.appdotnet_official.js:POSTfiles - uploading to pomf');
-        var uploadUrl = dispatcher.appConfig.provider_url + '/upload.php'
+        var uploadUrl = dispatcher.appConfig.provider_url
         request.post({
           url: uploadUrl,
           formData: {
@@ -765,6 +765,10 @@ module.exports=function(app, prefix) {
       if (ids && ids.match(/,/)) {
         ids = ids.split(/,/)
       }
+      if (typeof(ids) === 'string') {
+        ids = [ ids ];
+      }
+      //console.log('dialect.appdotnet_official.js:GETusers/ID - ids', ids)
       dispatcher.getUsers(ids, req.apiParams, callbacks.usersCallback(resp));
       return;
     }
@@ -1315,6 +1319,7 @@ module.exports=function(app, prefix) {
       //console.log('dialect.appdotnet_official.js:GETchannels - found a token', usertoken);
       req.apiParams.tokenobj=usertoken;
       req.apiParams.client_id=usertoken.client_id; // is this needed?
+      // FIXME: machine_only makes text not required
       if (!req.body.text) {
         console.warn('dialect.appdotnet_official.js:POSTchannelsXmessages - body', req.body)
         var res={
