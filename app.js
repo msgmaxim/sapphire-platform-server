@@ -495,6 +495,7 @@ app.get('/', function(req, resp) {
 /**
  * Launch the server!
  */
+console.log('launching webserver on', webport);
 app.listen(webport);
 
 
