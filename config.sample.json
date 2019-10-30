@@ -11,8 +11,8 @@
     "silent": false
   },
   "pomf": {
-    "provider": "pomf.cat",
-    "provider_url": "https://pomf.cat/"
+    "provider": "catbox.moe",
+    "provider_url": "https://catbox.moe/user/api.php"
   },
   "web": {
     "port": 7070,

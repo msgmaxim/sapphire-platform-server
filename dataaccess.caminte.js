@@ -3071,7 +3071,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       //query = query.where('inactive', { ne: new Date(0) });
       //query = query.where('inactive', { ne: null }); // old way
     } else {
-      query = query.where('inactive', { in: new Date(0) });
+      query = query.where('inactive', new Date(0));
     }
     // paging is broken because no channel permissions handle after query
     // actually no because we insert blank stubs

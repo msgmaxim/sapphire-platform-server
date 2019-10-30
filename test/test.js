@@ -22,8 +22,9 @@ cache.dispatcher = {
 
 let webport = nconf.get('web:port') || 7070
 const base_url = 'http://localhost:' + webport + '/'
-const platform_admin_url = 'http://' + nconf.get('admin:listen') + ':' + nconf.get('admin:port')
-console.log('read', base_url)
+const platform_admin_url = 'http://' + (nconf.get('admin:listen') || '127.0.0.1') + ':' + (nconf.get('admin:port') || 3000)
+console.log('platform url', base_url)
+console.log('admin    url', platform_admin_url)
 
 let token = ''
 
@@ -81,13 +82,27 @@ const ensureServer = () => {
     console.log('platform port', platformURL.port)
     lokinet.portIsFree(platformURL.hostname, platformURL.port, function(free) {
       if (free) {
-        // we need to configure this to ensure there's an admin api mounted...
-        // well we know the config file...
+        // ini overrides server/config.json in unit testing (if platform isn't running where it should)
+        // override any config to make sure it runs the way we request
+        process.env.web__port = platformURL.port
+        process.env.admin__port = nconf.get('admin:port') || 3000
+        process.env.admin__modKey = nconf.get('admin:modKey') || '123abc'
         const startPlatform = require('../app')
+        function portNowClaimed() {
+          lokinet.portIsFree(platformURL.hostname, platformURL.port, function(free) {
+            if (!free) {
+              console.log(platformURL.port, 'now claimed')
+              resolve()
+            } else {
+              setTimeout(portNowClaimed, 100)
+            }
+          })
+        }
+        portNowClaimed()
       } else {
         console.log('detected running server')
+        resolve()
       }
-      resolve()
     })
   })
 }
@@ -105,7 +120,7 @@ async function setupTesting() {
     // need the following in an `it` to make sure it only happens after the server is set up
     it('setting up token to use with testing', async() => {
       testUserId = await findOrCreateUser('test')
-      console.log('testUserId', testUserId);
+      console.log('testUserId', testUserId)
       token = await findOrCreateToken(testUserId)
       // assert we have a token...
       console.log('got token', token, 'for user @test')
@@ -123,24 +138,37 @@ const testConfig = {
   testUserid: testUserId,
 }
 
-describe('#token', async () => {
-  require('./test.tokens').runTests(platformApi)
-})
-  describe('#users', async () => {
-    require('./test.users').runTests(platformApi)
+function runIntegrationTests() {
+  describe('#token', async () => {
+    require('./test.tokens').runTests(platformApi)
   })
-    describe('#mutes', async () => {
-      require('./test.mutes').runTests(platformApi)
+    describe('#users', async () => {
+      require('./test.users').runTests(platformApi)
     })
-    describe('#posts', async () => {
-      require('./test.posts').runTests(platformApi)
-    })
-      describe('#markers', async () => {
-        require('./test.markers').runTests(platformApi)
+      describe('#mutes', async () => {
+        require('./test.mutes').runTests(platformApi)
       })
-      describe('#interactions', async () => {
-        require('./test.interactions').runTests(platformApi)
+      describe('#posts', async () => {
+        require('./test.posts').runTests(platformApi)
       })
-    describe('#channels', async () => {
-      require('./test.channels').runTests(platformApi)
-    })
+        describe('#markers', async () => {
+          require('./test.markers').runTests(platformApi)
+        })
+        describe('#interactions', async () => {
+          require('./test.interactions').runTests(platformApi)
+        })
+      describe('#channels', async () => {
+        require('./test.channels').runTests(platformApi)
+      })
+}
+
+before(function(done) {
+  // makes it at least wait until ensureServer is done before calling done
+  async function startServers() {
+    await ensureServer()
+    console.log('platform ready')
+    done()
+  }
+  startServers()
+})
+runIntegrationTests()
