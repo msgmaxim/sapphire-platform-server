@@ -2688,6 +2688,13 @@ module.exports = {
   },
   deleteMessage: function(message_id, channel_id, params, tokenObj, callback) {
     //console.log('dispatcher.js::deleteMessage - channel_id', channel_id);
+    if (!message_id) {
+      console.log('dispatcher.js::deleteMessage - no message');
+      callback([], 'no message passed in', {
+        code: 410,
+      });
+      return;
+    }
     if (!channel_id) {
       console.log('dispatcher.js::deleteMessage - no channel');
       callback([], 'no channel passed in', {
@@ -2769,8 +2776,9 @@ module.exports = {
         // messageToAPI: function(message, params, tokenObj, callback, meta) {
         ref.messageToAPI(message, params, tokenObj, function(api, err) {
           apis.push(api);
+          //console.log(apis.length, '/', messages.length);
           if (apis.length == messages.length) {
-            callback(api, err, meta);
+            callback(apis, err, meta);
           }
         }, meta);
       }
