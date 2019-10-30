@@ -254,14 +254,15 @@ module.exports = {
   },
   getAPIUserToken: function(token, callback) {
     if (token==undefined) {
-      callback(null, 'dataccess.proxy.js::getAPIUserToken - token is undefined');
+      callback(null, 'dataaccess.proxy.js::getAPIUserToken - token is undefined');
       return;
     }
     var ref=this;
-    console.log('proxying token '+token);
+    const endpoint = '/tokens/'+token
+    console.log('dataaccess.proxy.js:getAPIUserToken - proxying', endpoint);
     proxycalls++;
     request.get({
-      url: ref.adminroot+'/tokens/'+token
+      url: ref.adminroot+endpoint
     }, function(e, r, body) {
       if (!e && r.statusCode == 200) {
         var res=JSON.parse(body);
@@ -1301,6 +1302,10 @@ module.exports = {
     }
   },
   deleteMessage: async function (message_id, channel_id, callback) {
+    //console.log('proxy-admin::deleteMessage - ', message_id, channel_id);
+    if (!message_id) {
+      return callback(false, 'no messageid');
+    }
     const deleteRes = await serverRequest(`channels/${channel_id}/messages/${message_id}`, {
       method: 'DELETE',
     });
@@ -1312,13 +1317,23 @@ module.exports = {
       return;
     }
     var ref=this;
-    console.log('proxying message '+id);
+    var idStr = id;
+    if (id instanceof Array) {
+      idStr = id.join(',');
+    }
+    const endpoint = '/channels/messages?ids='+idStr;
+    console.log('dataaccess.proxy.js:getMessage - proxying', endpoint);
     proxycalls++;
     request.get({
-      url: ref.apiroot+'/channels/messages?ids='+id
+      url: ref.apiroot + endpoint
     }, function(e, r, body) {
       if (!e && r.statusCode == 200) {
         var res=JSON.parse(body);
+        if (id instanceof Array) {
+        } else {
+          // single, drop array container
+          res.data = res.data[0]
+        }
         ref.dispatcher.setMessage(res.data, function(msg,err) {
           if (msg==null && err==null) {
             if (this.next) {
