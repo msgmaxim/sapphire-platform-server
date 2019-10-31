@@ -49,7 +49,7 @@ memoryUpdate = function (model, filter, data, callback) {
   // filter input to make sure it only contains valid fields
   var cleanData = this.toDatabase(model, data)
 
-  if (data.id) {
+  if (filter.id) {
     // should find one and only one
     this.exists(model, data.id, function (err, exists) {
       if (exists) {
@@ -974,6 +974,7 @@ function setparams(query, params, maxid, callback) {
  */
 module.exports = {
   next: null,
+  name: 'camintejs',
   start: start,
   /*
    * users
@@ -1078,24 +1079,18 @@ module.exports = {
   },
   // callback is user, err, meta
   getUser: function(userid, callback) {
-    if (userid==undefined) {
-      console.log('dataaccess.caminte.js:getUser - userid is undefined');
-      var stack = new Error().stack
-      console.error(stack)
+    if (userid == undefined) {
+      console.trace('dataaccess.caminte.js:getUser - userid is undefined');
       callback(null, 'dataaccess.caminte.js:getUser - userid is undefined');
       return;
     }
     if (!userid) {
       console.log('dataaccess.caminte.js:getUser - userid isn\'t set');
-      var stack = new Error().stack
-      console.error(stack)
       callback(null, 'dataaccess.caminte.js:getUser - userid isn\'t set');
       return;
     }
-    if (callback==undefined) {
-      console.log('dataaccess.caminte.js:getUser - callback is undefined');
-      var stack = new Error().stack
-      console.error(stack)
+    if (callback == undefined) {
+      console.trace('dataaccess.caminte.js:getUser - callback is undefined');
       callback(null, 'dataaccess.caminte.js:getUser - callback is undefined');
       return;
     }
@@ -1131,6 +1126,7 @@ module.exports = {
       callback([], 'did not give a list of userids');
       return;
     }
+    // FIXME: make sure userids are integers for memory driver
     setparams(userModel.find().where('id', { in: userids }), params, 0, function(posts, err, meta) {
       callback(posts, err, meta);
     });
@@ -1161,6 +1157,7 @@ module.exports = {
         callback([], null, { code: 200, more: false });
         return;
       }
+      // FIXME: make sure userids are integers for memory driver
       setparams(userModel.find().where('id', { in: ids }), params, 0, function(posts, err, meta) {
         callback(posts, err, meta);
       });
@@ -1195,6 +1192,7 @@ module.exports = {
       callback([], 'invalid userid');
       return;
     }
+    // FIXME: make sure userids are integers for memory driver
     setparams(muteModel.find().where('userid', { in: userid }), params, 0, function(mutes, err, meta) {
       callback(mutes, err, meta);
     });
@@ -1845,10 +1843,12 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
         }
       }
       // look up subs
+      // FIXME: make sure userids are integers for memory driver
       userStreamSubscriptionModel.find({ where: { user_stream_id: { in: ids } } }, function(subErr, subs) {
         doneCheck('subs', subs);
       })
       // look up tokens
+      // FIXME: make sure userids are integers for memory driver
       localUserTokenModel.find({ where: { id: { in: tokens } } }, function(tokenErr, tokens) {
         doneCheck('tokens', tokens);
       })
@@ -2014,7 +2014,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
         console.log('camintejs::delPost - cleaning reposts of', postid);
         // now we have to mark any reposts as deleted
         postModel.update({ where: { repost_of: postid } },
-        { is_deleted: 1 }, function(repostErr, udpateRes) {
+        { is_deleted: true }, function(repostErr, udpateRes) {
           //console.log('camintejs::delPost - postModel.update returned', updateRes);
           ref.updatePostCounts(postid, function() {
             callback(post, err2, meta);
@@ -2187,7 +2187,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     var ref=this;
     // needs to also to see if we definitely don't have any
     // FIXME: is_deleted optional
-    postModel.find({ where: { repost_of: postid, is_deleted: 0 } }, function(err, posts) {
+    postModel.find({ where: { repost_of: postid, is_deleted: false } }, function(err, posts) {
       if (err) {
         console.log('dataaccess.caminte.js::getReposts - err', err);
       }
@@ -2239,7 +2239,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
   getUserRepostPost(userid, thread_id, callback) {
     // did we repost any version of this repost
     //console.log('camintejs::getUserRepostPost - userid', userid, 'repost_of', repost_of);
-    postModel.findOne({ where: { userid: userid, thread_id: thread_id, repost_of: { ne: 0 }, is_deleted: 0 } }, function(err, post) {
+    postModel.findOne({ where: { userid: userid, thread_id: thread_id, repost_of: { ne: 0 }, is_deleted: false } }, function(err, post) {
       //console.log('camintejs::getUserRepostPost - ', userid, postid, posts)
       callback(post, err);
     });
@@ -2302,10 +2302,12 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     }
     if (params.tokenobj) {
       var mutedUserIDs = []
+      // FIXME: make sure userids are integers for memory driver
       muteModel.find({ where: { 'userid': { in: params.tokenobj.userid } } }, function(err, mutes) {
         for(var i in mutes) {
           mutedUserIDs.push(mutes[i].muteeid)
         }
+        // FIXME: make sure userids are integers for memory driver
         query=query.where('userid', { nin: mutedUserIDs })
         //console.log('getChannelMessages - params', params);
         finishGetReplies()
@@ -2386,18 +2388,22 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
             // thread_id in notRepostsOf and repost_of=0
             //
             // maybe we could get a list of repost_of values in page'd range...
+            // FIXME: make sure userids are integers for memory driver
             postModel.find({ where: { userid: { in: userids }, repost_of: 0, num_reposts: { gt: 0 } } }, function(err, theirPostsThatHaveBeenReposted) {
               var notRepostsOf=[]
               for(var i in theirPostsThatHaveBeenReposted) {
                 notRepostsOf.push(theirPostsThatHaveBeenReposted[i].id);
               }
+              // FIXME: make sure userids are integers for memory driver
               query = postModel.find().where('id', { nin: removePosts }).where('repost_of', { nin: notRepostsOf }).where('userid',{ in: userids });
               if (params.tokenobj) {
                 var mutedUserIDs = []
+                // FIXME: make sure userids are integers for memory driver
                 muteModel.find({ where: { 'userid': { in: params.tokenobj.userid } } }, function(err, mutes) {
                   for(var i in mutes) {
                     mutedUserIDs.push(mutes[i].muteeid)
                   }
+                  // FIXME: make sure userids are integers for memory driver
                   query=query.where('userid', { nin: mutedUserIDs })
                   //console.log('getChannelMessages - params', params);
                   setparams(query, params, 0, callback);
@@ -2473,6 +2479,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
             postids.push(entities[i].typeid)
           }
           // get a list of posts in my stream
+          // FIXME: make sure userids are integers for memory driver
           postModel.find({ where: { userid: { in: userids } } }, function(err, posts) {
             console.log('dataaccess.caminte.js::getUnifiedStream - user', userid, 'has', posts.length, 'posts')
             for(var i in posts) {
@@ -2480,13 +2487,16 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
             }
 
             // call back with paging
+            // FIXME: make sure userids are integers for memory driver
             var query = postModel.find().where('id', { in: postids} );
             if (params.tokenobj) {
               var mutedUserIDs = []
+              // FIXME: make sure userids are integers for memory driver
               muteModel.find({ where: { 'userid': { in: params.tokenobj.userid } } }, function(err, mutes) {
                 for(var i in mutes) {
                   mutedUserIDs.push(mutes[i].muteeid)
                 }
+                // FIXME: make sure userids are integers for memory driver
                 query=query.where('userid', { nin: mutedUserIDs })
                 //console.log('getChannelMessages - params', params);
                 setparams(query, params, 0, callback);
@@ -2602,15 +2612,18 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       var query = entityModel.find().where('idtype', 'post').where('type', 'mention').where(k, v);
       if (params.tokenobj) {
         var mutedUserIDs = [];
+        // FIXME: make sure userids are integers for memory driver
         muteModel.find({ where: { 'userid': { in: params.tokenobj.userid } } }, function(err, mutes) {
           for(var i in mutes) {
             mutedUserIDs.push(mutes[i].muteeid);
           }
+          // FIXME: make sure userids are integers for memory driver
           postModel.find({ where: { 'userid': { in: mutedUserIDs } } }, function(err, posts) {
             var mutedPostIDs = [];
             for(var i in posts) {
               mutedPostIDs.push(posts[i].id);
             }
+            // FIXME: make sure userids are integers for memory driver
             query=query.where('typeid', { nin: mutedPostIDs });
             //console.log('getChannelMessages - params', params);
             setparams(query, params, 0, callback);
@@ -2650,10 +2663,12 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       //query.debug = true;
       if (params.tokenobj) {
         var mutedUserIDs = [];
+        // FIXME: make sure userids are integers for memory driver
         muteModel.find({ where: { 'userid': { in: params.tokenobj.userid } } }, function(err, mutes) {
           for(var i in mutes) {
             mutedUserIDs.push(mutes[i].muteeid);
           }
+          // FIXME: make sure userids are integers for memory driver
           query=query.where('userid', { nin: mutedUserIDs });
           //console.log('dataaccess.caminte::getGlobal - mutedUserIDs', mutedUserIDs);
           //console.log('getChannelMessages - params', params);
@@ -2795,6 +2810,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
               posts.push(dbNotes[i].typeid)
             }
             var maxid=0;
+            // FIXME: make sure userids are integers for memory driver
             setparams(postModel.find().where('id', { in: posts }), params, maxid, callback);
           });
         break;
@@ -2882,6 +2898,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
               posts.push(dbEntities[i].typeid)
             }
             var maxid=0;
+            // FIXME: make sure userids are integers for memory driver
             setparams(postModel.find().where('id', { in: posts }), params, maxid, callback);
             /*
             var started={};
@@ -3012,10 +3029,12 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     // because we STILL need to support nulls, we can't filter it out
     var criteria={ where: { id: id } };
     if (params.channelParams && params.channelParams.types) {
+      // FIXME: make sure userids are integers for memory driver
       criteria.where['type']={ in: params.channelParams.types.split(/,/) };
       //console.log('dataaccess.caminte.js::getChannel - types', criteria.where['type']);
     }
     if (id instanceof Array) {
+      // FIXME: make sure userids are integers for memory driver
       criteria.where['id']={ in: id };
     }
     if (params.channelParams && params.channelParams.inactive) {
@@ -3090,6 +3109,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     var criteria={ where: { ownerid: userid, inactive: new Date(0) } };
     if (params.channelParams && params.channelParams.types) {
       //console.log('dataaccess.caminte.js::getUserChannels - type param', params.channelParams.types);
+      // FIXME: make sure userids are integers for memory driver
       criteria.where['type']={ in: params.channelParams.types.split(/,/) };
       //console.log('dataaccess.caminte.js::getUserChannels - types', criteria.where['type']);
     }
@@ -3221,10 +3241,15 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     });
   },
   addMessage: function(message, callback) {
+    //console.log('dataaccess.camtine.js::addMessage - message', message);
+    // who's going to create a deleted message
+    //message.is_deleted = message.is_deleted ? true : false; // cast to bool
+    message.is_deleted = false;
     messageModel.create(message, function(err, omsg) {
       if (err) {
-        console.log('dataaccess.camtine.js::addMessage - err', err)
+        console.error('dataaccess.camtine.js::addMessage - err', err);
       }
+      //console.log('dataaccess.camtine.js::addMessage - result', omsg);
       if (callback) {
         callback(omsg, err);
       }
@@ -3232,7 +3257,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
   },
   deleteMessage: function (message_id, channel_id, callback) {
     //console.log('dataaccess.camtine.js::deleteMessage - start', message_id, channel_id)
-    messageModel.update({ where: { id: message_id } }, { is_deleted: 1}, function(err, omsg) {
+    messageModel.update({ where: { id: message_id } }, { is_deleted: true }, function(err, omsg) {
       if (err) {
         console.log('dataaccess.camtine.js::deleteMessage - err', err)
       } else {
@@ -3251,26 +3276,51 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       if (callback) {
         //console.log('dataaccess.camtine.js::deleteMessage - cb', omsg)
         // omsg is the number of records updated
+        // or just the fields changed...
         callback(omsg, err);
       }
     });
   },
   getMessage: function(id, callback) {
     if (id==undefined) {
+      console.trace('dataaccess.caminte.js::getMessage - id is undefined');
       callback(null, 'dataaccess.caminte.js::getMessage - id is undefined');
       return;
     }
 
-    var criteria={ where: { id: id, is_deleted: 0 } };
+    // I don't think you can use 0 for a boolean in memory mode
+    var criteria={ where: { id: id, is_deleted: false } };
     if (id instanceof Array) {
-      criteria.where['id']={ in: id };
+      // this wasn't necessary
+      var newList = [];
+      for(var i in id) {
+        var val = parseInt(id[i])
+        if (val) {
+          newList.push(val)
+        }
+      }
+      //console.log('dataaccess.caminte.js::getMessage - newList', newList);
+      criteria.where['id']={ in: newList };
     }
     //if (params.channelParams && params.channelParams.inactive) {
       //criteria.where['inactive']= { ne: null }
     //}
     var ref=this;
     //db_get(id, messageModel, function(message, err) {
+    /*
+    messageModel.findById(id, function(err, message) {
+      if (err) {
+        console.log('dataaccess.caminte.js::getMessage - err', err);
+      }
+      console.log('dataaccess.caminte.js::getMessage - messageById', message.toObject());
+    });
+    */
+    //console.log('dataaccess.caminte.js::getMessage - criteria', criteria);
     messageModel.find(criteria, function(err, messages) {
+      if (err) {
+        console.log('dataaccess.caminte.js::getMessage - err', err);
+      }
+      //console.log('dataaccess.caminte.js::getMessage - messages', messages);
       if (messages==null && err==null) {
         if (ref.next) {
           ref.next.getMessage(id, callback);
@@ -3278,6 +3328,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
         }
       }
       if (id instanceof Array) {
+        //console.log('dataaccess.caminte.js::getMessage multi -', messages.length)
         callback(messages, err);
       } else {
         //console.log('dataaccess.caminte.js::getMessage single -', messages, messages[0])
@@ -3297,10 +3348,12 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     //console.log('dataaccess.camintejs::getChannelMessages - channelid', channelid, 'token', params.tokenobj)
     if (params.tokenobj && params.tokenobj.userid) {
       var mutedUserIDs = []
+      // FIXME: make sure userids are integers for memory driver
       muteModel.find({ where: { 'userid': { in: params.tokenobj.userid } } }, function(err, mutes) {
         for(var i in mutes) {
           mutedUserIDs.push(mutes[i].muteeid)
         }
+        // FIXME: make sure userids are integers for memory driver
         query=query.where('userid', { nin: mutedUserIDs })
         //console.log('getChannelMessages - params', params);
         applyParams(query, params, callback);
@@ -4072,10 +4125,12 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       var query = noticeModel.find().where('notifyuserid', userid);
       if (tokenObj.userid) {
         var mutedUserIDs = [];
+        // FIXME: make sure userids are integers for memory driver
         muteModel.find({ where: { 'userid': { in: tokenObj.userid } } }, function(err, mutes) {
           for(var i in mutes) {
             mutedUserIDs.push(mutes[i].muteeid);
           }
+          // FIXME: make sure userids are integers for memory driver
           query=query.where('actionuserid', { nin: mutedUserIDs });
           //console.log('getChannelMessages - params', params);
           setparams(query, params, 0, callback);
