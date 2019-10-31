@@ -21,6 +21,9 @@ const sendresponse = (json, resp) => {
 
 // FIXME verification of modKey
 
+// not a global
+let cache
+
 module.exports=function(app, prefix) {
   //var dispatcher=app.dispatcher;
   // set cache based on dispatcher object
@@ -147,7 +150,7 @@ module.exports=function(app, prefix) {
   app.delete(prefix + '/channels/:cid/messages/:mid', (req, res) => {
     const cid = req.params.cid;
     const mid = req.params.mid;
-    //console.log('message id', mid);
+    console.log('nuke message id', mid);
     // marks it is_deleted: 1
     cache.deleteMessage(mid, cid, function(message, err, meta) {
       if (err) {
@@ -185,7 +188,7 @@ module.exports=function(app, prefix) {
       break;
       case 'tokens':
         const tokenIn = req.body;
-        // console.log('creating token', tokenIn);
+        //console.log('creating token', tokenIn);
         if (tokenIn.expireInMins !== undefined && tokenIn.token) {
           cache.addUnconstrainedAPIUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, tokenIn.token, tokenIn.expireInMins, function(token, err, meta) {
             const resObj={
