@@ -188,6 +188,7 @@ module.exports = {
    * websocket stream pumps
    */
   pumps: {},
+  name: 'originalFlavor',
   /** posts */
   // tokenObj isn't really used at this point...
   // difference between stream and api?
@@ -1651,7 +1652,7 @@ module.exports = {
   },
   /** channels */
   apiToChannel: function(api, meta, callback) {
-    console.log('dispatcher.js::apiToChannel - api', api);
+    //console.log('dispatcher.js::apiToChannel - api', api);
     // map API to DB
     // default to most secure
     var raccess=2; // 0=public, 1=loggedin, 2=selective
@@ -2348,6 +2349,7 @@ module.exports = {
       thread_id: message.id,
       reply_to: null,
     };
+    // this (is_deleted) key may be omitted instead of being false
     if (message.is_deleted) {
       api.is_deleted = true
       delete api.text;
@@ -2572,7 +2574,7 @@ module.exports = {
 
     // actually create message record
     function continueAddMessage2(channel_id) {
-      console.log('continueAddMessage2', channel_id)
+      //console.log('continueAddMessage2', channel_id)
       // why does annotations force channel_id 0?
       // so the message doesn't show up until
       // the annotations are written all the way through
@@ -2626,6 +2628,7 @@ module.exports = {
         getEntities(message, function() {
           //console.log('dispatcher.js::addMessage - message', message);
           ref.cache.addMessage(message, function(msg ,err, meta) {
+            // msg just has id...
             if (err) {
               console.log('dispatcher.js::addMessage - err', err);
               callback([], err, {
@@ -2638,7 +2641,7 @@ module.exports = {
               // fix up channel_id for msg pump
               msg.channel_id = channel_id
               ref.setAnnotations('message', msg.id, postdata.annotations, function() {
-                //console.log('write channel_id', channel_id)
+                console.log('write channel_id', channel_id)
                 ref.cache.setMessage({
                   id: msg.id,
                   channel_id: channel_id
@@ -2649,7 +2652,9 @@ module.exports = {
               });
             }
             // OPT: if no streams and no callback, no need for API conversion
-            ref.messageToAPI(msg, params, tokenobj, function(api, err) {
+            message.id = msg.id;
+            //console.log('dispatcher.js::addMessage - msg', message);
+            ref.messageToAPI(message, params, tokenobj, function(api, err) {
               //console.log('dispatcher.js::addMessage - api', api);
               module.exports.pumpStreams({
                 id:   msg.id,
@@ -2661,7 +2666,7 @@ module.exports = {
               ref.setEntities('message', msg.id, message.entities, function() {
                 // if current, extract annotations too
                 if (callback) {
-                  //console.log('dispatcher.js::addMessage - has callback');
+                  //console.log('dispatcher.js::addMessage - has callback', api.id, api);
                   callback(api, err, meta);
                 }
               });
@@ -2682,7 +2687,7 @@ module.exports = {
         continueAddMessage(nChannel_id);
       });
     } else {
-      console.log('dispatcher.js::addMessage - not pm channel', channel_id);
+      //console.log('dispatcher.js::addMessage - not pm channel', channel_id);
       continueAddMessage(channel_id);
     }
   },
@@ -2772,15 +2777,18 @@ module.exports = {
   getMessage: function(mids, params, tokenObj, callback) {
     //console.log('dispatcher.js::getMessage - mids', mids);
     var ref=this;
+    //console.log('dispatcher.js::getMessage - cache', this.cache.name);
+    //console.log('dispatcher.js::getMessage - cache.next', this.cache.next.name);
     this.cache.getMessage(mids, function(messages, err, meta) {
       // make messages an array if not
       if (!(messages instanceof Array)) {
         messages = [ messages ];
       }
       //console.log('dispatcher.js::getMessage - messages', messages.length);
-      //if (!messages.length) {
-        //console.log('dispatcher.js::getMessage - messages', messages);
-      //}
+      if (!messages.length) {
+        console.warn('dispatcher.js::getMessage - no messages', mids);
+        return callback([], err, meta);
+      }
       var apis = [];
       for(var i in messages) {
         var message = messages[i];
@@ -4224,9 +4232,10 @@ module.exports = {
       console.log('dispatcher.js::setFollows - has data', data.user.id, data.follows_user.id, 'id', id, 'deleted', deleted, 'ts', ts);
       // probably dont' need this first one but we're an internal API
       // maybe something will need it eventually
+      var ref = this;
       normalizeUserID(data.user.id, {}, function(normalUserId) {
         normalizeUserID(data.follows_user.id, {}, function(normalFollowId) {
-          this.cache.setFollow(normalUserId, normalFollowId, id, deleted, ts);
+          ref.cache.setFollow(normalUserId, normalFollowId, id, deleted, ts);
         })
       })
     } else {
