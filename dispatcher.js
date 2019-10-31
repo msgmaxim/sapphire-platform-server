@@ -2720,18 +2720,29 @@ module.exports = {
         return;
       }
       // is this your message
-      ref.getMessage(message_id, params, tokenObj, function(apiMsg, apiErr, apiMeta) {
+      ref.getMessage(message_id, params, tokenObj, function(apiMsgs, apiErr, apiMeta) {
+        if (apiErr) {
+          console.error('dispatcher.js::deleteMessage - err', apiErr)
+        }
+        if (!apiMsgs || !apiMsgs.length || apiMsgs.length != 1) {
+          console.log('dispatcher.js::deleteMessage -', message_id, 'not found');
+          callback({}, 'message not found', {
+            code: 410,
+          });
+          return;
+        }
+        var apiMsg = apiMsgs[0];
         if (!apiMsg) {
           console.log('dispatcher.js::deleteMessage -', message_id, 'not found');
           callback({}, 'message not found', {
-            code: 404,
+            code: 410,
           });
           return;
         }
         if (!apiMsg.user) {
           console.log('dispatcher.js::deleteMessage - ', message_id, ' has no user', apiMsg);
           callback({}, 'message not found', {
-            code: 404,
+            code: 410,
           });
           return;
         }
@@ -2884,8 +2895,37 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getChannelMessage: function(cid, mids, params, callback) {
-    console.log('dispatcher.js::getChannelMessage - write me!');
-    callback([], null);
+    //console.log('dispatcher.js::getChannelMessage - write me!');
+    var ref = this;
+    this.cache.getMessage(mids, function(messages, err, meta) {
+      // make messages an array if not
+      if (!(messages instanceof Array)) {
+        messages = [ messages ];
+      }
+      //console.log('dispatcher.js::getMessage - messages', messages.length);
+      //if (!messages.length) {
+        //console.log('dispatcher.js::getMessage - messages', messages);
+      //}
+      var apis = [];
+      for(var i in messages) {
+        var message = messages[i];
+        if (message && message.channel_id != cid) {
+          apis.push(false);
+          if (apis.length == messages.length) {
+            callback(apis, err, meta);
+          }
+          continue;
+        }
+        // messageToAPI: function(message, params, tokenObj, callback, meta) {
+        ref.messageToAPI(message, params, params.tokenObj, function(api, err) {
+          apis.push(api);
+          //console.log(apis.length, '/', messages.length);
+          if (apis.length == messages.length) {
+            callback(apis, err, meta);
+          }
+        }, meta);
+      }
+    })
   },
   //
   // channel_subscription
