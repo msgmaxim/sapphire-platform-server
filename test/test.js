@@ -56,7 +56,7 @@ function findOrCreateUser(username) {
           return rej(err)
         }
         //console.log('created user', user.toString())
-        console.log('created user', user)
+        //console.log('created user', user)
         resolve(user.id)
       })
     })
