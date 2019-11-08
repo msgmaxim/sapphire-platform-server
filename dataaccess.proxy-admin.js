@@ -54,6 +54,7 @@ const serverRequest = async (endpoint, options = {}) => {
     }
     requestOptions.headers = headers;
     //result = await nodeFetch(url, fetchOptions || undefined);
+    //console.log('making request', requestOptions);
     request(requestOptions, function(err, response, body) {
       console.log('serverRequest body', body);
       if (err) {
@@ -84,6 +85,7 @@ setInterval(function () {
 // pass in proxy settings or just conf it?
 module.exports = {
   next: null,
+  name: 'proxy-admin',
   start: start,
   dispatcher: null,
   apiroot: '',
@@ -92,6 +94,7 @@ module.exports = {
    * users
    */
   addUser: async function(username, password, callback) {
+    //console.trace('dataaccess.proxy.js::addUser(', username, password, typeof(callback), ')');
     const newUserRes = await serverRequest('users', {
       method: 'POST',
       objBody: {
@@ -99,6 +102,7 @@ module.exports = {
         password: password,
       },
     });
+    //console.log('dataaccess.proxy.js::addUser callinback', newUserRes);
     callback(newUserRes.response && newUserRes.response.data, newUserRes.err);
   },
   setUser: function(iuser, ts, callback) {
@@ -113,11 +117,11 @@ module.exports = {
   },
   getUserID: function(username, callback) {
     if (!username) {
-      callback(null, 'dataccess.proxy.js::getUserID() - username was not set');
+      callback(null, 'dataaccess.proxy.js::getUserID() - username was not set');
       return;
     }
     var ref=this;
-    console.log('dataccess.proxy.js:getUserID - proxying user @'+username);
+    console.log('dataaccess.proxy.js:getUserID - proxying user @'+username);
     proxycalls++;
     request.get({
       url: ref.apiroot+'/users/@'+username
@@ -153,21 +157,22 @@ module.exports = {
   // callback is user,err,meta
   getUser: function(userid, callback) {
     if (userid==undefined) {
-      callback(null, 'dataccess.proxy.js:getUser - userid is undefined');
+      callback(null, 'dataaccess.proxy.js:getUser - userid is undefined');
       return;
     }
     if (!userid) {
-      callback(null, 'dataccess.proxy.js:getUser - userid isn\'t set');
+      callback(null, 'dataaccess.proxy.js:getUser - userid isn\'t set');
       return;
     }
     var ref=this;
-    console.log('dataccess.proxy.js:getUser - proxying user '+userid);
+    console.log('dataaccess.proxy.js:getUser - proxying user '+userid);
     proxycalls++;
     request.get({
       url: ref.apiroot+'/users/'+userid
     }, function(e, r, body) {
       if (!e && r.statusCode == 200) {
-        var res=JSON.parse(body);
+        var res = JSON.parse(body);
+        //console.log('dataaccess.proxy.js:getUser - got res', res);
         // upload fresh proxy data back into dataSource
         //console.log('dataccess.proxy.js:getUser - writing to user db ',res.data.id);
         ref.dispatcher.updateUser(res.data, new Date().getTime(), function(user, err) {
@@ -178,7 +183,7 @@ module.exports = {
               return;
             }
           } else if (err) {
-            console.log("dataccess.proxy.js:getUser - User Update err: ",err);
+            console.log("dataaccess.proxy.js:getUser - User Update err: ",err);
           //} else {
             //console.log("User Updated");
           }
@@ -186,7 +191,7 @@ module.exports = {
           callback(user, err, res.meta);
         });
       } else {
-        console.log('dataccess.proxy.js:getUser - request failure');
+        console.log('dataaccess.proxy.js:getUser - request failure');
         console.log('error', e);
         console.log('statusCode', r.statusCode);
         console.log('body', body);
@@ -247,10 +252,16 @@ module.exports = {
       this.next.addAPIUserToken(userid, client_id, scopes, token, callback);
     }
   },
-  delAPIUserToken: function(token, callback) {
+  delAPIUserToken: async function(token, callback) {
+    const newTokenRes = await serverRequest(`tokens/${token}`, {
+      method: 'DELETE',
+    });
+    callback(newTokenRes.response, newTokenRes.err);
+    /*
     if (this.next) {
       this.next.delAPIUserToken(token, callback);
     }
+    */
   },
   getAPIUserToken: function(token, callback) {
     if (token==undefined) {
@@ -303,6 +314,11 @@ module.exports = {
         scopes: scopes,
       },
     });
+    callback(newTokenRes.response.data, newTokenRes.err);
+  },
+  getAPITokenByUsername: async function(username, callback) {
+    const newTokenRes = await serverRequest(`tokens/@${username}`);
+    //console.log('proxy-admin::getAPITokenByUsername - response', newTokenRes);
     callback(newTokenRes.response.data, newTokenRes.err);
   },
   /*
@@ -1327,6 +1343,7 @@ module.exports = {
     request.get({
       url: ref.apiroot + endpoint
     }, function(e, r, body) {
+      //console.log('body', body)
       if (!e && r.statusCode == 200) {
         var res=JSON.parse(body);
         if (id instanceof Array) {
