@@ -241,6 +241,17 @@ module.exports=function(app, prefix) {
     const id = req.params.id;
     console.log('admin::delete model', model, 'id', id);
     switch(model) {
+      case 'tokens':
+        cache.delAPIUserToken(id, function(delToken, err) {
+          const resObj={
+            meta: {
+              code: 200,
+            },
+            data: delToken,
+          }
+          return sendresponse(resObj, res);
+        });
+      break;
       default:
         res.status(200).end("{}");
       break;
