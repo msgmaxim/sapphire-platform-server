@@ -44,16 +44,16 @@ memoryUpdate = function (model, filter, data, callback) {
   }
   filter = filter.where ? filter.where : filter
   var mem = this
-  //console.log('memoryUpdate - model', model, 'fitler', filter, 'data', data, 'callback', callback)
+  //console.log('memoryUpdate - model', model, 'filter', filter, 'data', data, 'callback', callback)
 
   // filter input to make sure it only contains valid fields
   var cleanData = this.toDatabase(model, data)
 
   if (filter.id) {
     // should find one and only one
-    this.exists(model, data.id, function (err, exists) {
+    this.exists(model, filter.id, function (err, exists) {
       if (exists) {
-        mem.save(model, Object.assign(exists, cleanData), callback)
+        mem.save(model, Object.assign(mem.cache[model][filter.id], cleanData), callback)
       } else {
         callback(err, cleanData)
       }
@@ -1041,6 +1041,8 @@ module.exports = {
   },
   patchUser: function(userid, changes, callback) {
     userModel.update({ where: { id: userid } }, changes, function(err, user) {
+      if (err) console.error('dataaccess.caminte.js::patchUser - err', err);
+      // console.log('patchUser user changes', user);
       if (callback) {
         callback(user, err);
       }
