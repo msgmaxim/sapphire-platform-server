@@ -25,6 +25,9 @@ module.exports = {
     it('update user', async () => {
       const res = await platformApi.serverRequest('users/me', {
         method: 'PATCH',
+        objBody: {
+          name: 'Tested User',
+        }
       })
       assert.equal(200, res.statusCode)
     })
