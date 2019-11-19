@@ -3809,6 +3809,25 @@ module.exports = {
       }
     });
   },
+  updateUserAvatar: function(avatar_url, params, tokenObj, callback) {
+    if (!tokenObj.userid) {
+      console.trace('dispatcher.js::updateUserAvatar - no user id in tokenObj', tokenObj, tokenObj.userid);
+      return callback({}, 'not userid');
+    }
+    //console.log('dispatcher.js::updateUserAvatar - avatar', avatar_url);
+    // we can also set the image width/height...
+    changes = {
+      avatar_image: avatar_url
+    }
+    var ref=this;
+    this.cache.patchUser(tokenObj.userid, changes, function(changes, err, meta) {
+      // hrm memory driver does return the complete object...
+      //console.log('dispatcher.js::updateUserAvatar - changes', changes);
+      if (callback) {
+        ref.getUser(tokenObj.userid, params, callback);
+      }
+    });
+  },
   // destructive to user
   // to database format
   apiToUser: function(user, callback) {
@@ -3876,6 +3895,8 @@ module.exports = {
       return;
     }
     //console.log('dispatcher.js::userToAPI - setting up res');
+    //console.log('dispatcher.js::userToAPI - base user', user);
+    //console.log('dispatcher.js::userToAPI - base avatar_image', user.avatar_image);
     // copy user structure
     var res={
       id: user.id,
