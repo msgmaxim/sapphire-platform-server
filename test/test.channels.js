@@ -113,6 +113,14 @@ module.exports = {
       const channelSubRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/subscribers')
       assert.equal(200, channelSubRes.statusCode)
     })
+    it('get multi channel subscribes', async () => {
+      const channelSubRes = await platformApi.serverRequest('channels/subscribers/ids', {
+        params: {
+          ids: channelRes.response.data.id
+        }
+      })
+      assert.equal(200, channelSubRes.statusCode)
+    })
     it('unsub to channel', async () => {
       const channelSubRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/subscribe', {
         method: 'DELETE',
