@@ -1422,6 +1422,25 @@ module.exports=function(app, prefix) {
     });
   });
 
+  app.get(prefix+'/channels/subscribers/ids', function(req, resp) {
+    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+      var userid='';
+      if (usertoken==null) {
+        var res={
+          "meta": {
+            "code": 401,
+            "error_message": "Call requires authentication: Authentication required to fetch token."
+          }
+        };
+        resp.status(401).type('application/json').send(JSON.stringify(res));
+        return;
+      }
+      var ids = req.query.ids.split(','); // make an array incase it's not
+      //console.log('dialect.appdotnet_official.js:GETchannelsXsubscribers - valid token');
+      dispatcher.getChannelsSubscriptions(ids, req.apiParams, usertoken, callbacks.dataCallback(resp));
+    });
+  });
+
   // Retrieve multiple Messages (Token: User, Scope: public_messages or messages)
   // how do you receive public messages in a public channel?
   app.get(prefix+'/channels/:channel_id/messages', function(req, resp) {
