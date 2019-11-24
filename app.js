@@ -3,6 +3,7 @@
  */
 var path = require('path');
 var nconf = require('nconf');
+var net = require('net');
 
 //var longjohn = require('longjohn');
 
@@ -45,9 +46,13 @@ var admin_listen=nconf.get('admin:listen') || '127.0.0.1';
 var admin_modkey=nconf.get('admin:modKey');
 
 var octets=admin_listen.split('.');
-if (octets[0] != '127' && octets[0] != '10' && octets[0] != '172' && octets[0] != '192') {
-  console.error('Cannot listen on',admin_listen,'private or loopback only!', octets);
-  admin_listen='127.0.0.1';
+if (net.isIPv4(octets)) {
+  if (octets[0] != '127' && octets[0] != '10' && octets[0] != '172' && octets[0] != '192') {
+    console.error('Cannot listen on',admin_listen,'private or loopback only!', octets);
+    admin_listen='127.0.0.1';
+  }
+} else {
+  // FIXME: resolve it and then run the check
 }
 
 // Todo: make these modular load modules from config file
