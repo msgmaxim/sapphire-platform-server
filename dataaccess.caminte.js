@@ -988,6 +988,12 @@ module.exports = {
   addUser: function(username, password, callback) {
     userModel.create({
         username: username,
+        /*
+        canonical_url: null,
+        type: null,
+        timezone: null,
+        locale: null,
+        */
         //password: password,
         created_at: Date.now(),
         active: true,
@@ -1444,6 +1450,12 @@ module.exports = {
   },
   createOrFindUserToken: function(userid, client_id, scopes, callback) {
     //console.log('createOrFindUserToken', userid, client_id, scopes)
+    if (userid === undefined) {
+      return callback(false, 'no userid');
+    }
+    if (client_id === undefined) {
+      return callback(false, 'no client_id');
+    }
     if (scopes===undefined) scopes='';
     localUserTokenModel.findOne({ where: { userid: userid, client_id: client_id }}, function(err, usertoken) {
       if (usertoken) {
