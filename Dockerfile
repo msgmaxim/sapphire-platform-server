@@ -1,12 +1,17 @@
 FROM node:12
 RUN npm i -g pm2 mocha
 
-WORKDIR /usr/src
-
-# make sure we get the latest repo
-ADD https://gitgud.io/api/v4/projects/6143/repository/commits/master version.json
-RUN git clone https://gitgud.io/Sapphire/Tavrn/sapphire-platform-server.git app
 WORKDIR /usr/src/app
+
+COPY *.js /usr/src/app/
+# can set all these through environment...
+#COPY config.json /usr/src/app/config.json
+COPY package.json /usr/src/app/package.json
+COPY package-lock.json /usr/src/app/package-lock.json
+COPY ohe/ ohe/
+COPY templates/ templates/
+COPY test/ test/
+
 RUN npm i
 
 # run unit tests
