@@ -186,6 +186,15 @@ module.exports=function(app, prefix) {
           return sendresponse(resObj, res);
         })
       break;
+      case 'channels':
+        cache.addChannel(req.body.userid, req.body.channel, function(chnl, err, meta) {
+          const resObj={
+            meta: meta,
+            data: chnl,
+          }
+          return sendresponse(resObj, res);
+        });
+      break;
       case 'tokens':
         const tokenIn = req.body;
         //console.log('creating token', tokenIn);
@@ -196,7 +205,7 @@ module.exports=function(app, prefix) {
               data: token,
             }
             return sendresponse(resObj, res);
-          })
+          });
         } else {
           cache.createOrFindUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, function(usertoken, err, meta) {
             const resObj={
@@ -204,7 +213,7 @@ module.exports=function(app, prefix) {
               data: usertoken,
             }
             return sendresponse(resObj, res);
-          })
+          });
         }
       break;
       default:
