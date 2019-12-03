@@ -216,6 +216,15 @@ module.exports=function(app, prefix) {
           });
         }
       break;
+      case 'annotations':
+        cache.addAnnotation(req.body.idtype, req.body.id, req.body.type, req.body.value, function(note, err, meta) {
+          const resObj={
+            meta: meta,
+            data: note,
+          }
+          return sendresponse(resObj, res);
+        });
+      break;
       default:
         res.status(200).end("{}");
       break;
