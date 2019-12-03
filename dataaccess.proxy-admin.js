@@ -1281,7 +1281,7 @@ module.exports = {
       this.next.setChannel(chnl, ts, callback);
     }
   },
-  getChannel: function(id, callback) {
+  getChannel: function(id, params, callback) {
     if (id==undefined) {
       callback(null, 'dataccess.proxy-admin.js::getChannel - id is undefined');
       return;
@@ -1525,11 +1525,23 @@ module.exports = {
   /**
    * Annotations
    */
-  addAnnotation: function(idtype, id, type, value, callback) {
-    //console.log('dataccess.proxy-admin.js::addAnnotation - write me!');
+  addAnnotation: async function(idtype, id, type, value, callback) {
+    const newNoteRes = await serverRequest('annotations', {
+      method: 'POST',
+      objBody: {
+        idtype: idtype,
+        id: id,
+        type: type,
+        value: value
+      },
+    });
+    // FIXME: do we need a next for writes?
+    /*
+    console.log('dataccess.proxy-admin.js::addAnnotation - write me!');
     if (this.next) {
       this.next.addAnnotation(idtype, id, type, value, callback);
     }
+    */
   },
   clearAnnotations: function(idtype, id, callback) {
     //console.log('dataccess.proxy-admin.js::clearAnnotations - write me!');
@@ -1538,6 +1550,40 @@ module.exports = {
     }
   },
   getAnnotations: function(idtype, id, callback) {
+    if (idtype == 'channel' || idtype == 'user') {
+      var ref=this;
+      request.get({
+        url: ref.apiroot+'/'+idtype+'s/'+id+'?include_annotations=1'
+      }, function(e, r, body) {
+        if (!e && r.statusCode == 200) {
+          var res=JSON.parse(body);
+          //console.log('notes', res.data.annotations);
+          callback(res.data.annotations, false, res.meta);
+          /*
+          var entries=[];
+          for(var i in res.data) {
+            var post=res.data[i];
+            ref.dispatcher.setPost(post);
+            var entry={
+              idtype: 'post',
+              typeid: post.id,
+              type: 'hashtag',
+              text: hashtag
+            };
+            entries.push(entry);
+          }
+          callback(entries, null, res.meta);
+          */
+        } else {
+          console.log('dataccess.proxy-admin.js:getAnnotations - request failure');
+          console.log('error', e);
+          console.log('statusCode', r.statusCode);
+          console.log('body', body);
+          callback(null, e, null);
+        }
+      });
+      return;
+    }
     console.log('dataccess.proxy-admin.js::getAnnotations - write me!');
     if (this.next) {
       this.next.getAnnotations(idtype, id, callback);
