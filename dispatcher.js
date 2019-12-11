@@ -2381,14 +2381,14 @@ module.exports = {
         }
       }
       //console.log('dispatcher.js::channelToAPI('+channel.id+') - done', data, meta);
-      //console.log('dispatcher.js::channelToAPI('+channel.id+') - done, text', data.text);
+      //console.log('dispatcher.js::messageToAPI('+message.id+') - done, text', api.id, message.text);
       // everything is done
       callback(api, null, meta);
     }
     function loadUser(userid, params, cb) {
-      //console.log('dispatcher.js::postToAPI('+post.id+') - getting user '+post.userid);
+      //console.log('dispatcher.js::postToAPI('+message.id+') - getting user '+message.userid);
       ref.getUser(userid, params, function(user, userErr, userMeta) {
-        //console.log('dispatcher.js::postToAPI('+post.id+') - got user '+post.userid, err);
+        //console.log('dispatcher.js::postToAPI('+message.id+') - got user '+message.userid, userErr);
         if (!user) {
           user={
             id: 0,
@@ -2865,6 +2865,7 @@ module.exports = {
               //apis.push(message);
               apis[message.id] = message;
               apiCount++;
+              //console.log('dispatcher.js::getChannelMessages - finishMessages', apiCount, '/', messages.length);
               if (messages.length == apiCount) {
                 var list = []
                 for(var i in messages) {
@@ -4038,7 +4039,7 @@ module.exports = {
         if (user.debug) console.log('dispatcher.js::userToAPI('+user.id+') - get user annotations');
         ref.getAnnotation('user', user.id, function(dbNotes, err, noteMeta) {
           if (user.debug) console.log('user', user.id, 'annotations', dbNotes.length);
-          var apiNotes=[];
+          var apiNotes = [];
           for(var j in dbNotes) {
             var note=dbNotes[j];
             //console.log('got note', j, '#', note.type, '/', note.value, 'for', user.id);
@@ -4083,6 +4084,7 @@ module.exports = {
     //console.log('dispatcher.js::getUser - '+user, params);
     if (!callback) {
       console.error('dispatcher.js::getUser - no callback passed in');
+      callback(null, 'dispatcher.js::getUser - no callback passed in');
       return;
     }
     if (!user) {
@@ -4115,7 +4117,12 @@ module.exports = {
           //console.log('dispatcher.js::getUser - not such user?', userid, 'or no generalParams?', params)
         }
         //console.log('found user', userobj.id, '==', user)
-        if (params.debug) userobj.debug = true
+        if (!userobj) {
+          console.error('dispatcher.js::getUser - no userobj', userobj);
+          // this breaks token registration
+          // userobj = {}
+        }
+        //if (params.debug) userobj.debug = true
         ref.userToAPI(userobj, params.tokenobj, callback, userMeta);
       });
     })
@@ -4674,8 +4681,10 @@ module.exports = {
   /** annotations */
   getAnnotation: function(type, id, callback) {
     var ref=this;
+    var debug = false;
+    //if (id == 1861) debug = true;
     this.cache.getAnnotations(type, id, function(notes, err, meta) {
-      //console.log('start notes', notes);
+      //if (debug) console.log(type, id, 'start notes', notes);
       //var fixedNotes=[];
       if (!notes.length) {
         callback(notes, err, meta);
@@ -4687,7 +4696,7 @@ module.exports = {
 
       function checkDone(i) {
         done[i]++;
-        //console.log('(', type, id, ')', i, 'done', done[i], 'calls', calls[i]);
+        if (debug) console.log('(', type, id, ')', i, 'done', done[i], 'calls', calls[i]);
         if (done[i]===calls[i]) {
           // replace value
           notes[i].value=fixedSet;
@@ -4700,7 +4709,7 @@ module.exports = {
         }
       }
 
-      //console.log('dispatcher.js::getAnnotation(', type, id, ') - notes', notes.length);
+      //if (debug) console.log('dispatcher.js::getAnnotation(', type, id, ') - notes', notes.length);
       for(var i in notes) {
         // check values
         var fixedSet={}
@@ -4709,18 +4718,26 @@ module.exports = {
         calls[i]=0;
         done[i]=0;
         // is notes[i].value is a key value tuple, not an array
-        //console.log('dispatcher.js::getAnnotation - note', i, 'has', notes[i].value);
+        if (debug) console.log('dispatcher.js::getAnnotation - note', i, 'has', notes[i].value);
         for(var k in notes[i].value) {
           calls[i]++;
         }
         // I think we only every have one value
         // nope because you can have an empty array
-        //console.log(i, 'value', notes[i].value, 'len', notes[i].value.length, typeof(notes[i].value), notes[i].value.constructor.name)
+        if (debug) console.log(i, 'value', notes[i].value, 'len', notes[i].value.length, typeof(notes[i].value), notes[i].value.constructor.name)
         if (notes[i].value.constructor.name == 'Array' && !notes[i].value.length) {
+          if (debug) console.log('checkDone cause empty array', i)
           fixedSet=notes[i].value
           calls[i]++;
-          checkDone(i)
-          continue
+          checkDone(i);
+          continue;
+        }
+        if (JSON.stringify(notes[i].value) === '{}') {
+          if (debug) console.log('checkDone cause empty object', i)
+          fixedSet=notes[i].value
+          calls[i]++;
+          checkDone(i);
+          continue;
         }
         for(var k in notes[i].value) {
           //console.log('value', notes[i].value, 'vs', oldValue, 'k', k, 'val', notes[i].value[k], 'vs', oldValue[k]);
