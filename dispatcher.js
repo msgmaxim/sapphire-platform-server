@@ -3141,7 +3141,7 @@ module.exports = {
       if (!subs.length) {
         return callback([], '', meta);
       }
-      callback(list, '', meta);
+      callback(subs, '', meta);
     });
   },
   //
