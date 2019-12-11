@@ -3269,11 +3269,18 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       }
     });
   },
-  deleteMessage: function (message_id, channel_id, callback) {
-    //console.log('dataaccess.camtine.js::deleteMessage - start', message_id, channel_id)
+  deleteMessage: function(message_id, channel_id, callback) {
+    //console.log('dataaccess.camtine.js::deleteMessage - start', message_id, channel_id);
+    if (!message_id) {
+      console.warn('dataaccess.camtine.js::deleteMessage -  no message_id');
+      if (callback) {
+        callback(false, 'no message_id');
+      }
+      return;
+    }
     messageModel.update({ where: { id: message_id } }, { is_deleted: true }, function(err, omsg) {
       if (err) {
-        console.log('dataaccess.camtine.js::deleteMessage - err', err)
+        console.log('dataaccess.camtine.js::deleteMessage - err', err);
       } else {
         //console.log('dataaccess.camtine.js::deleteMessage - loggin interaction')
         // log delete interaction
@@ -3342,10 +3349,10 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
         }
       }
       if (id instanceof Array) {
-        //console.log('dataaccess.caminte.js::getMessage multi -', messages.length)
+        //console.log('dataaccess.caminte.js::getMessage multi -', id, messages.length)
         callback(messages, err);
       } else {
-        //console.log('dataaccess.caminte.js::getMessage single -', messages, messages[0])
+        //console.log('dataaccess.caminte.js::getMessage single', id, messages[0])
         callback(messages[0], err);
       }
     });
