@@ -3808,8 +3808,12 @@ module.exports = {
     // include_annotations, include_user_annotations, include_html
     var ref=this;
     if (request.annotations) {
-      console.log('dispatcher.js::patchUser - annotations', request.annotations);
+      //console.log('dispatcher.js::patchUser - annotations', request.annotations);
       this.setAnnotations('user', tokenObj.userid, request.annotations);
+    }
+    //console.log('dispatcher.js::patchUser - changes', changes);
+    if (JSON.stringify(changes) === '{}') {
+      return;
     }
     this.cache.patchUser(tokenObj.userid, changes, function(user, err, meta) {
       if (callback) {
@@ -4788,6 +4792,9 @@ module.exports = {
         // insert into idtype, id, type, value
         // type, id, note.type, note.value
         //console.log('dispatcher.js::setAnnotations - insert', note.type, note.value);
+        if (!note.value) {
+          continue; // support deleting annotations
+        }
         ref.cache.addAnnotation(type, id, note.type, note.value, function(nNote, err) {
           if (err) {
             console.log('dispatcher.js::setAnnotations - addAnnotation failure', err);
