@@ -107,7 +107,7 @@ function start(nconf) {
   }
 
   if (schemaDataType==='mysql') {
-    //console.log('MySQL is active');
+    console.log('MySQL detected');
     //charset: "utf8_general_ci" / utf8mb4_general_ci
     // run a query "set names utf8"
     schemaData.client.changeUser({ charset: 'utf8mb4' }, function(err) {
@@ -535,7 +535,27 @@ function start(nconf) {
     //schemaData.automigrate(function() {});
     //schemaToken.automigrate(function() {});
     // don't lose data
-    schemaData.autoupdate(function() {});
+    schemaData.autoupdate(function() {
+      if (schemaDataType==='mysql') {
+        // FIXME: avoid doing these each start up
+        schemaToken.client.query('alter table post MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+          if (error) console.error('emoji upgrade error', error)
+          console.log('post emoji enabled')
+        });
+        schemaToken.client.query('alter table message MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;', function (error, results, fields) {
+          if (error) console.error('emoji upgrade error', error)
+          console.log('message emoji enabled')
+        });
+        schemaToken.client.query('alter table annotation MODIFY `value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;', function (error, results, fields) {
+          if (error) console.error('emoji upgrade error', error)
+          console.log('annotation emoji enabled')
+        });
+        schemaToken.client.query('alter table user MODIFY `name` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;', function (error, results, fields) {
+          if (error) console.error('emoji upgrade error', error)
+          console.log('user name emoji enabled')
+        });
+      }
+    });
     schemaToken.autoupdate(function() {});
   }
 
