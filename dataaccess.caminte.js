@@ -542,7 +542,17 @@ function start(nconf) {
           if (error) console.error('emoji upgrade error', error)
           console.log('post emoji enabled')
         });
+        // FIXME: we don't need to store html
+        schemaToken.client.query('alter table post MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+          if (error) console.error('emoji upgrade error', error)
+          console.log('post emoji enabled')
+        });
         schemaToken.client.query('alter table message MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;', function (error, results, fields) {
+          if (error) console.error('emoji upgrade error', error)
+          console.log('message emoji enabled')
+        });
+        // FIXME: we don't need to store html
+        schemaToken.client.query('alter table message MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;', function (error, results, fields) {
           if (error) console.error('emoji upgrade error', error)
           console.log('message emoji enabled')
         });
@@ -1492,13 +1502,10 @@ module.exports = {
         }
         return;
       }
-      //console.log('no token');
       // no token
       function genCheckToken(cb) {
         var token=generateToken(98);
-        //console.log('is', token, 'used');
         localUserTokenModel.findOne({ where: { token: token }}, function(err, tokenUnique) {
-          if (err) console.error('localUserTokenModel find', token, 'err', err);
           if (tokenUnique) {
             // try again
             genCheckToken(cb);
@@ -1513,7 +1520,7 @@ module.exports = {
         usertoken.client_id=client_id;
         usertoken.scopes=scopes;
         usertoken.token=token;
-        //console.log('dataaccess.caminte.js::createOrFindUserToken - creating localUserToken', usertoken);
+        //console.log('dataaccess.caminte.js::createOrFindUserToken - creating localUserToken', usertoken)
         /*usertoken.save(function() {
           callback(usertoken, null);
         })*/
