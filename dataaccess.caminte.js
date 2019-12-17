@@ -1492,10 +1492,13 @@ module.exports = {
         }
         return;
       }
+      //console.log('no token');
       // no token
       function genCheckToken(cb) {
         var token=generateToken(98);
+        //console.log('is', token, 'used');
         localUserTokenModel.findOne({ where: { token: token }}, function(err, tokenUnique) {
+          if (err) console.error('localUserTokenModel find', token, 'err', err);
           if (tokenUnique) {
             // try again
             genCheckToken(cb);
@@ -1510,7 +1513,7 @@ module.exports = {
         usertoken.client_id=client_id;
         usertoken.scopes=scopes;
         usertoken.token=token;
-        //console.log('dataaccess.caminte.js::createOrFindUserToken - creating localUserToken', usertoken)
+        //console.log('dataaccess.caminte.js::createOrFindUserToken - creating localUserToken', usertoken);
         /*usertoken.save(function() {
           callback(usertoken, null);
         })*/
