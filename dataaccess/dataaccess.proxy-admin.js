@@ -1,7 +1,5 @@
-const { URL, URLSearchParams } = require('url'); // node 8.x support
-
 // get request http library
-var request = require('request');
+const request = require('request');
 const URLSearchParams = require('url').URLSearchParams // node 8.x backfill
 
 // managed downloader (paging?)
@@ -139,6 +137,11 @@ module.exports = {
         return;
       }
     }
+    // upload fresh proxy data back into dataSource
+    this.dispatcher.updateUser(getUserIDRes.response.data, new Date().getTime(),function(user, err) {
+      // FIXME: convert ADN to API
+      callback(getUserIDRes.err, getUserIDRes.response.data);
+    })
     */
     var ref=this;
     console.log('dataaccess.proxy-admin.js:getUserID - proxying user @'+username);
@@ -163,7 +166,7 @@ module.exports = {
           // FIXME: convert ADN to API
           //console.log('getUserID result for', username, 'is', user);
           // finally return
-          callback(user,err,res.meta);
+          callback(err,user,res.meta);
         });
       } else {
         console.log('dataccess.proxy-admin.js:getUserID - request failure');
@@ -172,11 +175,6 @@ module.exports = {
         console.log('body', body);
         callback(null, e, null);
       }
-    }
-    // upload fresh proxy data back into dataSource
-    this.dispatcher.updateUser(getUserIDRes.response.data, new Date().getTime(),function(user, err) {
-      // FIXME: convert ADN to API
-      callback(getUserIDRes.err, getUserIDRes.response.data);
     })
   },
   // callback is user,err,meta
