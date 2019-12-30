@@ -1,6 +1,9 @@
-var muteModel
+let muteModel
+let applyParams
 
-function start(schemaData) {
+function start(options) {
+  const schemaData = options.schemaData
+  applyParams = options.applyParams
   muteModel = schemaData.define('mute', {
     userid: { type: Number, index: true },
     muteeid: { type: Number }
@@ -30,13 +33,13 @@ module.exports = {
     })
   },
   addMute: function(userid, muteeid, params, callback) {
-    console.log('dataaccess.caminte::addMute', muteeid, 'for', userid, typeof(callback))
+    //console.log('dataaccess.caminte::addMute', muteeid, 'for', userid, typeof(callback))
     var crit = { userid: userid, muteeid: muteeid }
     muteModel.findOne({ where: crit }, function(err, mute) {
-      console.log('dataaccess.caminte::addMute - mute', mute)
+      //console.log('dataaccess.caminte::addMute - mute', mute)
       if (err) console.log('dataaccess.caminte::addMute - err', err, mute)
       if (!mute) {
-        console.log('dataaccess.caminte::addMute - creating mute')
+        //console.log('dataaccess.caminte::addMute - creating mute')
         muteModel.create(crit, callback)
       } else {
         callback(err, mute)
@@ -44,10 +47,10 @@ module.exports = {
     })
   },
   delMute: function(userid, muteeid, params, callback) {
-    console.log('dataaccess.caminte::delMute', muteeid, 'for', userid, typeof(callback))
+    //console.log('dataaccess.caminte::delMute', muteeid, 'for', userid, typeof(callback))
     muteModel.findOne({ where: { userid: userid, muteeid: muteeid } }, function(err, mute) {
       if (err) {
-        console.log('dataaccess.caminte::delMute - err', err, mute)
+        console.log('dataaccess.caminte::delMute - find err', err, mute)
         callback(err)
       }
       if (mute) {
@@ -58,7 +61,7 @@ module.exports = {
         })
         */
         mute.destroy(function(dErr) {
-          if (dErr) console.log('dataaccess.caminte::delMute - err', dErr)
+          if (dErr) console.log('dataaccess.caminte::delMute - destroy err', dErr)
           callback(dErr, mute)
         })
       } else {
