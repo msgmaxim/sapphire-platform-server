@@ -1,6 +1,5 @@
 /** get request http library */
 var request = require('request');
-var qs = require('qs');
 var rateLimiter = require('./ratelimiter.js');
 
 // backwards compatibility to allow us to do the right thing
@@ -35,6 +34,7 @@ var config_path = path.join(__dirname, '/config.json');
 // and a model file
 var config_model_path = path.join(__dirname, '/config.models.json');
 nconf.argv().env('__').file({file: config_path}).file('model', {file: config_model_path});
+var upstream_client_id=nconf.get('uplink:client_id') || 'NotSet';
 
 // pass in proxy settings or just conf it?
 module.exports = {
