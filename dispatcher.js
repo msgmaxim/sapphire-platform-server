@@ -188,6 +188,7 @@ module.exports = {
    * websocket stream pumps
    */
   pumps: {},
+  name: 'originalFlavor',
   /** posts */
   // tokenObj isn't really used at this point...
   // difference between stream and api?
@@ -1667,7 +1668,7 @@ module.exports = {
   },
   /** channels */
   apiToChannel: function(api, meta, callback) {
-    console.log('dispatcher.js::apiToChannel - api', api);
+    //console.log('dispatcher.js::apiToChannel - api', api);
     // map API to DB
     // default to most secure
     var raccess=2; // 0=public, 1=loggedin, 2=selective
@@ -2104,7 +2105,7 @@ module.exports = {
         //ref.channelToAPI(channel, params, token, callback, meta2);
       })
       // FIXME: get rid of the N+1 and delete all in one query
-      ref.cache.getChannelSubscriptions(channelid, { }, function(err, subs, meta) {
+      ref.cache.getChannelSubscriptions([channelid], { }, function(err, subs, meta) {
         for(var i in subs) {
           var userid = subs[i].userid
           ref.cache.setSubscription(channelid, userid, true, new Date(), function(err, subscription) {
@@ -2364,6 +2365,7 @@ module.exports = {
       thread_id: message.id,
       reply_to: null,
     };
+    // this (is_deleted) key may be omitted instead of being false
     if (message.is_deleted) {
       api.is_deleted = true
       delete api.text;
@@ -2395,14 +2397,14 @@ module.exports = {
         }
       }
       //console.log('dispatcher.js::channelToAPI('+channel.id+') - done', data, meta);
-      //console.log('dispatcher.js::channelToAPI('+channel.id+') - done, text', data.text);
+      //console.log('dispatcher.js::messageToAPI('+message.id+') - done, text', api.id, message.text);
       // everything is done
       callback(api, null, meta);
     }
     function loadUser(userid, params, cb) {
-      //console.log('dispatcher.js::postToAPI('+post.id+') - getting user '+post.userid);
+      //console.log('dispatcher.js::postToAPI('+message.id+') - getting user '+message.userid);
       ref.getUser(userid, params, function(user, userErr, userMeta) {
-        //console.log('dispatcher.js::postToAPI('+post.id+') - got user '+post.userid, err);
+        //console.log('dispatcher.js::postToAPI('+message.id+') - got user '+message.userid, userErr);
         if (!user) {
           user={
             id: 0,
@@ -2642,6 +2644,7 @@ module.exports = {
         getEntities(message, function() {
           //console.log('dispatcher.js::addMessage - message', message);
           ref.cache.addMessage(message, function(err, msg, meta) {
+            // msg just has id...
             if (err) {
               console.log('dispatcher.js::addMessage - err', err);
               callback([], err, {
@@ -2654,7 +2657,7 @@ module.exports = {
               // fix up channel_id for msg pump
               msg.channel_id = channel_id
               ref.setAnnotations('message', msg.id, postdata.annotations, function() {
-                //console.log('write channel_id', channel_id)
+                console.log('write channel_id', channel_id)
                 ref.cache.setMessage({
                   id: msg.id,
                   channel_id: channel_id
@@ -2665,7 +2668,9 @@ module.exports = {
               });
             }
             // OPT: if no streams and no callback, no need for API conversion
-            ref.messageToAPI(msg, params, tokenobj, function(api, err) {
+            message.id = msg.id;
+            //console.log('dispatcher.js::addMessage - msg', message);
+            ref.messageToAPI(message, params, tokenobj, function(api, err) {
               //console.log('dispatcher.js::addMessage - api', api);
               module.exports.pumpStreams({
                 id:   msg.id,
@@ -2677,7 +2682,7 @@ module.exports = {
               ref.setEntities('message', msg.id, message.entities, function() {
                 // if current, extract annotations too
                 if (callback) {
-                  //console.log('dispatcher.js::addMessage - has callback');
+                  //console.log('dispatcher.js::addMessage - has callback', api.id, api);
                   callback(api, err, meta);
                 }
               });
@@ -2704,6 +2709,13 @@ module.exports = {
   },
   deleteMessage: function(message_id, channel_id, params, tokenObj, callback) {
     //console.log('dispatcher.js::deleteMessage - channel_id', channel_id);
+    if (!message_id) {
+      console.log('dispatcher.js::deleteMessage - no message');
+      callback([], 'no message passed in', {
+        code: 410,
+      });
+      return;
+    }
     if (!channel_id) {
       console.log('dispatcher.js::deleteMessage - no channel');
       callback([], 'no channel passed in', {
@@ -2729,18 +2741,29 @@ module.exports = {
         return;
       }
       // is this your message
-      ref.getMessage(message_id, params, tokenObj, function(apiMsg, apiErr, apiMeta) {
+      ref.getMessage(message_id, params, tokenObj, function(apiMsgs, apiErr, apiMeta) {
+        if (apiErr) {
+          console.error('dispatcher.js::deleteMessage - err', apiErr)
+        }
+        if (!apiMsgs || !apiMsgs.length || apiMsgs.length != 1) {
+          console.log('dispatcher.js::deleteMessage -', message_id, 'not found');
+          callback({}, 'message not found', {
+            code: 410,
+          });
+          return;
+        }
+        var apiMsg = apiMsgs[0];
         if (!apiMsg) {
           console.log('dispatcher.js::deleteMessage -', message_id, 'not found');
           callback({}, 'message not found', {
-            code: 404,
+            code: 410,
           });
           return;
         }
         if (!apiMsg.user) {
           console.log('dispatcher.js::deleteMessage - ', message_id, ' has no user', apiMsg);
           callback({}, 'message not found', {
-            code: 404,
+            code: 410,
           });
           return;
         }
@@ -2770,23 +2793,27 @@ module.exports = {
   getMessage: function(mids, params, tokenObj, callback) {
     //console.log('dispatcher.js::getMessage - mids', mids);
     var ref=this;
+    //console.log('dispatcher.js::getMessage - cache', this.cache.name);
+    //console.log('dispatcher.js::getMessage - cache.next', this.cache.next.name);
     this.cache.getMessage(mids, function(err, messages, meta) {
       // make messages an array if not
       if (!(messages instanceof Array)) {
         messages = [ messages ];
       }
       //console.log('dispatcher.js::getMessage - messages', messages.length);
-      //if (!messages.length) {
-        //console.log('dispatcher.js::getMessage - messages', messages);
-      //}
+      if (!messages.length) {
+        console.warn('dispatcher.js::getMessage - no messages', mids);
+        return callback([], err, meta);
+      }
       var apis = [];
       for(var i in messages) {
         var message = messages[i];
         // messageToAPI: function(message, params, tokenObj, callback, meta) {
         ref.messageToAPI(message, params, tokenObj, function(api, err) {
           apis.push(api);
+          //console.log(apis.length, '/', messages.length);
           if (apis.length == messages.length) {
-            callback(api, err, meta);
+            callback(apis, err, meta);
           }
         }, meta);
       }
@@ -2854,6 +2881,7 @@ module.exports = {
               //apis.push(message);
               apis[message.id] = message;
               apiCount++;
+              //console.log('dispatcher.js::getChannelMessages - finishMessages', apiCount, '/', messages.length);
               if (messages.length == apiCount) {
                 var list = []
                 for(var i in messages) {
@@ -2892,8 +2920,37 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getChannelMessage: function(cid, mids, params, callback) {
-    console.log('dispatcher.js::getChannelMessage - write me!');
-    callback([], null);
+    //console.log('dispatcher.js::getChannelMessage - write me!');
+    var ref = this;
+    this.cache.getMessage(mids, function(messages, err, meta) {
+      // make messages an array if not
+      if (!(messages instanceof Array)) {
+        messages = [ messages ];
+      }
+      //console.log('dispatcher.js::getMessage - messages', messages.length);
+      //if (!messages.length) {
+        //console.log('dispatcher.js::getMessage - messages', messages);
+      //}
+      var apis = [];
+      for(var i in messages) {
+        var message = messages[i];
+        if (message && message.channel_id != cid) {
+          apis.push(false);
+          if (apis.length == messages.length) {
+            callback(apis, err, meta);
+          }
+          continue;
+        }
+        // messageToAPI: function(message, params, tokenObj, callback, meta) {
+        ref.messageToAPI(message, params, params.tokenObj, function(api, err) {
+          apis.push(api);
+          //console.log(apis.length, '/', messages.length);
+          if (apis.length == messages.length) {
+            callback(apis, err, meta);
+          }
+        }, meta);
+      }
+    })
   },
   //
   // channel_subscription
@@ -3074,9 +3131,9 @@ module.exports = {
   getChannelSubscriptions: function(channelid, params, callback) {
     var ref = this;
     //console.log('dispatcher.js::getChannelSubscriptions - start');
-    this.cache.getChannelSubscriptions(channelid, params, function(err, subs, meta) {
+    this.cache.getChannelSubscriptions([channelid], params, function(err, subs, meta) {
       if (!subs.length) {
-        callback([], '', meta);
+        return callback([], '', meta);
       }
       var list = [];
       for(var i in subs) {
@@ -3091,6 +3148,16 @@ module.exports = {
           }
         })
       }
+    });
+  },
+  getChannelsSubscriptions: function(ids, params, token, callback) {
+    var ref = this;
+    //console.log('dispatcher.js::getChannelSubscriptions - start');
+    this.cache.getChannelSubscriptions(ids, params, function(subs, err, meta) {
+      if (!subs.length) {
+        return callback([], '', meta);
+      }
+      callback(subs, '', meta);
     });
   },
   //
@@ -3761,14 +3828,37 @@ module.exports = {
     // include_annotations, include_user_annotations, include_html
     var ref=this;
     if (request.annotations) {
-      console.log('dispatcher.js::patchUser - annotations', request.annotations);
+      //console.log('dispatcher.js::patchUser - annotations', request.annotations);
       this.setAnnotations('user', tokenObj.userid, request.annotations);
+    }
+    //console.log('dispatcher.js::patchUser - changes', changes);
+    if (JSON.stringify(changes) === '{}') {
+      return;
     }
     this.cache.patchUser(tokenObj.userid, changes, function(err, user, meta) {
       if (callback) {
         ref.userToAPI(user, tokenObj, function(apiUser, apiErr, apiMeta) {
           callback(apiUser, apiErr, apiMeta);
         }, meta);
+      }
+    });
+  },
+  updateUserAvatar: function(avatar_url, params, tokenObj, callback) {
+    if (!tokenObj.userid) {
+      console.trace('dispatcher.js::updateUserAvatar - no user id in tokenObj', tokenObj, tokenObj.userid);
+      return callback({}, 'not userid');
+    }
+    //console.log('dispatcher.js::updateUserAvatar - avatar', avatar_url);
+    // we can also set the image width/height...
+    changes = {
+      avatar_image: avatar_url
+    }
+    var ref=this;
+    this.cache.patchUser(tokenObj.userid, changes, function(changes, err, meta) {
+      // hrm memory driver does return the complete object...
+      //console.log('dispatcher.js::updateUserAvatar - changes', changes);
+      if (callback) {
+        ref.getUser(tokenObj.userid, params, callback);
       }
     });
   },
@@ -3839,6 +3929,8 @@ module.exports = {
       return;
     }
     //console.log('dispatcher.js::userToAPI - setting up res');
+    //console.log('dispatcher.js::userToAPI - base user', user);
+    //console.log('dispatcher.js::userToAPI - base avatar_image', user.avatar_image);
     // copy user structure
     var res={
       id: user.id,
@@ -3970,7 +4062,7 @@ module.exports = {
         if (user.debug) console.log('dispatcher.js::userToAPI('+user.id+') - get user annotations')
         ref.getAnnotation('user', user.id, function(dbNotes, err, noteMeta) {
           if (user.debug) console.log('user', user.id, 'annotations', dbNotes.length)
-          var apiNotes=[]
+          var apiNotes = []
           for(var j in dbNotes) {
             var note=dbNotes[j]
             //console.log('got note', j, '#', note.type, '/', note.value, 'for', user.id)
@@ -4015,6 +4107,7 @@ module.exports = {
     //console.log('dispatcher.js::getUser - '+user, params);
     if (!callback) {
       console.error('dispatcher.js::getUser - no callback passed in');
+      callback(null, 'dispatcher.js::getUser - no callback passed in');
       return;
     }
     if (!user) {
@@ -4047,7 +4140,12 @@ module.exports = {
           //console.log('dispatcher.js::getUser - not such user?', userid, 'or no generalParams?', params)
         }
         //console.log('found user', userobj.id, '==', user)
-        if (params.debug) userobj.debug = true
+        if (!userobj) {
+          console.error('dispatcher.js::getUser - no userobj', userobj);
+          // this breaks token registration
+          // userobj = {}
+        }
+        //if (params.debug) userobj.debug = true
         ref.userToAPI(userobj, params.tokenobj, callback, userMeta);
       });
     })
@@ -4199,9 +4297,10 @@ module.exports = {
       //console.log('dispatcher.js::setFollows - has data', data.user.id, data.follows_user.id, 'id', id, 'deleted', deleted, 'ts', ts);
       // probably dont' need this first one but we're an internal API
       // maybe something will need it eventually
+      var ref = this;
       normalizeUserID(data.user.id, {}, function(normalUserId) {
         normalizeUserID(data.follows_user.id, {}, function(normalFollowId) {
-          this.cache.setFollow(normalUserId, normalFollowId, id, deleted, ts);
+          ref.cache.setFollow(normalUserId, normalFollowId, id, deleted, ts);
         })
       })
     } else {
@@ -4605,8 +4704,10 @@ module.exports = {
   /** annotations */
   getAnnotation: function(type, id, callback) {
     var ref=this;
+    var debug = false;
+    //if (id == 1861) debug = true;
     this.cache.getAnnotations(type, id, function(err, notes, meta) {
-      //console.log('start notes', notes);
+      //if (debug) console.log(type, id, 'start notes', notes);
       //var fixedNotes=[];
       if (!notes || !notes.length) {
         callback(notes, err, meta);
@@ -4618,7 +4719,7 @@ module.exports = {
 
       function checkDone(i) {
         done[i]++;
-        //console.log('(', type, id, ')', i, 'done', done[i], 'calls', calls[i]);
+        if (debug) console.log('(', type, id, ')', i, 'done', done[i], 'calls', calls[i]);
         if (done[i]===calls[i]) {
           // replace value
           notes[i].value=fixedSet;
@@ -4631,7 +4732,7 @@ module.exports = {
         }
       }
 
-      //console.log('dispatcher.js::getAnnotation(', type, id, ') - notes', notes.length);
+      //if (debug) console.log('dispatcher.js::getAnnotation(', type, id, ') - notes', notes.length);
       for(var i in notes) {
         // check values
         var fixedSet={}
@@ -4640,18 +4741,26 @@ module.exports = {
         calls[i]=0;
         done[i]=0;
         // is notes[i].value is a key value tuple, not an array
-        //console.log('dispatcher.js::getAnnotation - note', i, 'has', notes[i].value);
+        if (debug) console.log('dispatcher.js::getAnnotation - note', i, 'has', notes[i].value);
         for(var k in notes[i].value) {
           calls[i]++;
         }
         // I think we only every have one value
         // nope because you can have an empty array
-        //console.log(i, 'value', notes[i].value, 'len', notes[i].value.length, typeof(notes[i].value), notes[i].value.constructor.name)
+        if (debug) console.log(i, 'value', notes[i].value, 'len', notes[i].value.length, typeof(notes[i].value), notes[i].value.constructor.name)
         if (notes[i].value.constructor.name == 'Array' && !notes[i].value.length) {
+          if (debug) console.log('checkDone cause empty array', i)
           fixedSet=notes[i].value
           calls[i]++;
-          checkDone(i)
-          continue
+          checkDone(i);
+          continue;
+        }
+        if (JSON.stringify(notes[i].value) === '{}') {
+          if (debug) console.log('checkDone cause empty object', i)
+          fixedSet=notes[i].value
+          calls[i]++;
+          checkDone(i);
+          continue;
         }
         for(var k in notes[i].value) {
           //console.log('value', notes[i].value, 'vs', oldValue, 'k', k, 'val', notes[i].value[k], 'vs', oldValue[k]);
@@ -4723,6 +4832,9 @@ module.exports = {
         // insert into idtype, id, type, value
         // type, id, note.type, note.value
         //console.log('dispatcher.js::setAnnotations - insert', note.type, note.value);
+        if (!note.value) {
+          continue; // support deleting annotations
+        }
         ref.cache.addAnnotation(type, id, note.type, note.value, function(err, nNote) {
           if (err) {
             console.log('dispatcher.js::setAnnotations - addAnnotation failure', err);

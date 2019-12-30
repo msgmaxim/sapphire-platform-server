@@ -59,8 +59,7 @@ function findOrCreateUser(username) {
           console.error('findOrCreateUser::addUser', err)
           return rej(err)
         }
-        //console.log('created user', user.toString())
-        console.log('created user', user.id)
+        //console.log('created user', user.id, user.toString())
         resolve(user.id)
       })
     })
@@ -152,6 +151,9 @@ function runIntegrationTests() {
     describe('#users', async () => {
       require('./test.users').runTests(platformApi)
     })
+      describe('#files', async () => {
+        require('./test.files').runTests(platformApi, nconf)
+      })
       describe('#mutes', async () => {
         require('./test.mutes').runTests(platformApi)
       })

@@ -21,6 +21,9 @@ const sendresponse = (json, resp) => {
 
 // FIXME verification of modKey
 
+// not a global
+let cache
+
 module.exports=function(app, prefix) {
   //var dispatcher=app.dispatcher;
   // set cache based on dispatcher object
@@ -147,7 +150,7 @@ module.exports=function(app, prefix) {
   app.delete(prefix + '/channels/:cid/messages/:mid', (req, res) => {
     const cid = req.params.cid;
     const mid = req.params.mid;
-    //console.log('message id', mid);
+    console.log('nuke message id', mid);
     // marks it is_deleted: 1
     cache.deleteMessage(mid, cid, function(err, message, meta) {
       if (err) {
@@ -183,9 +186,18 @@ module.exports=function(app, prefix) {
           return sendresponse(resObj, res);
         })
       break;
+      case 'channels':
+        cache.addChannel(req.body.userid, req.body.channel, function(chnl, err, meta) {
+          const resObj={
+            meta: meta,
+            data: chnl,
+          }
+          return sendresponse(resObj, res);
+        });
+      break;
       case 'tokens':
         const tokenIn = req.body;
-        // console.log('creating token', tokenIn);
+        //console.log('creating token', tokenIn);
         if (tokenIn.expireInMins !== undefined && tokenIn.token) {
           cache.addUnconstrainedAPIUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, tokenIn.token, tokenIn.expireInMins, function(err, token, meta) {
             const resObj={
@@ -193,7 +205,7 @@ module.exports=function(app, prefix) {
               data: token,
             }
             return sendresponse(resObj, res);
-          })
+          });
         } else {
           cache.createOrFindUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, function(err, usertoken, meta) {
             const resObj={
@@ -201,8 +213,17 @@ module.exports=function(app, prefix) {
               data: usertoken,
             }
             return sendresponse(resObj, res);
-          })
+          });
         }
+      break;
+      case 'annotations':
+        cache.addAnnotation(req.body.idtype, req.body.id, req.body.type, req.body.value, function(note, err, meta) {
+          const resObj={
+            meta: meta,
+            data: note,
+          }
+          return sendresponse(resObj, res);
+        });
       break;
       default:
         res.status(200).end("{}");
@@ -238,6 +259,17 @@ module.exports=function(app, prefix) {
     const id = req.params.id;
     console.log('admin::delete model', model, 'id', id);
     switch(model) {
+      case 'tokens':
+        cache.delAPIUserToken(id, function(delToken, err) {
+          const resObj={
+            meta: {
+              code: 200,
+            },
+            data: delToken,
+          }
+          return sendresponse(resObj, res);
+        });
+      break;
       default:
         res.status(200).end("{}");
       break;

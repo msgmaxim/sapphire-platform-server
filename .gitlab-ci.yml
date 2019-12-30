@@ -1,9 +1,33 @@
 variables:
   GIT_STRATEGY: fetch
 
-test:
+test-8:
+  type: test
+  image: node:8-alpine
+  tags:
+    - docker
+  before_script:
+    - npm install
+    - npm install -g mocha
+    - cp config.sample.json config.json
+  script:
+    - mocha --exit
+
+test-10:
   type: test
   image: node:10-alpine
+  tags:
+    - docker
+  before_script:
+    - npm install
+    - npm install -g mocha
+    - cp config.sample.json config.json
+  script:
+    - mocha --exit
+
+test-12:
+  type: test
+  image: node:12-alpine
   tags:
     - docker
   before_script:

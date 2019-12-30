@@ -1,6 +1,4 @@
-const urlLib = require('url') // node 8.x backfill
-const URL = urlLib.URL
-const URLSearchParams = urlLib.URLSearchParams
+const { URL, URLSearchParams } = require('url'); // node 8.x support
 
 // ES2015 arrow functions cannot be constructors
 const adnServerAPI = function(url, token) {
@@ -10,7 +8,7 @@ const adnServerAPI = function(url, token) {
 
   // make a request to the server
   this.serverRequest = async (endpoint, options = {}) => {
-    const { params = {}, method, objBody } = options;
+    const { params = {}, method, objBody, rawBody } = options;
     const url = new URL(`${this.base_url}/${endpoint}`);
     if (params) {
       url.search = new URLSearchParams(params);
@@ -28,6 +26,8 @@ const adnServerAPI = function(url, token) {
       if (objBody) {
         headers['Content-Type'] = 'application/json';
         fetchOptions.body = JSON.stringify(objBody);
+      } else if (rawBody) {
+        fetchOptions.body = rawBody
       }
       fetchOptions.headers = new Headers(headers);
       result = await fetch(url, fetchOptions || undefined);
