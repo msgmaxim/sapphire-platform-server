@@ -77,9 +77,10 @@ app.webport=webport;
 // only can proxy if we're set up as a client or an auth_base not app.net
 console.log('upstream_client_id', upstream_client_id)
 if (upstream_client_id!='NotSet' || auth_base!='https://account.app.net/oauth/') {
+  var obj = require('./lib.platform');
   var oauthproxy=require('./routes.oauth.proxy.js');
   oauthproxy.auth_base=auth_base;
-  oauthproxy.setupoauthroutes(app, cache);
+  oauthproxy.setupoauthroutes(app, obj.cache);
 } else {
   function generateToken(string_length) {
     var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
