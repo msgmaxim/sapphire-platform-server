@@ -49,7 +49,7 @@ var upstreamUserTokenModel, localUserTokenModel, oauthAppModel,
 annotationValuesModel, noticeModel, emptyModel
 
 memoryUpdate = function (model, filter, data, callback) {
-  'use strict';
+  'use strict'
   if ('function' === typeof filter) {
     return filter(new Error('Get parametrs undefined'), null)
   }
@@ -58,16 +58,17 @@ memoryUpdate = function (model, filter, data, callback) {
   }
   filter = filter.where ? filter.where : filter
   var mem = this
-  //console.log('memoryUpdate - model', model, 'fitler', filter, 'data', data, 'callback', callback)
+  //console.log('memoryUpdate - model', model, 'filter', filter, 'data', data, 'callback', callback)
 
   // filter input to make sure it only contains valid fields
   var cleanData = this.toDatabase(model, data)
 
-  if (data.id) {
+  if (filter.id) {
     // should find one and only one
-    this.exists(model, data.id, function (err, exists) {
+    this.exists(model, filter.id, function (err, exists) {
+      if (err) console.error('memoryUpdate exists err', err);
       if (exists) {
-        mem.save(model, Object.assign(exists, cleanData), callback)
+        mem.save(model, Object.assign(mem.cache[model][filter.id], cleanData), callback)
       } else {
         callback(err, cleanData)
       }
@@ -76,6 +77,7 @@ memoryUpdate = function (model, filter, data, callback) {
     //console.log('memoryUpdate - not implemented, search by?', filter, data)
     this.all(model, filter, function(err, nodes) {
       //console.log('memoryUpdate - records', nodes)
+      if (err) console.error('memoryUpdate all err', err);
       var count = nodes.length
       if (!count) {
         return callback(false, cleanData)
@@ -121,7 +123,7 @@ function start(nconf) {
   }
 
   if (schemaDataType==='mysql') {
-    //console.log('MySQL is active')
+    console.log('MySQL detected')
     //charset: "utf8_general_ci" / utf8mb4_general_ci
     // run a query "set names utf8"
     schemaData.client.changeUser({ charset: 'utf8mb4' }, function(err) {
@@ -131,6 +133,33 @@ function start(nconf) {
     schemaToken.client.changeUser({ charset: 'utf8mb4' }, function(err) {
       if (err) console.error('Couldnt set UTF8mb4', err)
       //console.log('Set charset to utf8mb4 on Token')
+    })
+    schemaData.autoupdate(function() {
+      // FIXME: avoid doing these each start up
+      schemaToken.client.query('alter table post MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+        if (error) console.error('emoji upgrade error', error)
+        console.log('post emoji enabled')
+      })
+      schemaToken.client.query('alter table post MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+        if (error) console.error('emoji upgrade error', error)
+        console.log('post emoji enabled')
+      })
+      schemaToken.client.query('alter table message MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+        if (error) console.error('emoji upgrade error', error)
+        console.log('message emoji enabled')
+      })
+      schemaToken.client.query('alter table message MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+        if (error) console.error('emoji upgrade error', error)
+        console.log('message emoji enabled')
+      })
+      schemaToken.client.query('alter table annotation MODIFY `value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+        if (error) console.error('emoji upgrade error', error)
+        console.log('annotation emoji enabled')
+      })
+      schemaToken.client.query('alter table user MODIFY `name` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+        if (error) console.error('emoji upgrade error', error)
+        console.log('user name emoji enabled')
+      })
     })
 
     // to enable emojis we need to run these
@@ -783,105 +812,114 @@ let functions = {
         return
       }
       // token is not in use, please create it
-      var usertoken=new localUserTokenModel;
-      usertoken.userid=userid;
-      usertoken.client_id=client_id;
-      usertoken.scopes=scopes;
-      usertoken.token=token;
-      usertoken.created_at=new Date();
+      var usertoken=new localUserTokenModel
+      usertoken.userid=userid
+      usertoken.client_id=client_id
+      usertoken.scopes=scopes
+      usertoken.token=token
+      usertoken.created_at=new Date()
       if (expireInMins) {
-        usertoken.expires_at=new Date(Date.now() + expireInMins * 60 * 1000);
+        usertoken.expires_at=new Date(Date.now() + expireInMins * 60 * 1000)
       }
       //expireInSecs
       console.log('creating localUserToken', usertoken)
       /*usertoken.save(function() {
-        callback(usertoken, null);
+        callback(usertoken, null)
       })*/
       // this will call callback if set
-      db_insert(usertoken, localUserTokenModel, callback);
-    });
+      db_insert(usertoken, localUserTokenModel, callback)
+    })
   },
   createOrFindUserToken: function(userid, client_id, scopes, callback) {
     //console.log('createOrFindUserToken', userid, client_id, scopes)
-    if (scopes===undefined) scopes='';
+    if (userid === undefined) {
+      return callback(false, 'no userid');
+    }
+    if (client_id === undefined) {
+      return callback(false, 'no client_id');
+    }
+    if (scopes===undefined) scopes=''
     localUserTokenModel.findOne({ where: { userid: userid, client_id: client_id }}, function(err, usertoken) {
       if (usertoken) {
         //console.log('createOrFindUserToken found token', usertoken)
         // maybe a timestamp of lastIssued
-        usertoken.scopes=scopes;
-        //usertoken.token=token;
-        usertoken.save();
+        usertoken.scopes=scopes
+        //usertoken.token=token
+        usertoken.save()
         // check scopes
         // do we auto upgrade scopes?
         // probably should just fail
         if (callback) {
-          callback(usertoken, null);
+          callback(usertoken, null)
         }
-        return;
+        return
       }
       // no token
+      //console.log('no token')
       function genCheckToken(cb) {
-        var token=generateToken(98);
+        var token=generateToken(98)
+        // =console.log('is', token, 'used')
         localUserTokenModel.findOne({ where: { token: token }}, function(err, tokenUnique) {
+          if (err) console.error('localUserTokenModel find', token, 'err', err)
           if (tokenUnique) {
             // try again
-            genCheckToken(cb);
+            genCheckToken(cb)
           } else {
-            cb(token);
+            cb(token)
           }
         })
       }
       genCheckToken(function(token) {
-        var usertoken=new localUserTokenModel;
-        usertoken.userid=userid;
-        usertoken.client_id=client_id;
-        usertoken.scopes=scopes;
-        usertoken.token=token;
+        var usertoken=new localUserTokenModel
+        usertoken.userid=userid
+        usertoken.client_id=client_id
+        usertoken.scopes=scopes
+        usertoken.token=token
         //console.log('dataaccess.caminte.js::createOrFindUserToken - creating localUserToken', usertoken)
         /*usertoken.save(function() {
-          callback(usertoken, null);
+          callback(usertoken, null)
         })*/
         //console.log('createOrFindUserToken made token', usertoken)
         // this will call callback if set
-        db_insert(usertoken, localUserTokenModel, callback);
+        db_insert(usertoken, localUserTokenModel, callback)
       })
     })
   },
   delAPIUserToken: function(token, callback) {
     localUserTokenModel.findOne({ where: { token: token } }, function(err, usertoken) {
-      localUserTokenModel.destroyById(usertoken.id, callback);
-    });
+      localUserTokenModel.destroyById(usertoken.id, callback)
+    })
   },
   // should only be used by the admin API
   getAPITokenByUsername: function(username, callback) {
-    //console.log('dataaccess.camintejs.js::getAPITokenByUsername - username:', username);
+    //console.log('dataaccess.camintejs.js::getAPITokenByUsername - username:', username)
     if (username==undefined) {
-      console.log('dataaccess.camintejs.js::getAPITokenByUsername - username not defined');
-      return callback(null, 'username undefined');
+      console.log('dataaccess.camintejs.js::getAPITokenByUsername - username not defined')
+      return callback(null, 'username undefined')
     }
     this.getUserID(username, function(user, err) {
       if (!user) {
-        return callback(null, err);
+        return callback(null, err)
       }
       localUserTokenModel.findOne({ where: { userid: user.id }, limit: 1 }, function(err, usertoken) {
         if (err) {
-          console.log('dataaccess.camintejs.js::getAPIUserToken - err', err, 'usertoken', usertoken);
+          console.log('dataaccess.camintejs.js::getAPIUserToken - err', err, 'usertoken', usertoken)
         }
-        //console.log('dataaccess.camintejs.js::getAPIUserToken - found:', usertoken);
-        callback(usertoken, err);
-      });
-    });
+        //console.log('dataaccess.camintejs.js::getAPIUserToken - found:', usertoken)
+        callback(usertoken, err)
+      })
+    })
   },
   getAPIUserToken: function(token, callback) {
-    //console.log('dataaccess.camintejs.js::getAPIUserToken - Token:', token);
+    //console.log('dataaccess.camintejs.js::getAPIUserToken - Token:', token)
     if (token==undefined) {
-      //console.log('dataaccess.camintejs.js::getAPIUserToken - Token not defined');
+      //console.log('dataaccess.camintejs.js::getAPIUserToken - Token not defined')
       // we shouldn't need to return here
       // why doesn't mysql handle this right? bad driver
-      callback(null, 'token undefined');
-      return;
+      callback(null, 'token undefined')
+      return
     }
-    //console.log('dataaccess.camintejs.js::getAPIUserToken - token:', token);
+    //console.log('dataaccess.camintejs.js::getAPIUserToken - token:', token)
     // error but must have been connected because it could still get counts
 /*
 dispatcher @1494199287183 Memory+[803.9 k] Heap[23.44 M] uptime: 298756.005
@@ -914,11 +952,11 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     // if we get more than one, than we callback multiple times?
     localUserTokenModel.findOne({ where: { token: token }, limit: 1 }, function(err, usertoken) {
       if (err) {
-        console.log('dataaccess.camintejs.js::getAPIUserToken - err', err, 'usertoken', usertoken);
+        console.log('dataaccess.camintejs.js::getAPIUserToken - err', err, 'usertoken', usertoken)
       }
-      //console.log('dataaccess.camintejs.js::getAPIUserToken - found:', usertoken);
-      callback(err, usertoken);
-    });
+      //console.log('dataaccess.camintejs.js::getAPIUserToken - found:', usertoken)
+      callback(err, usertoken)
+    })
   },
   /*
    * user upstream tokens
@@ -926,71 +964,71 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
   setUpstreamUserToken: function(userid, token, scopes, callback) {
     upstreamUserTokenModel.findOne({ where: { userid: userid } }, function(err, upstreamToken) {
       if (err) {
-        console.log('dataaccess.camintejs.js::setUpstreamUserToken - upstreamUserTokenModel err', err);
+        console.log('dataaccess.camintejs.js::setUpstreamUserToken - upstreamUserTokenModel err', err)
         if (callback) {
-          callback(upstreamToken, err);
-          return;
+          callback(upstreamToken, err)
+          return
         }
       }
       if (upstreamToken) {
         if (upstreamToken.token!=token) {
-          console.log('dataaccess.camintejs.js::setUpstreamUserToken - new token?', token, 'old', upstreamToken.token);
+          console.log('dataaccess.camintejs.js::setUpstreamUserToken - new token?', token, 'old', upstreamToken.token)
         }
       } else {
-        upstreamToken=new upstreamUserTokenModel;
-        upstreamToken.userid=userid;
+        upstreamToken=new upstreamUserTokenModel
+        upstreamToken.userid=userid
       }
       // update token and scopes for this user
-      upstreamToken.scopes=scopes;
-      upstreamToken.token=token;
+      upstreamToken.scopes=scopes
+      upstreamToken.token=token
       upstreamToken.save(function() {
         if (callback) {
-          callback(upstreamToken, user);
+          callback(upstreamToken, user)
         }
-      });
+      })
     })
   },
   delUpstreamUserToken: function(token) {
-    console.log('dataaccess.camintejs.js::delUpstreamUserToken - write me!');
+    console.log('dataaccess.camintejs.js::delUpstreamUserToken - write me!')
   },
   getUpstreamUserToken: function(userid, callback) {
     upstreamUserTokenModel.findOne({ where: { userid: userid } }, function(err, upstreamToken) {
       if (err) {
-        console.log('dataaccess.camintejs.js::setUpstreamUserToken - upstreamUserTokenModel err', err);
+        console.log('dataaccess.camintejs.js::setUpstreamUserToken - upstreamUserTokenModel err', err)
         if (callback) {
-          callback(upstreamToken, err);
-          return;
+          callback(upstreamToken, err)
+          return
         }
       }
-      callback(upstreamToken, null);
-    });
+      callback(upstreamToken, null)
+    })
   },
   /* client (app) tokens */
   addAPIAppToken: function(client_id, token, request) {
-    console.log('api_persistent_storage::addAPIAppToken - write me!');
+    console.log('api_persistent_storage::addAPIAppToken - write me!')
   },
   delAPIAppToken: function(client_id, token) {
-    console.log('api_persistent_storage::delAPIAppToken - write me!');
+    console.log('api_persistent_storage::delAPIAppToken - write me!')
   },
   getAPIAppToken: function(client_id, token) {
-    console.log('api_persistent_storage::getAPIAppToken - write me!');
+    console.log('api_persistent_storage::getAPIAppToken - write me!')
   },
   /* client upstream token */
   addUpstreamClientToken: function(token, scopes) {
-    console.log('api_persistent_storage::addUpstreamClientToken - write me!');
+    console.log('api_persistent_storage::addUpstreamClientToken - write me!')
   },
   delUpstreamClientToken: function(token) {
-    console.log('api_persistent_storage::delUpstreamClientToken - write me!');
+    console.log('api_persistent_storage::delUpstreamClientToken - write me!')
   },
   getUpstreamClientToken: function() {
-    console.log('api_persistent_storage::getUpstreamClientToken - write me!');
+    console.log('api_persistent_storage::getUpstreamClientToken - write me!')
   },
   /** app stream */
   getExplore: function(params, callback) {
     if (this.next) {
-      this.next.getExplore(params, callback);
+      this.next.getExplore(params, callback)
     } else {
-      //console.log('dataaccess.base.js::getExplore - write me!');
+      //console.log('dataaccess.base.js::getExplore - write me!')
       var res={"meta":{"code":200},
         "data":[
           {"url":"/posts/stream/explore/conversations", "description":"New conversations just starting on App.net", "slug":"conversations", "title":"Conversations"},
@@ -1000,158 +1038,158 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
           //{"url":"/posts/stream/explore/subtweets", "description":"memes", "slug":"subtweets", "title":"Drybones Subtweets"}
           {"url":"/posts/stream/explore/moststarred", "description":"Posts that people have starred", "slug":"moststarred", "title":"Starred Posts"}
         ]
-      };
-      callback(res.data, null, res.meta);
+      }
+      callback(res.data, null, res.meta)
     }
   },
   getExploreFeed: function(feed, params, callback) {
-    //console.log('dataaccess.camtinte.js::getExploreFeed(', feed, ',..., ...) - start');
+    //console.log('dataaccess.camtinte.js::getExploreFeed(', feed, ',..., ...) - start')
     if (this.next) {
-      this.next.getExploreFeed(feed, params, callback);
+      this.next.getExploreFeed(feed, params, callback)
     } else {
       // get list of posts && return
-      var posts=[];
-      var ref=this;
+      var posts=[]
+      var ref=this
       switch(feed) {
         case 'photos':
           annotationModel.find({ where: { idtype: 'post', type: 'net.app.core.oembed' }, order: 'typeid DESC' }, function(err, dbNotes) {
-            if (!dbNotes.length) callback(posts, null, { "code": 200 });
+            if (!dbNotes.length) callback(posts, null, { "code": 200 })
             var posts = []
             for(var i in dbNotes) {
               posts.push(dbNotes[i].typeid)
             }
-            var maxid=0;
-            applyParams(postModel.find().where('id', { in: posts }), params, maxid, callback);
-          });
-        break;
+            var maxid=0
+            applyParams(postModel.find().where('id', { in: posts }), params, maxid, callback)
+          })
+        break
         case 'checkins':
           // we need to convert to applyParams
           annotationModel.find({ where: { idtype: 'post', type: 'ohai' }, order: 'typeid DESC' }, function(err, dbNotes) {
-            if (!dbNotes.length) callback(posts, null, { "code": 200 });
+            if (!dbNotes.length) callback(posts, null, { "code": 200 })
             for(var i in dbNotes) {
               ref.getPost(dbNotes[i].typeid, function(post, err, meta) {
-                posts.push(post);
-                //console.log(posts.length, '/', dbNotes.length);
+                posts.push(post)
+                //console.log(posts.length, '/', dbNotes.length)
                 if (posts.length===dbNotes.length) {
-                  callback(posts, null, { "code": 200 });
+                  callback(posts, null, { "code": 200 })
                 }
-              });
+              })
             }
-          });
-        break;
+          })
+        break
         case 'moststarred':
           // so "conversations", is just going to be a list of any posts with a reply (latest at top)
           // maybe the thread with the latest reply would be good
           // params.generalParams.deleted <= defaults to true
-          var maxid=0;
+          var maxid=0
           // get the highest post id in posts
           postModel.all({ order: 'id DESC', limit: 1}, function(err, posts) {
-            //console.log('dataaccess.caminte.js::getUserPosts - back',posts);
+            //console.log('dataaccess.caminte.js::getUserPosts - back',posts)
             if (posts.length) {
-              maxid=posts[0].id;
+              maxid=posts[0].id
             }
-            console.log('dataaccess.caminte.js::moststarred - max', maxid);
+            console.log('dataaccess.caminte.js::moststarred - max', maxid)
             // order is fucked here...
             applyParams(postModel.find().where('num_stars', { ne: 0 }).order('num_stars DESC, id DESC'), params, maxid, function(dbPosts, err, meta) {
               /*
               if (!dbPosts.length) {
-                callback(dbPosts, null, { "code": 200 });
+                callback(dbPosts, null, { "code": 200 })
               }
               */
-              callback(dbPosts, null, { "code": 200 });
-            });
-          });
-        break;
+              callback(dbPosts, null, { "code": 200 })
+            })
+          })
+        break
         case 'conversations':
           // so "conversations", is just going to be a list of any posts with a reply (latest at top)
           // maybe the thread with the latest reply would be good
           // params.generalParams.deleted <= defaults to true
-          var maxid=0;
+          var maxid=0
           // get the highest post id in posts
           postModel.all({ order: 'id DESC', limit: 1}, function(err, posts) {
-            //console.log('dataaccess.caminte.js::getUserPosts - back',posts);
+            //console.log('dataaccess.caminte.js::getUserPosts - back',posts)
             if (posts.length) {
-              maxid=posts[0].id;
+              maxid=posts[0].id
             }
-            console.log('dataaccess.caminte.js::conversations - max', maxid);
+            console.log('dataaccess.caminte.js::conversations - max', maxid)
             // this alone makes the order much better but not perfect
             applyParams(postModel.find().where('reply_to', { ne: 0}).order('thread_id DESC'), params, maxid, function(dbPosts, err, meta) {
             //postModel.find({ where: { reply_to: { ne: 0 } }, order: 'thread_id DESC' }, function(err, dbPosts) {
-              if (!dbPosts.length) callback(dbPosts, null, { "code": 200 });
-              var started={};
-              var starts=0;
-              var dones=0;
+              if (!dbPosts.length) callback(dbPosts, null, { "code": 200 })
+              var started={}
+              var starts=0
+              var dones=0
               for(var i in dbPosts) {
-                if (started[dbPosts[i].thread_id]) continue;
-                started[dbPosts[i].thread_id]=true;
-                starts++;
+                if (started[dbPosts[i].thread_id]) continue
+                started[dbPosts[i].thread_id]=true
+                starts++
                 ref.getPost(dbPosts[i].thread_id, function(post, err, meta) {
-                  posts.push(post);
-                  dones++;
-                  //console.log(posts.length, '/', dbNotes.length);
+                  posts.push(post)
+                  dones++
+                  //console.log(posts.length, '/', dbNotes.length)
                   //if (posts.length===dbPosts.length) {
                   if (starts===dones) {
                     // FIXME: order
-                    callback(posts, null, { "code": 200 });
+                    callback(posts, null, { "code": 200 })
                   }
-                });
+                })
               }
-            });
-          });
-        break;
+            })
+          })
+        break
         case 'trending':
           // so "trending" will be posts with hashtags created in the last 48 hours, sorted by most replies
           entityModel.find({ where: { idtype: 'post', type: 'hashtag' }, order: 'typeid DESC' }, function(err, dbEntities) {
-            if (!dbEntities.length) callback(posts, null, { "code": 200 });
+            if (!dbEntities.length) callback(posts, null, { "code": 200 })
             var posts = []
             for(var i in dbEntities) {
               posts.push(dbEntities[i].typeid)
             }
-            var maxid=0;
-            applyParams(postModel.find().where('id', { in: posts }), params, maxid, callback);
+            var maxid=0
+            applyParams(postModel.find().where('id', { in: posts }), params, maxid, callback)
             /*
-            var started={};
-            var starts=0;
-            var dones=0;
+            var started={}
+            var starts=0
+            var dones=0
             for(var i in dbEntities) {
-              if (started[dbEntities[i].typeid]) continue;
-              started[dbEntities[i].typeid]=true;
-              starts++;
+              if (started[dbEntities[i].typeid]) continue
+              started[dbEntities[i].typeid]=true
+              starts++
               ref.getPost(dbEntities[i].typeid, function(post, err, meta) {
-                posts.push(post);
-                dones++;
+                posts.push(post)
+                dones++
                 if (starts===dones) {
-                  callback(posts, null, { "code": 200 });
+                  callback(posts, null, { "code": 200 })
                 }
-              });
+              })
             }
             */
-          });
-        break;
+          })
+        break
         case 'subtweets':
           postModel.find({ where: { text: { like: '%drybones%' } }, order: 'id DESC' }, function(err, dbPosts) {
-            if (!dbPosts.length) callback(posts, null, { "code": 200 });
+            if (!dbPosts.length) callback(posts, null, { "code": 200 })
             for(var i in dbPosts) {
               ref.getPost(dbPosts[i].id, function(post, err, meta) {
-                posts.push(post);
-                //console.log(posts.length, '/', dbNotes.length);
+                posts.push(post)
+                //console.log(posts.length, '/', dbNotes.length)
                 if (posts.length===dbPosts.length) {
-                  callback(posts, null, { "code": 200 });
+                  callback(posts, null, { "code": 200 })
                 }
-              });
+              })
             }
           })
-        break;
+        break
         default:
-          console.log('dataaccess.caminte.js::getExploreFeed(', feed, ') - write me!');
-          callback(posts, null, { "code": 200 });
-        break;
+          console.log('dataaccess.caminte.js::getExploreFeed(', feed, ') - write me!')
+          callback(posts, null, { "code": 200 })
+        break
       }
     }
   },
   // user: userid
   addNotice: function(notice, callback) {
-    db_insert(notice, noticeModel, callback);
+    db_insert(notice, noticeModel, callback)
   },
   delNotice: function(query, callback) {
     noticeModel.find(query, function(err, noticies) {
@@ -1164,11 +1202,11 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     })
   },
   getNotices: function(user, params, tokenObj, callback) {
-    //console.log('dataaccess.caminte.js::getNotices - user', user, 'params', params, 'tokenObj', typeof(tokenObj), 'callback', typeof(callback));
+    //console.log('dataaccess.caminte.js::getNotices - user', user, 'params', params, 'tokenObj', typeof(tokenObj), 'callback', typeof(callback))
     /*
     if (typeof(callback)!=='function') {
-      console.log('dataaccess.caminte.js::getNotices - called without a callback', user, params, tokenObj);
-      return;
+      console.log('dataaccess.caminte.js::getNotices - called without a callback', user, params, tokenObj)
+      return
     }
     */
     var ref = this
@@ -1176,8 +1214,8 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       var query = noticeModel.find().where('notifyuserid', userid)
       if (tokenObj.userid) {
         ref.getAllMutesForUser(tokenObj.userid, function(mutedUserIDs) {
-          query=query.where('actionuserid', { nin: mutedUserIDs });
-          //console.log('getChannelMessages - params', params);
+          query=query.where('actionuserid', { nin: mutedUserIDs })
+          //console.log('getChannelMessages - params', params)
           applyParams(query, params, callback)
         })
       } else {
@@ -1186,31 +1224,31 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
 
       /*
       applyParams(query, params, 0, function(notices, err, meta) {
-        callback(notices, err, meta);
-      });
+        callback(notices, err, meta)
+      })
       */
 
       // , limit: params.count
       /*
       noticeModel.find({ where: { notifyuserid: userid }, order: "event_date DESC" }, function(err, notices) {
-        //console.log('dataaccess.caminte.js::gotNotices');
-        callback(notices, err);
-      });
+        //console.log('dataaccess.caminte.js::gotNotices')
+        callback(notices, err)
+      })
       */
     }
 
     // FIXME: move this shit into the dispatcher
     if (user=='me') {
       //this.getAPIUserToken(tokenStr, function(tokenobj, err) {
-      finalfunc(tokenObj.userid);
+      finalfunc(tokenObj.userid)
       //})
     } else if (user[0]=='@') {
       // uhm I don't think posts has a username field...
       this.getUserID(user.substr(1), function(err, userobj) {
-        finalfunc(userobj.id);
-      });
+        finalfunc(userobj.id)
+      })
     } else {
-      finalfunc(user);
+      finalfunc(user)
     }
   },
   addEmpty: function(empty, callback) {
@@ -1221,29 +1259,29 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
   },
   getOEmbed: function(url, callback) {
     if (this.next) {
-      this.next.getOEmbed(url, callback);
+      this.next.getOEmbed(url, callback)
     } else {
       var info = {
         meta: {
           code: 200
         },
         data: {}
-      };
+      }
 
       var ref = this
       // A URL for a post or photo on App.net.
-      var alpha = url.match(/alpha.tavrn.gg/i);
+      var alpha = url.match(/alpha.tavrn.gg/i)
       if (alpha) {
-        var parts = url.split('/');
+        var parts = url.split('/')
         // post vs photo?
         var type = 'post'
         if (url.match(/\/photo\//)) {
           type = 'photo'
-          var postid = parts[parts.length - 3];
-          var photoid = parts[parts.length - 1];
+          var postid = parts[parts.length - 3]
+          var photoid = parts[parts.length - 1]
           console.log('dataaccess.camtine.js::getOEmbed -photo mode', postid, photoid)
           this.getAnnotations('post', postid, function(notes, err) {
-            //console.log('post info', notes);
+            //console.log('post info', notes)
             var c = 0
             for(var i in notes) {
               var note = notes[i]
@@ -1251,19 +1289,19 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
                 console.log('dataaccess.camtine.js::getOEmbed - found our info', note.value)
                 c ++
                 if (c == photoid) {
-                  info.data = JSON.parse(note.value);
-                  break;
+                  info.data = JSON.parse(note.value)
+                  break
                 }
               }
             }
-            callback(info, null);
-          });
-          return;
+            callback(info, null)
+          })
+          return
         }
-        var postid = parts[parts.length - 1];
-        console.log('dataaccess.camtine.js::getOEmbed - postid', postid);
+        var postid = parts[parts.length - 1]
+        console.log('dataaccess.camtine.js::getOEmbed - postid', postid)
         this.getPost(postid, function(post, err) {
-          //console.log('post info', post);
+          //console.log('post info', post)
           info.data = {
             provider_url: "https://tavrn.gg",
             version: "1.0",
@@ -1275,21 +1313,21 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
             html: post.html,
             author_name: post.userid
           }
-          callback(info, null);
-        });
+          callback(info, null)
+        })
       } else {
-        callback(null, null);
+        callback(null, null)
       }
       //callback(null, null)
-      //console.log('dataaccess.caminte.js::getOEmbed - write me!');
+      //console.log('dataaccess.caminte.js::getOEmbed - write me!')
       // <link rel="alternate" type="application/json+oembed"
       // href="http://example.com/services/oembed?url=http%3A%2F%2Fexample.com%2Ffoo%2F&amp;format=json"
       // title="oEmbed Profile: JSON">
       // <link rel="alternate" type="application/json+oembed" href="http://api.sapphire.moe/oembed?url=http://alpha.tavrn.gg/marcodiazclone/post/607" title="App.net oEmbed" />
       /*
       request(url, function(err, resp, body) {
-        var linkFilter = new RegExp('<link([^>]+)>','img');
-        var links = body.match(linkFilter);
+        var linkFilter = new RegExp('<link([^>]+)>','img')
+        var links = body.match(linkFilter)
         if (links) {
           for(var i=0,imax=links.length; i<imax; i++) {
             var link = links[i]
@@ -1303,7 +1341,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
                 console.log('href', oembedUrl)
                 request(oembedUrl, function(err, resp, body) {
                   console.log('body', body)
-                  callback(JSON.parse(body), null);
+                  callback(JSON.parse(body), null)
                 })
               }
             }
@@ -1314,11 +1352,11 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       /*
       oembedTools.extract(url).then((data) => {
         console.log('url', url, 'data', data)
-        callback(data, null);
+        callback(data, null)
       }).catch((err) => {
-        console.log('oembed err', err);
-        callback('', 'no provider');
-      });
+        console.log('oembed err', err)
+        callback('', 'no provider')
+      })
       */
     }
   }
@@ -1326,7 +1364,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
 
 funcs.forEach((func) => {
   functions = Object.assign(functions, func)
-});
+})
 
 module.exports = functions
 module.exports.next = null
