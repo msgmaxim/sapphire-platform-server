@@ -1,6 +1,9 @@
 var subscriptionModel
+let applyParams
 
-function start(schemaData) {
+function start(options) {
+  const schemaData = options.schemaData
+  applyParams = options.applyParams
   /** subscription storage model */
   subscriptionModel = schemaData.define('subscriptions', {
     channelid: { type: Number, index: true },
@@ -49,7 +52,7 @@ module.exports = {
       subscription.save(function() {
         if (callback) {
           //console.log('dataaccess.camintejs::addSubscription result', subscription);
-          callback(subscription, err);
+          callback(err, subscription);
         }
       });
     });
@@ -63,7 +66,10 @@ module.exports = {
       active: !del?true:false,
       last_updated: ts
     }, function(err, subscription) {
-      console.log('dataaccess.camintejs::setSubscription result', subscription);
+      //console.log('dataaccess.camintejs::setSubscription result', subscription);
+      if (err) {
+        console.error('dataaccess.camintejs::setSubscription err', err)
+      }
       if (callback) {
         callback(subscription, err);
       }
