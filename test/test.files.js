@@ -2,7 +2,7 @@ const assert = require('assert')
 const FormData = require('form-data')
 
 module.exports = {
-  runTests: function(platformApi) {
+  runTests: function(platformApi, nconf) {
     let fileRes
     it('file upload', async () => {
       const formData = new FormData()
@@ -56,10 +56,12 @@ module.exports = {
 }
 */
       //console.log('file upload res', res.response.data)
-      fileRes = res.response.data
+      fileRes = res
+      //console.log('setting fileRes', fileRes)
       // check upload
       let url = res.response.data.url
-      if (nconf.get('pomf:provider_url').match(/localhost|127.0.0.1/i)) {
+      const provider_url = nconf.get('pomf:provider_url') || 'https://pomf.cat/'
+      if (provider_url.match(/localhost|127.0.0.1/i)) {
         url = res.response.data.url.replace('/', '')
         const downloadRes = await platformApi.serverRequest(url, {
           //noJson: true
@@ -85,9 +87,22 @@ module.exports = {
       assert.equal(200, getFilesRes.statusCode)
     })
     */
+
+    // we do this in users...
+    /*
     it('get my files', async () => {
       const getMyFileRes = await platformApi.serverRequest('users/me/files')
       assert.equal(200, getMyFileRes.statusCode)
     })
+    */
+    // not implemented yet
+    /*
+    it('delete file', async () => {
+      const delFileRes = await platformApi.serverRequest('files/' + fileRes.response.data.id, {
+        method: 'DELETE'
+      })
+      assert.equal(200, delFileRes.statusCode)
+    })
+    */
   },
 }
