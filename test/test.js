@@ -44,7 +44,7 @@ function findOrCreateUser(username) {
     // does our test user exist?
     cache.getUserID(username, function(err, user) {
       if (err) {
-        console.error('findOrCreateUser::getUserID', err)
+        console.error('findOrCreateUser::getUserID err', err)
         return rej(err)
       }
       console.log('findOrCreateUser::getUserID result', user)
