@@ -1,6 +1,9 @@
 var followModel
+let applyParams
 
-function start(schemaData) {
+function start(options) {
+  const schemaData = options.schemaData
+  applyParams = options.applyParams
   /** follow storage model */
   followModel = schemaData.define('follow', {
     userid: { type: Number, index: true },
@@ -30,27 +33,31 @@ module.exports = {
       //
       if (del) {
         // remove any evidence of a follow
+        this.delNotice({ where: { type: 'follow', actionuserid: srcid, typeid: trgid} })
+        /*
         noticeModel.find({ where: { type: 'follow', actionuserid: srcid, typeid: trgid} }, function(err, noticies) {
           for(var i in noticies) {
             var notice=noticies[i]
             notice.destroy(function(err) {
-            });
+            })
           }
-        });
+        })
+        */
       } else {
-        notice=new noticeModel();
-        notice.event_date=ts;
+        notice = {}
+        notice.event_date = ts
         // notify target
-        notice.notifyuserid=trgid; // who should be notified
-        notice.actionuserid=srcid; // who took an action
-        notice.type='follow'; // star,repost,reply,follow
-        notice.typeid=trgid; // postid(star,respot,reply),userid(follow)
-        db_insert(notice, noticeModel);
+        notice.notifyuserid = trgid // who should be notified
+        notice.actionuserid = srcid // who took an action
+        notice.type = 'follow' // star,repost,reply,follow
+        notice.typeid = trgid // postid(star,respot,reply),userid(follow)
+        //db_insert(notice, noticeModel)
+        this.addNotice(notice)
       }
 
-      console.log('setFollow active - del:', del, 'active:', del?0:1);
-      var ref=this;
-      // FIXME; we need to manually detect if it existed, so we can set created_at
+      //console.log('camintejs.dataaccess::setFollow active - del:', del, 'active:', del?0:1)
+      var ref=this
+      // FIXME we need to manually detect if it existed, so we can set created_at
       // as that's the main date field that's part of the api
       followModel.updateOrCreate({
         userid: srcid,
@@ -70,70 +77,88 @@ module.exports = {
         ref.updateUserCounts(trgid, function() {})
         // make changes
         if (callback) {
-          callback(users, err);
+          callback(err, users, false)
         }
-      });
+      })
     } else {
       // FIXME: write me
       // search by referenceid, likely delete it
-      console.log('dataaccess.caminte.js::setFollow - no data, write me... deleted? '+del);
+      console.log('dataaccess.caminte.js::setFollow - no data, write me... deleted? '+del)
       if (callback) {
-        callback(null, null);
+        callback(false, false, false)
       }
     }
     // find (id and status, dates)
     // update or insert
   },
+  getAllFollowing: function(userid, callback) {
+    if (userid==undefined) {
+      callback('dataaccess.caminte.js::getFollowing - userid is undefined', false)
+      return
+    }
+    followModel.find({ where: { userid: userid, active: 1 } }, function(err, followings) {
+      //console.dir(followings)
+      if (followings==undefined) {
+        if (this.next && this.next.getAllFollowing) {
+          this.next.getAllFollowing(userid, callback)
+          return
+        }
+      } else {
+        //console.log('got', followings.length, 'followings for', userid)
+        callback(err, followings)
+      }
+    })
+  },
   // who is this user following
   getFollowing: function(userid, params, callback) {
     if (userid==undefined) {
-      callback(null, 'dataaccess.caminte.js::getFollowing - userid is undefined');
-      return;
+      callback('dataaccess.caminte.js::getFollowing - userid is undefined', false)
+      return
     }
-    // FIXME: active
-    followModel.find({ where: { userid: userid } }, function(err, followings) {
-      //console.dir(followings);
+    // applyParams?
+    followModel.find({ where: { userid: userid, active: 1 } }, function(err, followings) {
+      //console.dir(followings)
       if (followings==undefined) {
         if (this.next) {
-          this.next.getFollowing(userid, params, callback);
-          return;
+          this.next.getFollowing(userid, params, callback)
+          return
         }
       } else {
-        //console.log('got', followings.length, 'followings for', userid);
-        callback(followings, err);
+        //console.log('got', followings.length, 'followings for', userid)
+        callback(err, followings)
       }
     })
   },
   follows: function(src, trg, callback) {
-    //console.log('dataaccess.caminte.js::follows - src/trg', src, trg);
+    //console.log('dataaccess.caminte.js::follows - src/trg', src, trg)
     if (src==undefined) {
-      callback(null, 'dataaccess.caminte.js::follows - undefined src');
-      return;
+      callback('dataaccess.caminte.js::follows - undefined src', false)
+      return
     }
     if (trg==undefined) {
-      callback(null, 'dataaccess.caminte.js::follows - undefined trg');
-      return;
+      callback('dataaccess.caminte.js::follows - undefined trg', false)
+      return
     }
     followModel.findOne({ where: { userid: src, followsid: trg } }, function(err, followings) {
-      callback(followings, err);
+      callback(err, followings)
     })
   },
   // who follows this user
   getFollows: function(userid, params, callback) {
     if (userid==undefined) {
-      callback(null, 'dataaccess.caminte.js::getFollows - userid is undefined');
-      return;
+      callback('dataaccess.caminte.js::getFollows - userid is undefined', false)
+      return
     }
     //, limit: params.count, order: "last_updated DESC"
     followModel.find({ where: { followsid: userid, active: 1 } }, function(err, followers) {
       if (followers==undefined) {
         if (this.next) {
-          this.next.getFollows(userid, params, callback);
-          return;
+          this.next.getFollows(userid, params, callback)
+          return
         }
       } else {
-        callback(followers, null);
+        callback(false, followers, false)
       }
-    });
+    })
   },
 }
