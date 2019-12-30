@@ -145,6 +145,9 @@ function runIntegrationTests() {
     describe('#users', async () => {
       require('./test.users').runTests(platformApi)
     })
+      describe('#files', async () => {
+        require('./test.files').runTests(platformApi)
+      })
       describe('#mutes', async () => {
         require('./test.mutes').runTests(platformApi)
       })
