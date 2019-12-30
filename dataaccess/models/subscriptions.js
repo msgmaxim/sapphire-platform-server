@@ -155,14 +155,14 @@ module.exports = {
       */
     //});
   },
-  getChannelSubscriptions: function(channelid, params, callback) {
-    if (channelid==undefined) {
+  getChannelSubscriptions: function(channelids, params, callback) {
+    if (channelids==undefined) {
       console.log('dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined');
       callback(null, 'dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined');
       return;
     }
-    //console.log('dataaccess.caminte.js::getChannelSubscriptions - channelid', channelid);
-    var query=subscriptionModel.find().where('channelid', channelid).where('active', true);
+    //console.log('dataaccess.caminte.js::getChannelSubscriptions - channelids', channelids);
+    var query=subscriptionModel.find().where('channelid', { in: channelids }).where('active', true);
     //console.log('dataaccess.caminte.js::getChannelSubscriptions - query', query);
     applyParams(query, params, callback);
     /*
