@@ -3,6 +3,10 @@ const FormData = require('form-data')
 
 module.exports = {
   runTests: function(platformApi, nconf) {
+    const provider_url = nconf.get('pomf:provider_url') || 'https://pomf.cat/'
+    if (!provider_url.match(/localhost|127.0.0.1/i)) {
+      return
+    }
     let fileRes
     it('file upload', async () => {
       const formData = new FormData()
@@ -60,7 +64,6 @@ module.exports = {
       //console.log('setting fileRes', fileRes)
       // check upload
       let url = res.response.data.url
-      const provider_url = nconf.get('pomf:provider_url') || 'https://pomf.cat/'
       if (provider_url.match(/localhost|127.0.0.1/i)) {
         url = res.response.data.url.replace('/', '')
         const downloadRes = await platformApi.serverRequest(url, {
