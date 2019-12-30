@@ -57,6 +57,12 @@ module.exports = {
   addUser: function(username, password, callback) {
     userModel.create({
         username: username,
+        /*
+        canonical_url: null,
+        type: null,
+        timezone: null,
+        locale: null,
+        */
         //password: password,
         created_at: Date.now(),
         active: true,
@@ -158,24 +164,18 @@ module.exports = {
   },
   // callback is user, err, meta
   getUser: function(userid, callback) {
-    if (userid==undefined) {
-      console.log('dataaccess.caminte.js:getUser - userid is undefined')
-      var stack = new Error().stack
-      console.error(stack)
+    if (userid == undefined) {
+      console.trace('dataaccess.caminte.js:getUser - userid is undefined')
       callback('dataaccess.caminte.js:getUser - userid is undefined')
       return
     }
     if (!userid) {
       console.log('dataaccess.caminte.js:getUser - userid isn\'t set')
-      var stack = new Error().stack
-      console.error(stack)
       callback('dataaccess.caminte.js:getUser - userid isn\'t set')
       return
     }
-    if (callback==undefined) {
-      console.log('dataaccess.caminte.js:getUser - callback is undefined')
-      var stack = new Error().stack
-      console.error(stack)
+    if (callback == undefined) {
+      console.trace('dataaccess.caminte.js:getUser - callback is undefined')
       callback('dataaccess.caminte.js:getUser - callback is undefined')
       return
     }
