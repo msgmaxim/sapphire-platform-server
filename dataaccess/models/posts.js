@@ -209,7 +209,7 @@ module.exports = {
         callback(post, err, meta)
         return
       }
-      post.is_deleted=true
+      post.is_deleted = true
       post.save(function(err2) {
         var meta={
           code: 200
@@ -217,7 +217,7 @@ module.exports = {
         console.log('camintejs::delPost - cleaning reposts of', postid)
         // now we have to mark any reposts as deleted
         postModel.update({ where: { repost_of: postid } },
-        { is_deleted: 1 }, function(repostErr, udpateRes) {
+        { is_deleted: true }, function(repostErr, udpateRes) {
           //console.log('camintejs::delPost - postModel.update returned', updateRes)
           ref.updatePostCounts(postid, function() {
             callback(err2, post, meta)
@@ -244,7 +244,7 @@ module.exports = {
       }
       return
     }
-    console.log('camintejs::updatePostCounts - for', postid)
+    //console.log('camintejs::updatePostCounts - for', postid)
     var ref=this
     // get a handle on the post we want to modify
     postModel.findById(postid, function(err, post) {
@@ -256,7 +256,7 @@ module.exports = {
       ref.getReplies(postid, {}, {}, function(err, replies, meta) {
         if (err) console.error('updatePostCounts - replies err:', err)
         if (!replies) replies=[]
-        console.log('camintejs::updatePostCounts - ', replies.length, 'replies for', postid)
+        //console.log('camintejs::updatePostCounts - ', replies.length, 'replies for', postid)
         // not currently returning the original
         post.num_replies=replies.length ? replies.length : 0 // -1 for the original which is included in replies
         post.save()
@@ -272,7 +272,7 @@ module.exports = {
       ref.getReposts(postid, {}, {}, function(err, posts, meta) {
         if (err) console.error('updatePostCounts - reposts err:', err)
         if (!posts) posts=[]
-        console.log('camintejs::updatePostCounts - ', posts.length, 'reposts for', postid)
+        //console.log('camintejs::updatePostCounts - ', posts.length, 'reposts for', postid)
         post.num_reposts=posts.length
         post.save()
       })
@@ -403,7 +403,7 @@ module.exports = {
     var ref=this
     // needs to also to see if we definitely don't have any
     // FIXME: is_deleted optional
-    postModel.find({ where: { repost_of: postid, is_deleted: 0 } }, function(err, posts) {
+    postModel.find({ where: { repost_of: postid, is_deleted: false } }, function(err, posts) {
       if (err) {
         console.log('dataaccess.caminte.js::getReposts - err', err)
       }
@@ -457,7 +457,7 @@ module.exports = {
   getUserRepostPost: function(userid, thread_id, callback) {
     // did we repost any version of this repost
     //console.log('camintejs::getUserRepostPost - userid', userid, 'repost_of', repost_of)
-    postModel.findOne({ where: { userid: userid, thread_id: thread_id, repost_of: { ne: 0 }, is_deleted: 0 } }, function(err, post) {
+    postModel.findOne({ where: { userid: userid, thread_id: thread_id, repost_of: { ne: 0 }, is_deleted: false } }, function(err, post) {
       //console.log('camintejs::getUserRepostPost - ', userid, postid, posts)
       callback(err, post)
     })
