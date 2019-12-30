@@ -144,10 +144,10 @@ function formatpost(post, token) {
 module.exports = {
   'postsCallback' : function(resp, token) {
     return function(posts, err, meta) {
-      //console.log('dialect.appdotnet_official.callback.js::postsCallback - in posts callback', posts.length, 'posts');
+      //console.log('dialect.appdotnet_official.callback.js::postsCallback - in posts callback', posts.length, 'posts', posts);
       for(var i in posts) {
         var post=posts[i];
-        //console.log('dialect.appdotnet_official.callback.js::postsCallback - looking at ',post.id,post.created_at,post.userid);
+        //console.log('dialect.appdotnet_official.callback.js::postsCallback - looking at ', post, post.id, post.created_at, post.userid);
         posts[i]=formatpost(post, token);
         if (post.repost_of) {
           // this is an object...
@@ -210,7 +210,8 @@ module.exports = {
   },
 
   'postCallback' : function(resp, token) {
-    return function(post, err, meta) {
+    return function(err, post, meta) {
+      // console.log('postCallack post', post, 'err', err, 'meta', meta)
       var res={
         meta: { code: 200 },
         data: formatpost(post, token)
