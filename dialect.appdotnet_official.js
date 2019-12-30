@@ -1432,8 +1432,10 @@ module.exports=function(app, prefix) {
   });
 
   app.get(prefix+'/channels/subscribers/ids', function(req, resp) {
-    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+    //console.log('dialect.appdotnet_official.js:GETchannelsXsubscribers - ', req.token)
+    dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
       var userid='';
+      //console.log('dialect.appdotnet_official.js:GETchannelsXsubscribers - ', usertoken)
       if (usertoken==null) {
         var res={
           "meta": {
