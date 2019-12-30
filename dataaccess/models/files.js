@@ -3,7 +3,6 @@ var fileModel
 var applyParams
 
 function start(modelOptions) {
-  // we could load a library that provides this...
   applyParams = modelOptions.applyParams
   /** file storage model */
   fileModel = modelOptions.schemaData.define('file', {
