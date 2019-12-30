@@ -11,7 +11,7 @@
     "event-stream": "3.3.x",
     "express": "^4.17.1",
     "human-format": "0.5.x",
-    "loki-launcher": "1.0.0",
+    "loki-launcher": "^1.0.0",
     "multer": "^1.3.0",
     "mysql": "^2.17.1",
     "nconf": "0.8.x",
