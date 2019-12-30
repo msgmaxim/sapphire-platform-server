@@ -58,12 +58,16 @@ module.exports = {
       //console.log('file upload res', res.response.data)
       fileRes = res.response.data
       // check upload
-      const downloadRes = await platformApi.serverRequest(res.response.data.url.replace('/', ''), {
-        //noJson: true
-      })
-      // we don't need to assert this, we're not unit testing the pomf
-      if (downloadRes.statusCode !== 200) {
-        console.log('POMF download result code', downloadRes)
+      let url = res.response.data.url
+      if (nconf.get('pomf:provider_url').match(/localhost|127.0.0.1/i)) {
+        url = res.response.data.url.replace('/', '')
+        const downloadRes = await platformApi.serverRequest(url, {
+          //noJson: true
+        })
+        // we don't need to assert this, we're not unit testing the pomf
+        if (downloadRes.statusCode !== 200) {
+          console.log('POMF download result code', downloadRes)
+        }
       }
     })
     // not implemented yet
