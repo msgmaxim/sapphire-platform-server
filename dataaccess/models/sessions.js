@@ -1,6 +1,7 @@
 var sessionModel
 
-function start(schemaData) {
+function start(options) {
+  const schemaData = options.schemaData
   // shouldn't this live in schemaToken ?
   sessionModel = schemaData.define('sessions', {
     code: { type: String, index: true },

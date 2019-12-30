@@ -1,6 +1,7 @@
 var clientModel
 
-function start(schemaData) {
+function start(options) {
+  const schemaData = options.schemaData
   // local clients (upstream is set in config and we can only have one upstream)
   /** client storage model */
   clientModel = schemaData.define('client', {

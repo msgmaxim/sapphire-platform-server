@@ -1,6 +1,7 @@
 var annotationModel
 
-function start(schemaData) {
+function start(options) {
+  const schemaData = options.schemaData
   /** annotation storage model */
   annotationModel = schemaData.define('annotation', {
     idtype: { type: String, index: true }, // user, post, channel, message

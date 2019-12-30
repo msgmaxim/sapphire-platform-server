@@ -1,6 +1,7 @@
 var streamMarkersModel
 
-function start(schemaData) {
+function start(options) {
+  const schemaData = options.schemaData
   streamMarkersModel = schemaData.define('stream_markers', {
     user_id: { type: Number, index: true },
     top_id: { type: Number },
@@ -49,7 +50,7 @@ module.exports = {
       }
       marker.version++;
       marker.save(function() {
-        console.log('dataaccess.camintejs.js::setStreamMarker - marker', marker);
+        //console.log('dataaccess.camintejs.js::setStreamMarker - marker', marker);
         callback(marker, err);
       })
     })

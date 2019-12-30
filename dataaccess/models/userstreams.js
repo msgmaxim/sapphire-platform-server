@@ -1,6 +1,7 @@
 var userStreamModel
 
-function start(schemaData) {
+function start(options) {
+  const schemaData = options.schemaData
   userStreamModel = schemaData.define('user_streams', {
     userid: { type: Number, index: true }, // couldn't we get this through the token?
     tokenid: { type: Number, index: true },

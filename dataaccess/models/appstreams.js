@@ -1,6 +1,7 @@
 var appStreamModel
 
-function start(schemaData) {
+function start(options) {
+  const schemaData = options.schemaData
   appStreamModel = schemaData.define('app_streams', {
     client_id: { type: String, length: 32 }, // a client can have multiple appStreams
     filter: { type: schemaData.JSON, }, // JSON
