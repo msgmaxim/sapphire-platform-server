@@ -94,7 +94,7 @@ module.exports=function(app, prefix) {
         resp.status(401).type('application/json').send(JSON.stringify(res));
         return;
       }
-      console.log('dialect.*.js::POSTpostsMarker', req.body);
+      //console.log('dialect.*.js::POSTpostsMarker', req.body);
       dispatcher.setStreamMarker(req.body.name, req.body.id, req.body.percentage, usertoken, req.apiParams, callbacks.dataCallback(resp));
     });
   })
@@ -309,13 +309,13 @@ module.exports=function(app, prefix) {
     }
     */
     ratelimiter.rateLimit(1, 1, function() {
-      console.log('ADNO::POST/posts - params', req.body);
+      //console.log('ADNO::POST/posts - params', req.body);
       var postdata={
         text: req.body.text,
       };
       if (req.body.reply_to) { // this is optional
         postdata.reply_to=req.body.reply_to;
-        console.log('setting reply_to', postdata.reply_to);
+        //console.log('setting reply_to', postdata.reply_to);
       }
       if (req.body.entities) {
         postdata.entities=req.body.entities;
@@ -342,7 +342,7 @@ module.exports=function(app, prefix) {
           // if we set here we don't really need to pass token
           postdata.userid=usertoken.userid;
           postdata.client_id=usertoken.client_id;
-          console.log('ADNO::POST/posts - postObject', postdata);
+          //console.log('ADNO::POST/posts - postObject', postdata);
           dispatcher.addPost(postdata, usertoken, callbacks.postCallback(resp, req.token));
           ratelimiter.logRequest(1, 1);
         }
@@ -361,10 +361,19 @@ module.exports=function(app, prefix) {
             "error_message": "Call requires authentication: Authentication required to fetch token."
           }
         };
-        resp.status(401).type('application/json').send(JSON.stringify(res));
-      } else {
-        dispatcher.delPost(req.params.post_id, usertoken, callbacks.postCallback(resp, req.token));
+        return resp.status(401).type('application/json').send(JSON.stringify(res));
       }
+      //console.log('ADNO::DELETEposts - params', req.params)
+      if (!req.params.post_id) {
+        var res={
+          "meta": {
+            "code": 400,
+            "error_message": "invalid id given"
+          }
+        };
+        return resp.status(400).type('application/json').send(JSON.stringify(res));
+      }
+      dispatcher.delPost(req.params.post_id, usertoken, callbacks.postCallback(resp, req.token));
     });
   });
   app.put(prefix+'/files', function(req, resp) {
@@ -656,7 +665,7 @@ module.exports=function(app, prefix) {
 
   // /posts/stream/unified
   app.get(prefix+'/posts/stream/unified', function(req, resp) {
-    console.log('dialect.appdotnet_official.js:postsStreamUnified - start', req.token);
+    //console.log('dialect.appdotnet_official.js:postsStreamUnified - start', req.token);
     // why bother the message pump and DB if req.token is undefined
     if (req.token==undefined) {
       console.log('dialect.appdotnet_official.js:postsStreamUnified - token not set');
@@ -824,7 +833,7 @@ module.exports=function(app, prefix) {
         return;
       }
       req.apiParams.tokenobj=usertoken;
-      console.log('dialect.appdotnet_official.js:PUTusersXx - body', req.body);
+      //console.log('dialect.appdotnet_official.js:PUTusersXx - body', req.body);
       //console.log('dialect.appdotnet_official.js:PUTusersX - creating channel of type', req.body.type);
       if (req.body.name === undefined || req.body.locale  === undefined ||
         req.body.timezone  === undefined || req.body.description === undefined ||
@@ -866,13 +875,14 @@ module.exports=function(app, prefix) {
           for(var i in req.body.annotations) {
             var note = req.body.annotations[i]
             if (note.type && note.value === undefined) {
-              console.log('dialect.appdotnet_official.js:PUTusersXx - need to delete', note.type);
+              console.warn('dialect.appdotnet_official.js:PUTusersXx - need to delete', note.type);
+              req.body.annotations.splice(i, 1)
             }
           }
           userObj.annotations = req.body.annotations;
         }
         //userObj.id = usertoken.userid;
-        console.log('dialect.appdotnet_official.js:PUTusersXx - userobj', userObj);
+        //console.log('dialect.appdotnet_official.js:PUTusersXx - userobj', userObj);
         dispatcher.updateUser(userObj, Date.now()/1000, callbacks.dataCallback(resp));
       });
       //dispatcher.addChannel(channel, req.apiParams, usertoken, callbacks.dataCallback(resp));
@@ -926,7 +936,7 @@ module.exports=function(app, prefix) {
       if (req.body.annotations) {
         request.annotations = req.body.annotations;
       }
-      console.log('dialect.appdotnet_official.js:PATCHusersX - request', request);
+      //console.log('dialect.appdotnet_official.js:PATCHusersX - request', request);
       //console.log('dialect.appdotnet_official.js:PATCHusersX - creating channel of type', req.body.type);
       dispatcher.patchUser(request, req.apiParams, usertoken, callbacks.dataCallback(resp));
     });
@@ -961,7 +971,7 @@ module.exports=function(app, prefix) {
   });
   app.get(prefix+'/posts/tag/:hashtag', function(req, resp) {
     dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
-      console.log('dialect.appdotnet_official.js:GETusers/ID/stars - ', usertoken);
+      //console.log('dialect.appdotnet_official.js:GETpostsTAGhashtag - token', usertoken);
       if (usertoken!=null) {
         //console.log('dialect.appdotnet_official.js:GETusers/ID/stars - found a token');
         req.apiParams.tokenobj=usertoken;
@@ -1192,7 +1202,7 @@ module.exports=function(app, prefix) {
          [ { type: 'net.patter-app.settings', value: [Object] },
            { type: 'net.app.core.fallback_url', value: [Object] } ] }
       */
-      console.log('dialect.appdotnet_official.js:PUTchannels - updates', updates, 'notes', updates.annotations);
+      //console.log('dialect.appdotnet_official.js:PUTchannels - updates', updates, 'notes', updates.annotations);
       // updateChannel: function(channelid, update, params, token, callback) {
       dispatcher.updateChannel(req.params.channel_id, updates, req.apiParams, usertoken, callbacks.dataCallback(resp));
     });
@@ -1237,7 +1247,7 @@ module.exports=function(app, prefix) {
         return;
       }
       req.apiParams.tokenobj=usertoken;
-      console.log('dialect.appdotnet_official.js:POSTchannelsXsubscribe - user:', usertoken.userid, 'channel:', req.params.channel_id);
+      //console.log('dialect.appdotnet_official.js:POSTchannelsXsubscribe - user:', usertoken.userid, 'channel:', req.params.channel_id);
       //addChannelSubscription: function(token, channel_id, params, callback)
       dispatcher.addChannelSubscription(usertoken, req.params.channel_id, req.apiParams, callbacks.dataCallback(resp));
     });
@@ -1259,7 +1269,7 @@ module.exports=function(app, prefix) {
         return;
       }
       req.apiParams.tokenobj=usertoken;
-      console.log('dialect.appdotnet_official.js:DELETEchannelsXsubscribe - user:', usertoken.userid, 'channel:', req.params.channel_id);
+      //console.log('dialect.appdotnet_official.js:DELETEchannelsXsubscribe - user:', usertoken.userid, 'channel:', req.params.channel_id);
       //delChannelSubscription: function(token, channel_id, params, callback)
       dispatcher.delChannelSubscription(usertoken, req.params.channel_id, req.apiParams, callbacks.dataCallback(resp));
     });
@@ -1321,7 +1331,7 @@ module.exports=function(app, prefix) {
       req.apiParams.client_id=usertoken.client_id; // is this needed?
       // FIXME: machine_only makes text not required
       if (!req.body.text) {
-        console.warn('dialect.appdotnet_official.js:POSTchannelsXmessages - body', req.body)
+        console.warn('dialect.appdotnet_official.js:POSTchannelsXmessages - body empty', req.body)
         var res={
           "meta": {
             "code": 500,
@@ -1352,7 +1362,7 @@ module.exports=function(app, prefix) {
         postdata.destinations.push(usertoken.userid);
         // FIXME: also need to dedup this
       }
-      console.log('dialect.appdotnet_official.js:POSTchannelsXmessages - creating message in channel', req.params.channel_id);
+      //console.log('dialect.appdotnet_official.js:POSTchannelsXmessages - creating message in channel', req.params.channel_id);
       //addMessage: function(channel_id, postdata, params, token, callback) {
       dispatcher.addMessage(req.params.channel_id, postdata, req.apiParams, usertoken, callbacks.dataCallback(resp));
     });
