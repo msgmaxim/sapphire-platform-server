@@ -1431,66 +1431,66 @@ module.exports = {
       ref.cache.getUserPosts(userid, params, function(err, posts, meta) {
         // data is an array of entities
         var apiposts={}, postcounter=0
-        //console.log('dispatcher.js:getUserPosts - mapping '+posts.length);
+        //console.log('dispatcher.js:getUserPosts - mapping '+posts.length)
         if (posts && posts.length) {
           posts.map(function(current, idx, Arr) {
-            //console.log('dispatcher.js:getUserPosts - map postid: '+current.id);
+            //console.log('dispatcher.js:getUserPosts - map postid: '+current.id)
             // get the post in API foromat
             ref.postToAPI(current, params, params.tokenobj, function(err, post, postmeta) {
               // cache?? no
-              apiposts[post.id]=post;
-              postcounter++;
+              apiposts[post.id]=post
+              postcounter++
               // join
-              //console.log(postcounter+'/'+posts.length);
+              //console.log(postcounter+'/'+posts.length)
               if (postcounter==posts.length) {
-                //console.log('dispatcher.js::getUserPosts - finishing', posts);
-                var res=[];
+                //console.log('dispatcher.js::getUserPosts - finishing', posts)
+                var res=[]
                 for(var i in posts) {
-                  //console.log(i, 'dispatcher.js::getUserPosts - copying', posts[i].id);
-                  res.push(apiposts[posts[i].id]);
+                  //console.log(i, 'dispatcher.js::getUserPosts - copying', posts[i].id)
+                  res.push(apiposts[posts[i].id])
                 }
-                //console.log('dispatcher.js::getUserPosts - callingback', res.length, 'posts');
-                callback(res, null, meta);
+                //console.log('dispatcher.js::getUserPosts - callingback', res.length, 'posts')
+                callback(res, null, meta)
                 /*
-                var res={};
-                var done=0;
+                var res={}
+                var done=0
                 for(var i in posts) {
                   var scope=function(i) {
-                    apiposts[posts[i].id].annotations=[];
+                    apiposts[posts[i].id].annotations=[]
                     ref.getAnnotation('post', posts[i].id, function(notes, err, notemeta) {
                       for(var j in notes) {
-                        var note=notes[j];
-                        //console.log('got note', j, '#', note.type, '/', note.value, 'for', posts[i].id);
+                        var note=notes[j]
+                        //console.log('got note', j, '#', note.type, '/', note.value, 'for', posts[i].id)
                         apiposts[posts[i].id].annotations.push({
                           type: note.type,
                           value: note.value,
-                        });
+                        })
                       }
-                      //console.log('got notes', posts[i].annotations, 'for', posts[i].id);
-                      res[posts[i].id]=apiposts[posts[i].id];
-                      console.log('results', done, '==posts', posts.length);
-                      console.log(i, 'post obj', posts[i]);
-                      done++;
+                      //console.log('got notes', posts[i].annotations, 'for', posts[i].id)
+                      res[posts[i].id]=apiposts[posts[i].id]
+                      console.log('results', done, '==posts', posts.length)
+                      console.log(i, 'post obj', posts[i])
+                      done++
                       if (done==posts.length) {
-                        var nRes=[];
+                        var nRes=[]
                         for(var k in posts) {
-                          nRes.push(res[posts[k].id]);
+                          nRes.push(res[posts[k].id])
                         }
-                        callback(nRes, null, meta);
+                        callback(nRes, null, meta)
                       }
-                    });
-                  }(i);
+                    })
+                  }(i)
                 }
                 */
               }
-            });
-          }, ref);
+            })
+          }, ref)
         } else {
           // no posts
-          callback([], 'no posts for user posts', meta);
+          callback([], 'no posts for user posts', meta)
         }
-      });
-    });
+      })
+    })
   },
   /**
    * get range of stared posts for user id userid from data access
@@ -1499,61 +1499,61 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getUserStars: function(userid, params, callback) {
-    //console.log('dispatcher.js::getUserStars start');
-    if (!params.count) params.count=20;
-    var ref=this;
+    //console.log('dispatcher.js::getUserStars start')
+    if (!params.count) params.count=20
+    var ref=this
     if (userid=='me') {
       if (params.tokenobj && params.tokenobj.userid) {
-        //console.log('dispatcher.js::getUserStars - me became', params.tokenobj.userid);
+        //console.log('dispatcher.js::getUserStars - me became', params.tokenobj.userid)
         this.getUserStars(params.tokenobj.userid, params, callback)
-        return;
+        return
       } else {
-        console.log('dispatcher.js::getUserStars - userid is me but invalud token', params.tokenobj);
-        callback([], 'no or invalid token');
-        return;
+        console.log('dispatcher.js::getUserStars - userid is me but invalud token', params.tokenobj)
+        callback([], 'no or invalid token')
+        return
       }
     }
 
     this.cache.getInteractions('star', userid, params, function(err, interactions, meta) {
       // make sure stars are up to date
       if (downloader.apiroot != 'NotSet') {
-        console.log('dispatcher.js::getUserStars - start d/l');
-        downloader.downloadStars(userid);
-        console.log('dispatcher.js::getUserStars - end d/l');
+        console.log('dispatcher.js::getUserStars - start d/l')
+        downloader.downloadStars(userid)
+        console.log('dispatcher.js::getUserStars - end d/l')
       }
-      //console.log('dispatcher.js::getUserStars - ', interactions);
+      //console.log('dispatcher.js::getUserStars - ', interactions)
       // data is an array of interactions
       if (interactions && interactions.length) {
-        var apiposts=[];
+        var apiposts=[]
         interactions.map(function(current, idx, Arr) {
           // we're a hasMany, so in theory I should be able to do
-          // record.posts({conds});
+          // record.posts({conds})
           // get the post in API foromat
-          //console.log('dispatcher::getUserStars - tokenobj', params.tokenobj);
+          //console.log('dispatcher::getUserStars - tokenobj', params.tokenobj)
           ref.getPost(current.typeid, params, function(post, err, meta) {
-            //console.dir(post);
+            //console.dir(post)
             if (post && post.user && post.text) { // some are deleted, others are errors
-              apiposts.push(post);
+              apiposts.push(post)
             } else {
-              interactions.pop();
+              interactions.pop()
             }
             // join
             // params.count is requested rpp
-            //console.log(apiposts.length+'/'+interactions.length+' or '+params.count);
+            //console.log(apiposts.length+'/'+interactions.length+' or '+params.count)
             // interactions.length looks good
             if (apiposts.length==params.count || apiposts.length==interactions.length) {
-              //console.log('dispatcher.js::getUserStars - finishing', apiposts.length);
-              callback(apiposts);
-              return; // kill map, somehow?
+              //console.log('dispatcher.js::getUserStars - finishing', apiposts.length)
+              callback(apiposts)
+              return // kill map, somehow?
             }
-          });
-        }, ref);
+          })
+        }, ref)
       } else {
         // no interactions
-        //console.log('dispatcher.js::getUserStars - finishing but no stars for', userid, params);
-        callback([], err, meta);
+        //console.log('dispatcher.js::getUserStars - finishing but no stars for', userid, params)
+        callback([], err, meta)
       }
-    });
+    })
   },
   /**
    * get range of hashtagged posts from data access
@@ -1562,95 +1562,95 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getHashtag: function(hashtag, params, callback) {
-    var ref=this;
-    //console.log('dispatcher.js:getHashtag - start #'+hashtag);
+    var ref=this
+    //console.log('dispatcher.js:getHashtag - start #'+hashtag)
     this.cache.getHashtagEntities(hashtag, params, function(err, entities, meta) {
       // data is an array of entities
-      var apiposts=[];
-      //console.log('dispatcher.js:getHashtag - mapping '+entities.length);
+      var apiposts=[]
+      //console.log('dispatcher.js:getHashtag - mapping '+entities.length)
       if (entities.length) {
         // this seems to preserve order
         entities.map(function(current, idx, Arr) {
           // get the post in API foromat
           ref.getPost(current.typeid, params && params.tokenobj?{ tokenobj: params.tokenobj }:null, function(post, err, meta) {
-            apiposts.push(post);
+            apiposts.push(post)
             // join
-            //console.log(apiposts.length+'/'+entities.length);
+            //console.log(apiposts.length+'/'+entities.length)
             if (apiposts.length==entities.length) {
-              //console.log('dispatcher.js::getHashtag - finishing');
-              callback(apiposts);
+              //console.log('dispatcher.js::getHashtag - finishing')
+              callback(apiposts)
             }
-          });
-        }, ref);
+          })
+        }, ref)
       } else {
         // no entities
-        callback([], 'no entities for '+hashtag, meta);
+        callback([], 'no entities for '+hashtag, meta)
       }
-    });
+    })
   },
   getExploreFeed: function(feed, params, callback) {
-    //console.log('dispatcher.js::getExploreFeed(', feed, ',...,...) - start');
-    var ref=this;
+    //console.log('dispatcher.js::getExploreFeed(', feed, ',...,...) - start')
+    var ref=this
     this.cache.getExploreFeed(feed, params, function(err, posts, meta) {
-      //console.log('dispatcher.js::getExploreFeed - gotExploreFeed');
+      //console.log('dispatcher.js::getExploreFeed - gotExploreFeed')
       // definitely need this system
-      ref.idsToAPI(posts, params, callback, meta);
+      ref.idsToAPI(posts, params, callback, meta)
       /*
-      var apiposts={};
-      var counts=0;
-      //var apiposts=[];
+      var apiposts={}
+      var counts=0
+      //var apiposts=[]
       if (posts.length) {
         posts.map(function(current, idx, Arr) {
           // get the post in API foromat
-          //console.log('getting', current.id);
+          //console.log('getting', current.id)
           // params && params.tokenobj?params.tokenobj:null
           ref.getPost(current.id, params, function(post, err, postMeta) {
             if (post && post.text) {
-              //apiposts.push(post);
-              apiposts[post.id]=post;
+              //apiposts.push(post)
+              apiposts[post.id]=post
             } else {
               // reposts are an example of a post without text
-              console.log('dispatcher.js::getExploreFeed - no post or missing text', post, err, meta, current.id);
-              posts.pop(); // lower needed
+              console.log('dispatcher.js::getExploreFeed - no post or missing text', post, err, meta, current.id)
+              posts.pop() // lower needed
             }
-            counts++;
+            counts++
             // join
-            //console.log(apiposts.length+'/'+entities.length);
+            //console.log(apiposts.length+'/'+entities.length)
             if (counts===posts.length) {
             //if (apiposts.length===posts.length) {
-              //console.log('dispatcher.js::getExploreFeed - finishing');
+              //console.log('dispatcher.js::getExploreFeed - finishing')
               var res=[]
               for(var i in posts) {
-                var id=posts[i].id;
+                var id=posts[i].id
                 if (apiposts[id]) {
-                  //console.log('final', id);
-                  res.push(apiposts[id]);
+                  //console.log('final', id)
+                  res.push(apiposts[id])
                 }
               }
-              callback(res, null, meta);
+              callback(res, null, meta)
               //for(var i in apiposts) {
-                //var id=apiposts[i].id;
-                //console.log('final', id);
+                //var id=apiposts[i].id
+                //console.log('final', id)
               //}
-              //callback(apiposts, null, meta);
+              //callback(apiposts, null, meta)
             }
-          });
-        }, ref);
+          })
+        }, ref)
       } else {
         // no entities
-        callback([], 'no posts for '+feed, meta);
+        callback([], 'no posts for '+feed, meta)
       }
       */
-    });
+    })
   },
   postSearch: function(query, params, tokenObj, callback) {
-    var ref=this;
+    var ref=this
     //console.log('dispatcher.js::postSearch - query', query)
     this.cache.searchPosts(query, params, function(err, users, meta) {
       //console.log('dispatcher.js::userSearch - got', users.length, 'users')
       if (!users.length) {
-        callback([], null, meta);
-        return;
+        callback([], null, meta)
+        return
       }
       var rPosts=[]
       for(var i in users) {
@@ -1660,45 +1660,45 @@ module.exports = {
           rPosts.push(adnPostObj)
           if (rPosts.length==users.length) {
             //console.log('dispatcher.js::userSearch - final', rUsers)
-            callback(rPosts, null, meta);
+            callback(rPosts, null, meta)
           }
-        }, meta);
+        }, meta)
       }
-    });
+    })
   },
   /** channels */
   apiToChannel: function(api, meta, callback) {
-    //console.log('dispatcher.js::apiToChannel - api', api);
+    //console.log('dispatcher.js::apiToChannel - api', api)
     // map API to DB
     // default to most secure
-    var raccess=2; // 0=public, 1=loggedin, 2=selective
-    var waccess=2; // 1=loggedin, 2=selective
+    var raccess=2 // 0=public, 1=loggedin, 2=selective
+    var waccess=2 // 1=loggedin, 2=selective
     // editors are always seletcive
     if (api.readers) {
       if (api.readers.any_user) {
-        raccess=1;
+        raccess=1
       }
       if (api.readers.public) {
-        raccess=0;
+        raccess=0
       }
     } else {
-      api.readers={ user_ids: [] };
+      api.readers={ user_ids: [] }
     }
     if (api.writers) {
       if (api.writers.any_user) {
-        waccess=1;
+        waccess=1
       }
     } else {
-      api.writers={ user_ids: [] };
+      api.writers={ user_ids: [] }
     }
     if (api.readers.user_ids == undefined) {
-      api.readers.user_ids=[];
+      api.readers.user_ids=[]
     }
     if (api.writers.user_ids == undefined) {
-      api.writers.user_ids=[];
+      api.writers.user_ids=[]
     }
     if (api.editors.user_ids == undefined) {
-      api.editors.user_ids=[];
+      api.editors.user_ids=[]
     }
     var channel={
       id: api.id,
@@ -1709,19 +1709,19 @@ module.exports = {
       readers: api.readers.user_ids.join(','),
       writers: api.writers.user_ids.join(','),
       editors: api.editors.user_ids.join(','),
-    };
-    callback(channel, null, meta);
+    }
+    callback(channel, null, meta)
   },
   channelToAPI: function (channel, params, tokenObj, callback, meta) {
     if (typeof(channel)!='object') {
-      console.log('dispatcher.js::channelToAPI - channel passed in wasnt object');
-      callback([], 'bad data');
-      return;
+      console.log('dispatcher.js::channelToAPI - channel passed in wasnt object')
+      callback([], 'bad data')
+      return
     }
     if (channel==null) {
-      console.log('dispatcher.js::channelToAPI - channel is null');
-      callback([], 'null data');
-      return;
+      console.log('dispatcher.js::channelToAPI - channel is null')
+      callback([], 'null data')
+      return
     }
     //console.log('channel', channel)
     var api={
@@ -1772,18 +1772,18 @@ module.exports = {
     // we need it in the db this way for PM channel search
     // which way is this way?
     if (api.writers.user_ids) {
-      var nList=[];
+      var nList=[]
       for(var i in api.writers.user_ids) {
-        var writer=api.writers.user_ids[i];
-        //console.log('dispatcher.js::channelToAPI('+channel.id+') - looking at', writer, 'vs', channel.ownerid);
+        var writer=api.writers.user_ids[i]
+        //console.log('dispatcher.js::channelToAPI('+channel.id+') - looking at', writer, 'vs', channel.ownerid)
         if (writer!=channel.ownerid) {
-          nList.push(writer);
+          nList.push(writer)
         }
       }
-      //console.log('dispatcher.js::channelToAPI('+channel.id+') - final list', nList);
-      api.writers.user_ids=nList;
+      //console.log('dispatcher.js::channelToAPI('+channel.id+') - final list', nList)
+      api.writers.user_ids=nList
     }
-    var ref=this;
+    var ref=this
 
     var channelDone={
       user: false,
@@ -1792,33 +1792,33 @@ module.exports = {
     }
 
     function setDone(type) {
-      channelDone[type]=true;
+      channelDone[type]=true
       // if something is not done
       //if (channel.debug) {
-      //console.log('dispatcher.js::channelToAPI('+channel.id+') - checking if done');
+      //console.log('dispatcher.js::channelToAPI('+channel.id+') - checking if done')
       //}
       for(var i in channelDone) {
         if (!channelDone[i]) {
           if (channel.debug) {
-            console.log('dispatcher.js::channelToAPI('+channel.id+') -', i, 'is not done');
+            console.log('dispatcher.js::channelToAPI('+channel.id+') -', i, 'is not done')
           }
-          return;
+          return
         }
       }
       if (channel.debug) {
-        console.log('dispatcher.js::channelToAPI('+channel.id+') - done', meta, typeof(callback));
+        console.log('dispatcher.js::channelToAPI('+channel.id+') - done', meta, typeof(callback))
       }
-      //console.log('dispatcher.js::channelToAPI('+channel.id+') - done, text', data.text);
+      //console.log('dispatcher.js::channelToAPI('+channel.id+') - done, text', data.text)
       // everything is done
-      callback(api, null, meta);
+      callback(api, null, meta)
     }
 
     function loadUser(userid, params, cb) {
-      if (channel.debug) console.log('dispatcher.js::channelToAPI('+channel.id+') - getting user '+userid);
+      if (channel.debug) console.log('dispatcher.js::channelToAPI('+channel.id+') - getting user '+userid)
       //params.debug = true
       ref.getUser(userid, params, function(user, userErr, userMeta) {
         if (userErr) console.error('dispatcher.js::channelToAPI('+channel.id+') - ', userErr)
-        if (channel.debug) console.log('dispatcher.js::channelToAPI('+channel.id+') - got user '+userid);
+        if (channel.debug) console.log('dispatcher.js::channelToAPI('+channel.id+') - got user '+userid)
         if (!user) {
           user={
             id: 0,
@@ -1835,109 +1835,109 @@ module.exports = {
             }
           }
         }
-        cb(user, userErr, userMeta);
-      }); // getUser
+        cb(user, userErr, userMeta)
+      }) // getUser
     }
 
     function loadAnnotation(channel, cb) {
       ref.getAnnotation('channel', channel.id, function(dbNotes, err, noteMeta) {
-        var apiNotes=[];
+        var apiNotes=[]
         for(var j in dbNotes) {
-          var note=dbNotes[j];
-          //console.log('got note', j, '#', note.type, '/', note.value, 'for', posts[i].id);
+          var note=dbNotes[j]
+          //console.log('got note', j, '#', note.type, '/', note.value, 'for', posts[i].id)
           apiNotes.push({
             type: note.type,
             value: note.value,
-          });
+          })
         }
-        cb(apiNotes, err, noteMeta);
-      });
+        cb(apiNotes, err, noteMeta)
+      })
     }
 
     //console.log('dispatcher.js::channelToAPI - tokenObj', tokenObj)
     // you_subscribed
     if (tokenObj.subscribedOpt) {
-      api.you_subscribed=true;
+      api.you_subscribed=true
     } else if (tokenObj.unsubscribedOpt) {
-      api.you_subscribed=false;
+      api.you_subscribed=false
     } else {
       if (tokenObj.subscribedOpt===undefined && tokenObj.unsubscribedOpt===undefined) {
-        //console.log('dispatcher.js::channelToAPI - are you subscribed?', tokenObj.userid);
+        //console.log('dispatcher.js::channelToAPI - are you subscribed?', tokenObj.userid)
         channelDone.subscribed = false
         ref.cache.getSubscription(api.id, tokenObj.userid, function(err, subed) {
-          //console.log('dispatcher.js::channelToAPI - are you subscribed?', subed);
-          api.you_subscribed=false;
+          //console.log('dispatcher.js::channelToAPI - are you subscribed?', subed)
+          api.you_subscribed=false
           if (subed) {
-            api.you_subscribed=true;
+            api.you_subscribed=true
           }
-          //console.log('dispatcher.js::channelToAPI - are you subscribed?', api.you_subscribed);
-          setDone('subscribed');
+          //console.log('dispatcher.js::channelToAPI - are you subscribed?', api.you_subscribed)
+          setDone('subscribed')
         })
       }
     }
     if (channel.ownerid == tokenObj.userid) {
-      api.readers.you=true;
-      api.editors.you=true;
-      api.writers.you=true;
+      api.readers.you=true
+      api.editors.you=true
+      api.writers.you=true
       // could insert into user_ids... (Writers is spec)
       // you_can_edit
-      api.you_can_edit=true;
+      api.you_can_edit=true
       // you_muted
-      api.you_muted=false; // can't mute self
+      api.you_muted=false // can't mute self
     } else
-    //console.log('dispatcher.js::channelToAPI - tokenObj', tokenObj);
+    //console.log('dispatcher.js::channelToAPI - tokenObj', tokenObj)
     if (tokenObj.userid) {
       // process readers
       if (channel.reader==0) {
-        api.readers.you=true;
+        api.readers.you=true
       } else
       // logged in
       if (channel.reader==1) {
-        api.readers.you=true;
+        api.readers.you=true
       }
 
       if (channel.writer==1) {
-        api.writers.you=true;
+        api.writers.you=true
       }
       if (!api.writers.you) { // optimization
-        var writes=channel.writers?channel.writers.split(/,/):[];
-        //console.log('checking', writes, 'for', tokenObj.userid, '=', writes.indexOf(tokenObj.userid+''));
+        var writes=channel.writers?channel.writers.split(/,/):[]
+        //console.log('checking', writes, 'for', tokenObj.userid, '=', writes.indexOf(tokenObj.userid+''))
         if (writes.indexOf(tokenObj.userid+'')!=-1) {
-          api.writers.you=true;
+          api.writers.you=true
         }
       }
     }
     //if (channel.debug) console.log('asking to load', channel.ownerid)
     loadUser(channel.ownerid, params, function(user, userErr, userMeta) {
-      api.owner=user;
-      //console.log('dispatcher.js::channelToAPI - params', params);
-      setDone('user');
-    });
+      api.owner=user
+      //console.log('dispatcher.js::channelToAPI - params', params)
+      setDone('user')
+    })
     if (params.generalParams.annotations || params.generalParams.post_annotations) {
       loadAnnotation(channel, function(apiNotes, noteErr, noteMeta) {
-        api.annotations = apiNotes;
-        //callback(api, userErr || noteErr);
-        setDone('annotations');
-      });
+        api.annotations = apiNotes
+        //callback(api, userErr || noteErr)
+        setDone('annotations')
+      })
     } else {
-      //callback(api, userErr);
-      setDone('annotations');
+      //callback(api, userErr)
+      setDone('annotations')
     }
     //getChannelMessages function(cid, params, callback) {
     var mParams={ pageParams: { count: 1 }, generalParams: {}, tokenobj: tokenObj }
     this.getChannelMessages(channel.id, mParams, function(messages, messageErr, messageMeta) {
       if (messageErr) {
-        console.log('dispatcher::channelToAPI - messageErr', messageErr, 'channel', channel.id);
+        console.log('dispatcher::channelToAPI - messageErr', messageErr, 'channel', channel.id)
       }
       if (!messages.length) {
-        //console.log('dispatcher::channelToAPI - last message for', channel.id, 'is', messages);
+        //console.log('dispatcher::channelToAPI - last message for', channel.id, 'is', messages)
       }
       if (messages[0]) {
-        api.recent_message_id = messages[0].id;
+        api.recent_message_id = messages[0].id
       }
-      api.recent_message = messages[0];
-      setDone('messages');
-    });
+      api.recent_message = messages[0]
+      setDone('messages')
+    })
   },
   /**
    * add/update channel
@@ -1947,24 +1947,24 @@ module.exports = {
    */
   setChannel: function(json, ts, callback) {
     if (!json) {
-      console.log('dispatcher.js::setChannel - no json passed in');
-      callback(null, 'no json passed in');
-      return;
+      console.log('dispatcher.js::setChannel - no json passed in')
+      callback(null, 'no json passed in')
+      return
     }
     // update user object
-    this.updateUser(json.owner, ts);
-    var ref=this;
+    this.updateUser(json.owner, ts)
+    var ref=this
     // map API to DB
     this.apiToChannel(json, {}, function(channel, convertErr) {
       ref.cache.setChannel(channel, ts, function(err, chnl) {
         // if newer update annotations
         if (callback) {
-          callback(chnl, err || convertErr);
+          callback(chnl, err || convertErr)
         }
-      });
-    });
+      })
+    })
     if (this.notsilent) {
-      process.stdout.write('C');
+      process.stdout.write('C')
     }
   },
   updateChannel: function(channelid, update, params, token, callback) {
@@ -1972,7 +1972,7 @@ module.exports = {
     // The only keys that can be updated are annotations, readers, and writers
     // (and the ACLs can only be updated if immutable=false).
     // The you_can_edit property tells you if you are allowed to update a channel. Currently, only the Channel owner can edit a channel.
-    var ref = this;
+    var ref = this
     this.cache.getChannel(channelid, params, function(err, channel, meta) {
       if (err) {
         console.error('dispatcher.js::updateChannel - err', err)
@@ -1982,13 +1982,13 @@ module.exports = {
         console.warn('dispatcher.js::updateChannel - channelid', channelid, 'has no data')
         return callback(false, false, meta)
       }
-      //console.log('dispatcher.js::updateChannel - got channel', typeof(channel), channel && Object.keys(channel), channel);
+      //console.log('dispatcher.js::updateChannel - got channel', typeof(channel), channel && Object.keys(channel), channel)
       // FIXME: use apiToChannel
       if (!token.userid || channel.ownerid != token.userid) {
         callback({}, 'access denied to channel', {
           code: token?403:401,
-        });
-        return;
+        })
+        return
       }
 
       // update readers
@@ -1996,38 +1996,38 @@ module.exports = {
         // can we tell the difference between set and not set?
         // so we can clear?
         if (update.readers.public) {
-          channel.reader = 0;
+          channel.reader = 0
         } else
         if (update.readers.any_user) {
-          channel.reader = 1;
+          channel.reader = 1
         } else {
-          channel.reader = 2;
+          channel.reader = 2
         }
         if (update.readers.user_ids) {
-          channel.reader = 2;
-          channel.readers = update.readers.user_ids.join(',');
+          channel.reader = 2
+          channel.readers = update.readers.user_ids.join(',')
         }
       }
       // update writers
       if (update.writers) {
         if (update.writers.any_user) {
-          channel.writer = 1;
+          channel.writer = 1
         } else {
-          channel.writer = 2;
+          channel.writer = 2
         }
         if (update.writers.user_ids) {
           // has to be an array
-          channel.writers = update.writers.user_ids.join(',');
-          channel.writer = 2;
+          channel.writers = update.writers.user_ids.join(',')
+          channel.writer = 2
         } else {
           channel.writers = ''
         }
       }
-      //console.log('dispatcher.js::updateChannel - updating channel', channel.id, 'to', channel);
+      //console.log('dispatcher.js::updateChannel - updating channel', channel.id, 'to', channel)
       channel.save(function(){
         //ref.cache.setChannel(channel, Date.now()/1000, function(ochnl, chanUpdErr) {
         //ref.cache.updateChannel(channelid, channel, function(ochnl, chanUpdErr) {
-        //console.log('dispatcher.js::updateChannel - chanUpdErr', chanUpdErr);
+        //console.log('dispatcher.js::updateChannel - chanUpdErr', chanUpdErr)
         // update annotations
         //setAnnotations: function(type, id, annotations, callback) {
         // if it's not set, it'll clear it...
@@ -2035,74 +2035,74 @@ module.exports = {
         // it's optional
         if (update.annotations !== undefined) {
           ref.setAnnotations('channel', channelid, update.annotations, function() {
-            //console.log('dispatcher.js::updateChannel - annotations set');
-            ref.channelToAPI(channel, params, token, callback, meta);
-          });
+            //console.log('dispatcher.js::updateChannel - annotations set')
+            ref.channelToAPI(channel, params, token, callback, meta)
+          })
         } else {
-          ref.channelToAPI(channel, params, token, callback, meta);
+          ref.channelToAPI(channel, params, token, callback, meta)
         }
-      });
-      //});
-    });
+      })
+      //})
+    })
   },
   addChannel: function(api, params, token, callback) {
-    //console.log('dispatcher::addChannel', params, token);
-    var ref=this;
+    //console.log('dispatcher::addChannel', params, token)
+    var ref=this
     function createChannel() {
       // Currently, the only keys we use from your JSON will be readers, writers, annotations, and type.
       // The owner will be auto-subscribed to this channel.
       //apiToChannel: function(api, meta, callback) {
-      api.owner={};
+      api.owner={}
       ref.apiToChannel(api, {}, function(channel, err, meta) {
-        delete channel.id;
+        delete channel.id
         ref.cache.addChannel(token.userid, channel, function(createErr, channelRes, createMeta) {
-          //console.log('dispatcher::addChannel', channelRes.id);
+          //console.log('dispatcher::addChannel', channelRes.id)
           ref.setAnnotations('channel', channelRes.id, api.annotations, function() {
-            ref.channelToAPI(channelRes, params, token, callback, createMeta);
-          });
-        });
-      });
+            ref.channelToAPI(channelRes, params, token, callback, createMeta)
+          })
+        })
+      })
     }
     if (api.type == 'net.app.core.pm') {
-      var group = [token.userid];
+      var group = [token.userid]
       for(var i in api.writers.user_ids) {
-        group.push(api.writers.user_ids[i]);
+        group.push(api.writers.user_ids[i])
       }
-      console.log('dispatcher.addChannel - detecting pm channel creation, dedupe check for', group);
+      console.log('dispatcher.addChannel - detecting pm channel creation, dedupe check for', group)
       // destinations is input string (comma sep list: @,ints)
       this.cache.getPMChannel(group, function(err, nChannel_id, createMeta) {
-        console.log('dispatcher.addChannel - dedupe result', nChannel_id);
+        console.log('dispatcher.addChannel - dedupe result', nChannel_id)
         if (nChannel_id) {
-          ref.getChannel(nChannel_id, params, callback);
+          ref.getChannel(nChannel_id, params, callback)
         } else {
-          createChannel();
+          createChannel()
         }
       })
     } else {
-      createChannel();
+      createChannel()
     }
   },
   deactiveChannel: function(channelid, params, token, callback) {
-    //console.log('dispatcher::deactiveChannel', channelid, params, token);
-    var ref=this;
+    //console.log('dispatcher::deactiveChannel', channelid, params, token)
+    var ref=this
     // only the owner can deactivate
     this.getChannel(channelid, params, function(channel, err, meta) {
-      //console.log('ownerid', channel.owner.id, 'token', token.userid, 'channel', channel);
+      //console.log('ownerid', channel.owner.id, 'token', token.userid, 'channel', channel)
       if (!token.userid || (channel && channel.owner && channel.owner.id != token.userid)) {
         callback({}, 'access denied to channel', {
           code: token?403:401,
-        });
-        return;
+        })
+        return
       }
       var chnl={
         inactive: new Date(),
       }
-      //console.log('dispatcher::deactiveChannel', channelid, params, token);
+      //console.log('dispatcher::deactiveChannel', channelid, params, token)
       ref.cache.updateChannel(channelid, chnl, function(err2, success, meta2) {
-        //channel.is_deleted = true;
-        channel.is_inactive = true;
-        callback(channel, '', meta);
-        //ref.channelToAPI(channel, params, token, callback, meta2);
+        //channel.is_deleted = true
+        channel.is_inactive = true
+        callback(channel, '', meta)
+        //ref.channelToAPI(channel, params, token, callback, meta2)
       })
       // FIXME: get rid of the N+1 and delete all in one query
       ref.cache.getChannelSubscriptions([channelid], { }, function(err, subs, meta) {
@@ -2116,96 +2116,96 @@ module.exports = {
     })
   },
   checkChannelAccess: function(channel, userid) {
-    var allowed=false;
-    if (channel.reader==0) allowed=true;
+    var allowed=false
+    if (channel.reader==0) allowed=true
     else if (userid) {
-      if (channel.ownerid==userid) allowed=true;
-      else if (channel.reader==1) allowed=true;
+      if (channel.ownerid==userid) allowed=true
+      else if (channel.reader==1) allowed=true
       else if (channel.reader==2) {
-        var readList=channel.readers.split(/,/);
+        var readList=channel.readers.split(/,/)
         if (readList.indexOf(userid+'')!=-1){
-          allowed=true;
+          allowed=true
         }
       }
-      //console.log('dispatcher.js::getChannel - allowed', allowed, 'writers', channel.writers, 'looking for', params.tokenobj.userid);
+      //console.log('dispatcher.js::getChannel - allowed', allowed, 'writers', channel.writers, 'looking for', params.tokenobj.userid)
       // pm hack, if you can write to the channel, you can read from it
       if (!allowed && channel.writers) {
-        var writeList=channel.writers.split(/,/);
+        var writeList=channel.writers.split(/,/)
         if (writeList.indexOf(userid+'')!=-1){
-          allowed=true;
+          allowed=true
         }
-        //console.log('dispatcher.js::getChannel - ', writeList, 'allowed', allowed);
+        //console.log('dispatcher.js::getChannel - ', writeList, 'allowed', allowed)
       }
     }
-    return allowed;
+    return allowed
   },
   checkWriteChannelAccess: function(channel, userid) {
     if (!channel) {
       console.warn('dispatcher::checkWriteChannelAccess - no channel passed in')
       return false
     }
-    var allowed=false;
+    var allowed=false
     // maybe throw error if channel isnt an object
     // this isn't a thing in writer mode
-    //if (channel.writer==0) allowed=true;
+    //if (channel.writer==0) allowed=true
     //console.log('dispatcher::checkWriteChannelAccess - userid', userid, 'channel', channel)
     if (userid) { // have to be loggedin to write
-      if (channel.ownerid==userid) allowed=true;
-      else if (channel.writer==1) allowed=true;
+      if (channel.ownerid==userid) allowed=true
+      else if (channel.writer==1) allowed=true
       else if (channel.writer==2) {
-        var writeList=channel.writers.split(/,/);
+        var writeList=channel.writers.split(/,/)
         if (writeList.indexOf(userid+'')!=-1){
-          allowed=true;
+          allowed=true
         }
       }
-      //console.log('dispatcher.js::getChannel - allowed', allowed, 'writers', channel.writers, 'looking for', params.tokenobj.userid);
+      //console.log('dispatcher.js::getChannel - allowed', allowed, 'writers', channel.writers, 'looking for', params.tokenobj.userid)
       // pm hack, if you can write to the channel, you can read from it
       /*
       if (!allowed && channel.writers) {
-        var writeList=channel.writers.split(/,/);
+        var writeList=channel.writers.split(/,/)
         if (writeList.indexOf(userid+'')!=-1){
-          allowed=true;
+          allowed=true
         }
-        //console.log('dispatcher.js::getChannel - ', writeList, 'allowed', allowed);
+        //console.log('dispatcher.js::getChannel - ', writeList, 'allowed', allowed)
       }
       */
     }
-    return allowed;
+    return allowed
   },
   getUserChannels: function(params, tokenobj, callback) {
     //console.log('dispatcher::getUserChannels - tokenobj', tokenobj)
     if (!tokenobj.userid) {
-      callback([], 'not user token');
-      return;
+      callback([], 'not user token')
+      return
     }
-    var ref=this;
+    var ref=this
     //console.log('dispatcher::getUserChannels - userid', tokenobj.userid)
     //console.log('dispatcher::getUserChannels - params', params)
     this.cache.getUserChannels(tokenobj.userid, params, function(err, channels, meta) {
       if (err) console.error('dispatcher.js::getUserChannels - getUserChannels err', err)
       //console.log('dispatcher::getUserChannels - channels', channels.length)
       if (!channels || !channels.length) {
-        callback([], null);
-        return;
+        callback([], null)
+        return
       }
-      var apis=[];
+      var apis=[]
       for(var i in channels) {
-        var channel=channels[i];
+        var channel=channels[i]
         // channel, params, tokenObj, callback, meta
-        //console.log('dispatcher::getUserChannels - convert obj', channels[i], 'to API');
+        //console.log('dispatcher::getUserChannels - convert obj', channels[i], 'to API')
         // channelToAPI: function (channel, params, tokenObj, callback, meta) {
         //console.log('asking for', channels[i].id)
         //channels[i].debug = true
         ref.channelToAPI(channels[i], params, params.tokenobj?params.tokenobj:{}, function(api, cErr, meta2) {
           if (cErr) console.error('dispatcher.js::getUserChannels - channelToAPI err', cErr)
           //console.log('dispatcher.js::getUserChannels - got API')
-          apis.push(api);
-          //console.log('dispatcher.js::getUserChannels - ', channels.length, '/', apis.length);
+          apis.push(api)
+          //console.log('dispatcher.js::getUserChannels - ', channels.length, '/', apis.length)
           if (channels.length == apis.length) {
-            //console.log('dispatcher.js::getUserChannels - returning array');
-            callback(apis, err || cErr);
+            //console.log('dispatcher.js::getUserChannels - returning array')
+            callback(apis, err || cErr)
           }
-        }, meta);
+        }, meta)
       }
     })
   },
@@ -2217,132 +2217,132 @@ module.exports = {
    */
   getChannel: function(ids, params, callback) {
     if (ids===undefined || ids === "undefined") {
-      console.log('dispatcher.js::getChannel - id was undefined');
-      callback([], 'ids was undefined');
-      return;
+      console.log('dispatcher.js::getChannel - id was undefined')
+      callback([], 'ids was undefined')
+      return
     }
-    //console.log('dispatcher.js::getChannel - ids', ids);
-    var ref=this;
+    //console.log('dispatcher.js::getChannel - ids', ids)
+    var ref=this
     this.cache.getChannel(ids, params, function(err, channels, meta) {
-      //console.log('dispatcher.js::getChannel - got array', channels);
+      //console.log('dispatcher.js::getChannel - got array', channels)
       if (channels === undefined) {
-        callback([], err, meta);
-        return;
+        callback([], err, meta)
+        return
       }
-      //console.log('dispatcher.js::getChannel - got array', channels);
+      //console.log('dispatcher.js::getChannel - got array', channels)
       if (channels instanceof Array) {
-        //console.log('dispatcher.js::getChannel - got array', channels.length);
+        //console.log('dispatcher.js::getChannel - got array', channels.length)
         if (!channels.length) {
-          //console.log('dispatcher.js::getChannel multiple - no result for', ids);
-          callback([], err, meta);
-          return;
+          //console.log('dispatcher.js::getChannel multiple - no result for', ids)
+          callback([], err, meta)
+          return
         }
-        var apis=[];
+        var apis=[]
         for(var i in channels) {
-          var channel=channels[i];
+          var channel=channels[i]
           // we can do a quick security check here before pulling it all
           // omitting options will fuck with meta tho
           /*
-          var allowed=false;
-          if (channel.reader==0) allowed=true;
+          var allowed=false
+          if (channel.reader==0) allowed=true
           else if (params.tokenobj) {
-            if (channel.ownerid==params.tokenobj.userid) allowed=true;
-            else if (channel.reader==1) allowed=true;
+            if (channel.ownerid==params.tokenobj.userid) allowed=true
+            else if (channel.reader==1) allowed=true
             else if (channel.reader==2) {
-              var readList=channel.readers.split(/,/);
+              var readList=channel.readers.split(/,/)
               if (readList.indexOf(params.tokenobj.userid+'')!=-1){
-                allowed=true;
+                allowed=true
               }
             }
-            //console.log('dispatcher.js::getChannel - allowed', allowed, 'writers', channel.writers, 'looking for', params.tokenobj.userid);
+            //console.log('dispatcher.js::getChannel - allowed', allowed, 'writers', channel.writers, 'looking for', params.tokenobj.userid)
             // pm hack, if you can write to the channel, you can read from it
             if (!allowed && channel.writers) {
-              var writeList=channel.writers.split(/,/);
+              var writeList=channel.writers.split(/,/)
               if (writeList.indexOf(params.tokenobj.userid+'')!=-1){
-                allowed=true;
+                allowed=true
               }
-              //console.log('dispatcher.js::getChannel - ', writeList, 'allowed', allowed);
+              //console.log('dispatcher.js::getChannel - ', writeList, 'allowed', allowed)
             }
           }
           */
-          var allowed=ref.checkChannelAccess(channel, params.tokenobj?params.tokenobj.userid:0);
+          var allowed=ref.checkChannelAccess(channel, params.tokenobj?params.tokenobj.userid:0)
           // block if not allowed
           if (!allowed) {
-            apis.push({ id: channel.id, readers: { user_ids: [] }, writers: { user_ids: [] }, editors: { user_ids: [] } });
+            apis.push({ id: channel.id, readers: { user_ids: [] }, writers: { user_ids: [] }, editors: { user_ids: [] } })
             if (channels.length == apis.length) {
-              //console.log('dispatcher.js::getChannel - returning array');
-              callback(apis, err);
+              //console.log('dispatcher.js::getChannel - returning array')
+              callback(apis, err)
             }
-            continue;
+            continue
           }
-          //console.log('dispatcher.js::getChannel array - channel', channels[i]);
+          //console.log('dispatcher.js::getChannel array - channel', channels[i])
           // channel, params, tokenObj, callback, meta
           ref.channelToAPI(channels[i], params, params.tokenobj?params.tokenobj:{}, function(api, cErr) {
-            apis.push(api);
-            //console.log('dispatcher.js::getChannel - ', channels.length, '/', apis.length);
+            apis.push(api)
+            //console.log('dispatcher.js::getChannel - ', channels.length, '/', apis.length)
             if (channels.length == apis.length) {
-              //console.log('dispatcher.js::getChannel - returning array');
-              callback(apis, err || cErr);
+              //console.log('dispatcher.js::getChannel - returning array')
+              callback(apis, err || cErr)
             }
-          });
+          })
         }
-        return;
+        return
       }
-      //console.log('dispatcher.js::getChannel single - channel', channels);
-      //console.log('dispatcher.js::getChannel - non array');
+      //console.log('dispatcher.js::getChannel single - channel', channels)
+      //console.log('dispatcher.js::getChannel - non array')
       // channelToAPI: function (channel, params, tokenObj, callback, meta) {
-      ref.channelToAPI(channels, params, params.tokenobj?params.tokenobj:{}, callback, meta);
-    });
+      ref.channelToAPI(channels, params, params.tokenobj?params.tokenobj:{}, callback, meta)
+    })
   },
   channelSearch: function(criteria, params, tokenObj, callback) {
-    var ref = this;
+    var ref = this
     this.cache.searchChannels(criteria, params, function(err, channels, meta) {
       if (err) {
         console.error('searchChannels error', err)
       }
       if (!channels.length) {
-        callback([], err, meta);
-        return;
+        callback([], err, meta)
+        return
       }
       //console.log('channelSearch', channels)
-      var apis=[];
+      var apis=[]
       for(var i in channels) {
-        var channel=channels[i];
+        var channel=channels[i]
         // we can do a quick security check here before pulling it all
         // omitting options will fuck with meta tho
         // we'll insert dummy stubs
-        var allowed=ref.checkChannelAccess(channel, tokenObj.userid);
+        var allowed=ref.checkChannelAccess(channel, tokenObj.userid)
         // block if not allowed
         if (!allowed) {
-          apis.push({ id: channel.id, readers: { user_ids: [] }, writers: { user_ids: [] }, editors: { user_ids: [] } });
+          apis.push({ id: channel.id, readers: { user_ids: [] }, writers: { user_ids: [] }, editors: { user_ids: [] } })
           if (channels.length == apis.length) {
-            //console.log('dispatcher.js::getChannel - returning array');
-            callback(apis, err);
+            //console.log('dispatcher.js::getChannel - returning array')
+            callback(apis, err)
           }
-          continue;
+          continue
         }
         // channel, params, tokenObj, callback, meta
         //console.log('dispatcher.js::channelSearch - channel', channel)
         ref.channelToAPI(channel, params, tokenObj, function(api, cErr) {
-          apis.push(api);
+          apis.push(api)
           // todo: sorting by popularity (number of subscriptions)
           // todo: sorting by activity (by recent message)
 
-          //console.log('dispatcher.js::getChannel - ', channels.length, '/', apis.length);
+          //console.log('dispatcher.js::getChannel - ', channels.length, '/', apis.length)
           if (channels.length == apis.length) {
-            //console.log('dispatcher.js::getChannel - returning array');
-            callback(apis, err || cErr);
+            //console.log('dispatcher.js::getChannel - returning array')
+            callback(apis, err || cErr)
           }
-        });
+        })
       }
-    });
+    })
   },
   //
   // messages
   //
   apiToMessage: function(api, meta, callback) {
-    var channel=api;
-    callback(channel, null);
+    var channel=api
+    callback(channel, null)
   },
   messageToAPI: function(message, params, tokenObj, callback, meta) {
     if (!message) {
@@ -2364,21 +2364,21 @@ module.exports = {
       source: {},
       thread_id: message.id,
       reply_to: null,
-    };
+    }
     // this (is_deleted) key may be omitted instead of being false
     if (message.is_deleted) {
       api.is_deleted = true
-      delete api.text;
-      delete api.html;
+      delete api.text
+      delete api.html
     } else {
-      api.text = message.text;
-      api.html = message.html;
-      api.source = {};
+      api.text = message.text
+      api.html = message.html
+      api.source = {}
     }
     if (message.reply_to) {
-      api.reply_to = message.reply_to;
+      api.reply_to = message.reply_to
     }
-    var ref=this;
+    var ref=this
 
     var messageDone={
       user: false,
@@ -2387,24 +2387,24 @@ module.exports = {
     }
 
     function setDone(type) {
-      messageDone[type]=true;
+      messageDone[type]=true
       // if something is not done
-      //console.log('dispatcher.js::messageToAPI('+message.id+') - checking if done');
+      //console.log('dispatcher.js::messageToAPI('+message.id+') - checking if done')
       for(var i in messageDone) {
         if (!messageDone[i]) {
-          //console.log('dispatcher.js::messageToAPI('+message.id+') -', i, 'is not done');
-          return;
+          //console.log('dispatcher.js::messageToAPI('+message.id+') -', i, 'is not done')
+          return
         }
       }
-      //console.log('dispatcher.js::channelToAPI('+channel.id+') - done', data, meta);
-      //console.log('dispatcher.js::messageToAPI('+message.id+') - done, text', api.id, message.text);
+      //console.log('dispatcher.js::channelToAPI('+channel.id+') - done', data, meta)
+      //console.log('dispatcher.js::messageToAPI('+message.id+') - done, text', api.id, message.text)
       // everything is done
-      callback(api, null, meta);
+      callback(api, null, meta)
     }
     function loadUser(userid, params, cb) {
-      //console.log('dispatcher.js::postToAPI('+message.id+') - getting user '+message.userid);
+      //console.log('dispatcher.js::postToAPI('+message.id+') - getting user '+message.userid)
       ref.getUser(userid, params, function(user, userErr, userMeta) {
-        //console.log('dispatcher.js::postToAPI('+message.id+') - got user '+message.userid, userErr);
+        //console.log('dispatcher.js::postToAPI('+message.id+') - got user '+message.userid, userErr)
         if (!user) {
           user={
             id: 0,
@@ -2421,98 +2421,98 @@ module.exports = {
             }
           }
         }
-        cb(user, userErr, userMeta);
-      }); // getUser
+        cb(user, userErr, userMeta)
+      }) // getUser
     }
     function loadAnnotation(mid, cb) {
       ref.getAnnotation('message', mid, function(dbNotes, err, noteMeta) {
-        var apiNotes=[];
+        var apiNotes=[]
         for(var j in dbNotes) {
-          var note=dbNotes[j];
-          //console.log('got note', j, '#', note.type, '/', note.value, 'for', posts[i].id);
+          var note=dbNotes[j]
+          //console.log('got note', j, '#', note.type, '/', note.value, 'for', posts[i].id)
           apiNotes.push({
             type: note.type,
             value: note.value,
-          });
+          })
         }
-        cb(apiNotes, err, noteMeta);
-      });
+        cb(apiNotes, err, noteMeta)
+      })
     }
 
     function loadEntites(message, cb) {
       // use entity cache (DB read or CPU calculate)
       if (1) {
-        //console.log('dispatcher.js::postToAPI('+post.id+') - getEntity post. post.userid:', post.userid);
+        //console.log('dispatcher.js::postToAPI('+post.id+') - getEntity post. post.userid:', post.userid)
         if (!message.id) {
-          console.log('dispatcher.js::messageToAPI:::loadEntites', message);
+          console.log('dispatcher.js::messageToAPI:::loadEntites', message)
           console.trace('dispatcher.js::messageToAPI:::loadEntites')
-          cb();
-          return;
+          cb()
+          return
         }
         ref.getEntities('message', message.id, function(entitiesErr, entities, entitiesMeta) {
-          //console.log('dispatcher.js::postToAPI('+post.id+') - gotEntities');
+          //console.log('dispatcher.js::postToAPI('+post.id+') - gotEntities')
           api.entities={
             mentions: [],
             hashtags: [],
             links: [],
-          };
-          copyentities('mentions', entities.mentions, api, 1);
-          copyentities('hashtags', entities.hashtags, api, 1);
-          copyentities('links', entities.links, api, 1);
+          }
+          copyentities('mentions', entities.mentions, api, 1)
+          copyentities('hashtags', entities.hashtags, api, 1)
+          copyentities('links', entities.links, api, 1)
           // use html cache?
           if (1) {
-            //console.log('dispatcher.js::postToAPI('+post.id+') - calling final comp');
-            //finalcompsite(post, user, client, callback, err, meta);
-            cb();
+            //console.log('dispatcher.js::postToAPI('+post.id+') - calling final comp')
+            //finalcompsite(post, user, client, callback, err, meta)
+            cb()
           } else {
             // generate HTML
             // text, entities, postcontext, callback
             ref.textProcess(message.text, post.entities, true, function(textProcess, err) {
-              //console.dir(textProcess);
-              api.html=textProcess.html;
-              //finalcompsite(post, user, client, callback, err, meta);
-              cb();
-            });
+              //console.dir(textProcess)
+              api.html=textProcess.html
+              //finalcompsite(post, user, client, callback, err, meta)
+              cb()
+            })
           }
-        }); // getEntities
+        }) // getEntities
       } else {
         ref.textProcess(message.text, message.entities, true, function(textProcess, err) {
-          api.entities=textProcess.entities;
-          api.html=textProcess.html;
-          //finalcompsite(post, user, client, callback, err, meta);
-          cb();
-        });
+          api.entities=textProcess.entities
+          api.html=textProcess.html
+          //finalcompsite(post, user, client, callback, err, meta)
+          cb()
+        })
       }
     }
 
     if (message.is_deleted) {
-      setDone('entities');
+      setDone('entities')
     } else {
       loadEntites(message, function() {
-        setDone('entities');
+        setDone('entities')
       })
     }
 
     loadUser(message.userid, params, function(user, userErr, userMeta) {
-      api.user=user;
-      //console.log('dispatcher.js::messageToAPI - params', params.generalParams);
+      api.user=user
+      //console.log('dispatcher.js::messageToAPI - params', params.generalParams)
       if (params.generalParams.annotations || params.generalParams.post_annotations) {
         // do user annotations need to be loaded?
         //console.log('write me')
       }
-      setDone('user');
-      //callback(api, null);
-    });
+      setDone('user')
+      //callback(api, null)
+    })
 
     if (!message.is_deleted && (params.generalParams.annotations || params.generalParams.post_annotations)) {
       loadAnnotation(message.id, function(apiNotes, noteErr, noteMeta) {
         //console.log('dispatcher.js::messageToAPI - loading annotations', apiNotes.length)
-        api.annotations = apiNotes;
-        setDone('annotations');
-      });
+        api.annotations = apiNotes
+        setDone('annotations')
+      })
     } else {
-      //api.annotations=[];
-      setDone('annotations');
+      //api.annotations=[]
+      setDone('annotations')
     }
 
   },
@@ -2523,7 +2523,7 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   setMessage: function(json, ts, callback) {
-    //console.log('dispatcher.js::setMessage - write me!');
+    //console.log('dispatcher.js::setMessage - write me!')
     // update user object
     // if the app gets behind (and/or we have mutliple stream)
     // the message could be delayed, so it's better to tie the user timestamp
@@ -2531,7 +2531,7 @@ module.exports = {
     // if though the user object maybe be up to date when the packet was sent
     // however the delay in receiving and processing maybe the cause of delay
     // meta.timestamp maybe the most accurate here?
-    this.updateUser(json.user, ts);
+    this.updateUser(json.user, ts)
     // create message DB object (API=>DB)
     var message={
       id: json.id,
@@ -2545,20 +2545,20 @@ module.exports = {
       reply_to: json.reply_to,
       is_deleted: json.is_deleted,
       created_at: json.created_at
-    };
+    }
     this.cache.setMessage(message, function(err, msg) {
       // if current, extract annotations too
       if (callback) {
-        callback(msg, err);
+        callback(msg, err)
       }
-    });
+    })
     if (this.notsilent) {
-      process.stdout.write('M');
+      process.stdout.write('M')
     }
   },
   addMessage: function(channel_id, postdata, params, tokenobj, callback) {
-    //console.log('dispatcher.js::addMessage - channel_id', channel_id);
-    var ref=this;
+    //console.log('dispatcher.js::addMessage - channel_id', channel_id)
+    var ref=this
     // change channel permissions
     function continueAddMessage(channel_id) {
       //console.log('dispatcher.js::addMessage - checking channel', channel_id, 'permission for token user', tokenobj?tokenobj.userid:0)
@@ -2571,20 +2571,20 @@ module.exports = {
           //console.log('dispatcher.js::addMessage - denying access')
           callback({}, 'access denied to channel', {
             code: tokenobj?403:401,
-          });
-          return;
+          })
+          return
         }
-        continueAddMessage2(channel_id);
+        continueAddMessage2(channel_id)
       })
     }
 
     function getMessageThreadID(reply_to, cb) {
       ref.cache.getMessage(reply_to, function(err, message) {
         if (err) {
-          console.error('message getThreadID', err);
-          return cb();
+          console.error('message getThreadID', err)
+          return cb()
         }
-        cb(message.thread_id);
+        cb(message.thread_id)
       })
     }
 
@@ -2607,49 +2607,49 @@ module.exports = {
         //reply_to: json.reply_to,
         is_deleted: false,
         created_at: new Date()
-      };
+      }
       if (postdata.reply_to) {
         // ok if it's a reply, set it
-        message.reply_to = postdata.reply_to;
+        message.reply_to = postdata.reply_to
       }
 
       function getEntities(message, cb) {
         ref.textProcess(message.text, message.entities, true, function(textProc, err) {
-          //console.log('dispatcher.js::addMessage - textProc', textProc);
-          message.entities=textProc.entities;
-          message.html=textProc.html;
-          cb();
-        });
+          //console.log('dispatcher.js::addMessage - textProc', textProc)
+          message.entities=textProc.entities
+          message.html=textProc.html
+          cb()
+        })
       }
       // check out postToAPI
       // needs to run before textProcess
       function checkTagUser(message, cb) {
         if (!((message.text && message.text.match(/{username}/)) || (message.html && message.html.match(/{username}/)))) {
-          cb();
-          return;
+          cb()
+          return
         }
         ref.cache.getUser(message.userid, function(err, user, meta) {
           if (message.text && message.text.match(/{username}/)) {
-            message.text=message.text.replace(new RegExp('{username}', 'g'), user.username);
+            message.text=message.text.replace(new RegExp('{username}', 'g'), user.username)
           }
           if (message.html && message.html.match(/{username}/)) {
-            message.html=message.html.replace(new RegExp('{username}', 'g'), user.username);
+            message.html=message.html.replace(new RegExp('{username}', 'g'), user.username)
           }
-          cb();
-        });
+          cb()
+        })
       }
       // these both mess with .html / .text
       checkTagUser(message, function() {
         // after username is in place, we'll have better positions
         getEntities(message, function() {
-          //console.log('dispatcher.js::addMessage - message', message);
+          //console.log('dispatcher.js::addMessage - message', message)
           ref.cache.addMessage(message, function(err, msg, meta) {
             // msg just has id...
             if (err) {
-              console.log('dispatcher.js::addMessage - err', err);
+              console.log('dispatcher.js::addMessage - err', err)
               callback([], err, {
                 code: 500,
-              });
+              })
               return
             }
             if (postdata.annotations) {
@@ -2663,82 +2663,82 @@ module.exports = {
                   channel_id: channel_id
                 }, function(err, omsg) {
                   // omsg will be 1 if it's an update
-                  //console.log('channel set', channel_id, 'for', msg.id, omsg);
-                });
-              });
+                  //console.log('channel set', channel_id, 'for', msg.id, omsg)
+                })
+              })
             }
             // OPT: if no streams and no callback, no need for API conversion
-            message.id = msg.id;
-            //console.log('dispatcher.js::addMessage - msg', message);
+            message.id = msg.id
+            //console.log('dispatcher.js::addMessage - msg', message)
             ref.messageToAPI(message, params, tokenobj, function(api, err) {
-              //console.log('dispatcher.js::addMessage - api', api);
+              //console.log('dispatcher.js::addMessage - api', api)
               module.exports.pumpStreams({
                 id:   msg.id,
                 type: 'message',
                 op:   'add',
                 actor: msg.userid,
                 channel_id: channel_id
-              }, api);
+              }, api)
               ref.setEntities('message', msg.id, message.entities, function() {
                 // if current, extract annotations too
                 if (callback) {
-                  //console.log('dispatcher.js::addMessage - has callback', api.id, api);
-                  callback(api, err, meta);
+                  //console.log('dispatcher.js::addMessage - has callback', api.id, api)
+                  callback(api, err, meta)
                 }
-              });
-            }, meta);
-          });
-        });
-      });
+              })
+            }, meta)
+          })
+        })
+      })
     }
     if (channel_id=='pm') {
-      //console.log('dispatcher.js::addMessage - pm channel');
+      //console.log('dispatcher.js::addMessage - pm channel')
       if (!postdata.destinations) {
-        console.log('dispatcher.js::addMessage - no destinations passed', postdata);
-        callback({}, 'no destinations passed');
-        return;
+        console.log('dispatcher.js::addMessage - no destinations passed', postdata)
+        callback({}, 'no destinations passed')
+        return
       }
       this.cache.getPMChannel(postdata.destinations, function(err, nChannel_id) {
-        //console.log('dispatcher.js::addMessage - pm channel is', nChannel_id, err);
-        continueAddMessage(nChannel_id);
-      });
+        //console.log('dispatcher.js::addMessage - pm channel is', nChannel_id, err)
+        continueAddMessage(nChannel_id)
+      })
     } else {
-      //console.log('dispatcher.js::addMessage - not pm channel', channel_id);
-      continueAddMessage(channel_id);
+      //console.log('dispatcher.js::addMessage - not pm channel', channel_id)
+      continueAddMessage(channel_id)
     }
   },
   deleteMessage: function(message_id, channel_id, params, tokenObj, callback) {
-    //console.log('dispatcher.js::deleteMessage - channel_id', channel_id);
+    //console.log('dispatcher.js::deleteMessage - channel_id', channel_id)
     if (!message_id) {
-      console.log('dispatcher.js::deleteMessage - no message');
+      console.log('dispatcher.js::deleteMessage - no message')
       callback([], 'no message passed in', {
         code: 410,
-      });
-      return;
+      })
+      return
     }
     if (!channel_id) {
-      console.log('dispatcher.js::deleteMessage - no channel');
+      console.log('dispatcher.js::deleteMessage - no channel')
       callback([], 'no channel passed in', {
         code: tokenobj?403:401,
-      });
-      return;
+      })
+      return
     }
     if (!tokenObj || !tokenObj.userid) {
-      console.log('dispatcher.js::deleteMessage - no token');
+      console.log('dispatcher.js::deleteMessage - no token')
       callback([], 'no token passed in', {
         code: 401,
-      });
-      return;
+      })
+      return
     }
-    var ref=this;
+    var ref=this
     //console.log('dispatcher.js::deleteMessage - checking channel', channel_id, 'permission for token user', tokenobj?tokenobj.userid:0)
     ref.cache.getChannel(channel_id, params, function(channelErr, channel, channelMeta) {
       if (!ref.checkWriteChannelAccess(channel, tokenObj?tokenObj.userid:0)) {
         console.log('dispatcher.js::deleteMessage - denying channel access')
         callback({}, 'access denied to channel', {
           code: 403,
-        });
-        return;
+        })
+        return
       }
       // is this your message
       ref.getMessage(message_id, params, tokenObj, function(apiMsgs, apiErr, apiMeta) {
@@ -2746,76 +2746,76 @@ module.exports = {
           console.error('dispatcher.js::deleteMessage - err', apiErr)
         }
         if (!apiMsgs || !apiMsgs.length || apiMsgs.length != 1) {
-          console.log('dispatcher.js::deleteMessage -', message_id, 'not found');
+          console.log('dispatcher.js::deleteMessage -', message_id, 'not found')
           callback({}, 'message not found', {
             code: 410,
-          });
-          return;
+          })
+          return
         }
-        var apiMsg = apiMsgs[0];
+        var apiMsg = apiMsgs[0]
         if (!apiMsg) {
-          console.log('dispatcher.js::deleteMessage -', message_id, 'not found');
+          console.log('dispatcher.js::deleteMessage -', message_id, 'not found')
           callback({}, 'message not found', {
             code: 410,
-          });
-          return;
+          })
+          return
         }
         if (!apiMsg.user) {
-          console.log('dispatcher.js::deleteMessage - ', message_id, ' has no user', apiMsg);
+          console.log('dispatcher.js::deleteMessage - ', message_id, ' has no user', apiMsg)
           callback({}, 'message not found', {
             code: 410,
-          });
-          return;
+          })
+          return
         }
         if (apiMsg.user.id != tokenObj.userid) {
-          console.log('dispatcher.js::deleteMessage - denying message access');
+          console.log('dispatcher.js::deleteMessage - denying message access')
           callback({}, 'access denied to message', {
             code: 403,
-          });
-          return;
+          })
+          return
         }
         ref.cache.deleteMessage(message_id, channel_id, function(err, msg, meta) {
-          //console.log('dispatcher.js::deleteMessage - api1', msg);
-          apiMsg.is_deleted = true;
-          callback(apiMsg, apiErr, apiMeta);
+          //console.log('dispatcher.js::deleteMessage - api1', msg)
+          apiMsg.is_deleted = true
+          callback(apiMsg, apiErr, apiMeta)
           /*
           ref.cache.getMessage(message_id, function(message, err, meta) {
             ref.messageToAPI(message, params, tokenObj, function(api, err) {
-              //console.log('dispatcher.js::deleteMessage - api2', api);
-              callback(api, err);
-            }, meta);
-          });
+              //console.log('dispatcher.js::deleteMessage - api2', api)
+              callback(api, err)
+            }, meta)
+          })
           */
-        });
-      });
+        })
+      })
     })
   },
   getMessage: function(mids, params, tokenObj, callback) {
-    //console.log('dispatcher.js::getMessage - mids', mids);
-    var ref=this;
-    //console.log('dispatcher.js::getMessage - cache', this.cache.name);
-    //console.log('dispatcher.js::getMessage - cache.next', this.cache.next.name);
+    //console.log('dispatcher.js::getMessage - mids', mids)
+    var ref=this
+    //console.log('dispatcher.js::getMessage - cache', this.cache.name)
+    //console.log('dispatcher.js::getMessage - cache.next', this.cache.next.name)
     this.cache.getMessage(mids, function(err, messages, meta) {
       // make messages an array if not
       if (!(messages instanceof Array)) {
-        messages = [ messages ];
+        messages = [ messages ]
       }
-      //console.log('dispatcher.js::getMessage - messages', messages.length);
+      //console.log('dispatcher.js::getMessage - messages', messages.length)
       if (!messages.length) {
-        console.warn('dispatcher.js::getMessage - no messages', mids);
-        return callback([], err, meta);
+        console.warn('dispatcher.js::getMessage - no messages', mids)
+        return callback([], err, meta)
       }
-      var apis = [];
+      var apis = []
       for(var i in messages) {
-        var message = messages[i];
+        var message = messages[i]
         // messageToAPI: function(message, params, tokenObj, callback, meta) {
         ref.messageToAPI(message, params, tokenObj, function(api, err) {
-          apis.push(api);
-          //console.log(apis.length, '/', messages.length);
+          apis.push(api)
+          //console.log(apis.length, '/', messages.length)
           if (apis.length == messages.length) {
-            callback(apis, err, meta);
+            callback(apis, err, meta)
           }
-        }, meta);
+        }, meta)
       }
     })
   },
@@ -2826,12 +2826,12 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getChannelMessages: function(cid, params, callback) {
-    //console.log('dispatcher.js::getChannelMessages - getChannelMessages', cid, params);
-    var ref=this;
+    //console.log('dispatcher.js::getChannelMessages - getChannelMessages', cid, params)
+    var ref=this
     if (cid=='pm') {
-      console.log('dispatcher.js::getChannelMessages - getting pm message is not allowed');
-      callback([], 'getting pm message is not allowed');
-      return;
+      console.log('dispatcher.js::getChannelMessages - getting pm message is not allowed')
+      callback([], 'getting pm message is not allowed')
+      return
     }
     //getChannel: function(ids, params, callback) {
     this.cache.getChannel(cid, params, function(channelErr, channel, channelMeta) {
@@ -2839,14 +2839,14 @@ module.exports = {
       if (!channel) {
         callback([], 'no such channel', {
           code: 404,
-        });
-        return;
+        })
+        return
       }
       if (!ref.checkChannelAccess(channel, params.tokenobj?params.tokenobj.userid:0)) {
         callback([], 'access denied to channel', {
           code: params.tokenobj?403:401,
-        });
-        return;
+        })
+        return
       }
 
       // I wonder if this should be migrated into caminte
@@ -2857,39 +2857,39 @@ module.exports = {
       // not sure why we were rewriting them...
       // the params are more for messages than channel?
       /*
-      var nParams=params.pageParams;
-      //console.log('dispatcher.js::getChannelMessages - nParams', nParams);
-      nParams.generalParams=params.generalParams;
-      if (nParams.count===undefined) nParams.count=20;
-      if (nParams.before_id===undefined) nParams.before_id=-1; // -1 being the very end
+      var nParams=params.pageParams
+      //console.log('dispatcher.js::getChannelMessages - nParams', nParams)
+      nParams.generalParams=params.generalParams
+      if (nParams.count===undefined) nParams.count=20
+      if (nParams.before_id===undefined) nParams.before_id=-1 // -1 being the very end
       */
 
       ref.cache.getChannelMessages(cid, params, function(err, messages, meta) {
-        //console.log('dispatcher.js::getChannelMessages -', cid, 'has', messages.length);
+        //console.log('dispatcher.js::getChannelMessages -', cid, 'has', messages.length)
         if (!messages.length) {
-          callback([], err);
-          return;
+          callback([], err)
+          return
         }
         function finishMessages() {
           // FIXME: doesn't perserve order does it? nope
-          var apis={};
-          var apiCount = 0;
+          var apis={}
+          var apiCount = 0
           for(var i in messages) {
             // channel, params, tokenObj, callback, meta
             ref.messageToAPI(messages[i], params, params.tokenobj, function(message, cErr) {
               //console.log('dispatcher.js::getChannelMessages - pushing', message.id)
-              //apis.push(message);
-              apis[message.id] = message;
-              apiCount++;
-              //console.log('dispatcher.js::getChannelMessages - finishMessages', apiCount, '/', messages.length);
+              //apis.push(message)
+              apis[message.id] = message
+              apiCount++
+              //console.log('dispatcher.js::getChannelMessages - finishMessages', apiCount, '/', messages.length)
               if (messages.length == apiCount) {
                 var list = []
                 for(var i in messages) {
-                  list.push(apis[messages[i].id]);
+                  list.push(apis[messages[i].id])
                 }
-                callback(list, err || cErr);
+                callback(list, err || cErr)
               }
-            });
+            })
           }
         }
         if (params.tokenobj && params.tokenobj.userid) {
@@ -2901,16 +2901,16 @@ module.exports = {
               }
             }
             if (marker !== undefined) {
-              //console.log('dispatcher.js::getChannelMessages - got marker', marker);
-              meta.marker = marker;
+              //console.log('dispatcher.js::getChannelMessages - got marker', marker)
+              meta.marker = marker
             }
             finishMessages()
           })
         } else {
           finishMessages()
         }
-      });
-    });
+      })
+    })
   },
   /**
    * get messages for specified message ids on specified channel
@@ -2920,39 +2920,39 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getChannelMessage: function(cid, mids, params, callback) {
-    //console.log('dispatcher.js::getChannelMessage - start');
-    var ref = this;
+    //console.log('dispatcher.js::getChannelMessage - start')
+    var ref = this
     this.cache.getMessage(mids, function(err, messages, meta) {
       if (err) console.error('dispatcher.js::getChannelMessage - err', err)
       if (messages === undefined) {
-        console.trace('dispatcher.js::getMessage - messages is undefined');
+        console.trace('dispatcher.js::getMessage - messages is undefined')
         messages = []
       }
       // make messages an array if not
       if (!(messages instanceof Array)) {
-        messages = [ messages ];
+        messages = [ messages ]
       }
       //if (!messages.length) {
-        //console.log('dispatcher.js::getMessage - messages', messages);
+        //console.log('dispatcher.js::getMessage - messages', messages)
       //}
-      var apis = [];
+      var apis = []
       for(var i in messages) {
-        var message = messages[i];
+        var message = messages[i]
         if (message && message.channel_id != cid) {
-          apis.push(false);
+          apis.push(false)
           if (apis.length == messages.length) {
-            callback(apis, err, meta);
+            callback(apis, err, meta)
           }
-          continue;
+          continue
         }
         // messageToAPI: function(message, params, tokenObj, callback, meta) {
         ref.messageToAPI(message, params, params.tokenObj, function(api, err) {
-          apis.push(api);
-          //console.log(apis.length, '/', messages.length);
+          apis.push(api)
+          //console.log(apis.length, '/', messages.length)
           if (apis.length == messages.length) {
-            callback(apis, err, meta);
+            callback(apis, err, meta)
           }
-        }, meta);
+        }, meta)
       }
     })
   },
@@ -2969,34 +2969,34 @@ module.exports = {
   setChannelSubscription: function(data, deleted, ts, callback) {
     // update user object
     if (data.user) {
-      this.updateUser(data.user, ts);
+      this.updateUser(data.user, ts)
     }
     // update channel object
-    this.setChannel(data.channel, ts);
+    this.setChannel(data.channel, ts)
     // update subscription
-    this.cache.setSubscription(data.channel.id, data.user.id, deleted, ts, callback);
+    this.cache.setSubscription(data.channel.id, data.user.id, deleted, ts, callback)
     if (this.notsilent) {
-      process.stdout.write(deleted?'s':'S');
+      process.stdout.write(deleted?'s':'S')
     }
   },
   addChannelSubscription: function(tokenobj, channel_id, params, callback) {
     //If a user has muted this Channel, this call will automatically unmute the Channel
-    var ref=this;
+    var ref=this
     //addSubscription: function (channel_id, userid, callback) {
     this.cache.addSubscription(channel_id, tokenobj.userid, function(err, subscription) {
-      params.subscribedOpt = true;
-      ref.getChannel(channel_id, params, callback);
-    });
+      params.subscribedOpt = true
+      ref.getChannel(channel_id, params, callback)
+    })
   },
   delChannelSubscription: function(tokenobj, channel_id, params, callback) {
-    var ref=this;
+    var ref=this
     //channel_id, userid, del, ts, callback
     this.cache.setSubscription(channel_id, tokenobj.userid, true, new Date(), function(err, subscription) {
       //delSubscription: function (channel_id, userid, callback) {
       //this.cache.delSubscription(channel_id, tokenobj.userid, function(subscription, err) {
-      params.unsubscribedOpt = true;
-      ref.getChannel(channel_id, params, callback);
-    });
+      params.unsubscribedOpt = true
+      ref.getChannel(channel_id, params, callback)
+    })
   },
   /**
    * get subscriptions for specified user id
@@ -3008,123 +3008,123 @@ module.exports = {
     //console.log('dispatcher.js::getUserSubscriptions - ', userid)
     // include_recent messages
     // channel_types filter
-    var ref=this;
+    var ref=this
 
     /*
-    //console.log('dispatcher.js::getUserSubscriptions - params', params);
-    var nParams = params.pageParams;
-    //console.log('dispatcher.js::getUserSubscriptions - nParams', nParams);
-    if (nParams.count===undefined) nParams.count=20;
-    if (nParams.before_id===undefined) nParams.before_id=-1; // -1 being the very end
-    var oldcount=nParams.count;
+    //console.log('dispatcher.js::getUserSubscriptions - params', params)
+    var nParams = params.pageParams
+    //console.log('dispatcher.js::getUserSubscriptions - nParams', nParams)
+    if (nParams.count===undefined) nParams.count=20
+    if (nParams.before_id===undefined) nParams.before_id=-1 // -1 being the very end
+    var oldcount=nParams.count
     // but we want to make sure it's in the right direction
     // if count is positive, then the direction is older than the 20 oldest post after before_id
     if (nParams.count>0) {
-      nParams.count+=1; // add one at the end to check if there's more
+      nParams.count+=1 // add one at the end to check if there's more
     }
     if (nParams.count<0) {
-      nParams.count-=1; // add one at the end to check if there's more
+      nParams.count-=1 // add one at the end to check if there's more
     }
     if (params.channelParams.types) {
-      nParams.types=params.channelParams.types;
+      nParams.types=params.channelParams.types
     }
     */
 
     this.cache.getUserSubscriptions(userid, params, function(subsErr, subs, subsMeta) {
       //console.log('dispatcher.js::getUserSubscriptions - ', userid, 'has', subs.length)
       if (!subs.length) {
-        callback([], subsErr, { code: 200, more: false});
-        return;
+        callback([], subsErr, { code: 200, more: false})
+        return
       }
-      var channelids=[];
+      var channelids=[]
       for(var i in subs) {
-        var sub=subs[i];
-        channelids.push(sub.channelid);
+        var sub=subs[i]
+        channelids.push(sub.channelid)
       }
       if (!channelids.length) {
-        callback([], err, { code: 200, more: false});
-        return;
+        callback([], err, { code: 200, more: false})
+        return
       }
       //getChannel: function(ids, params, callback) {
-      params.tokenobj.subscribedOpt=true;
-      var result_recent_messages=params.generalParams.recent_messages;
-      params.generalParams.recent_messages=true;
+      params.tokenobj.subscribedOpt=true
+      var result_recent_messages=params.generalParams.recent_messages
+      params.generalParams.recent_messages=true
       //params.channelParams.types=
       ref.getChannel(channelids, params, function(apis, apiErr, apiMeta) {
-        //console.log('dispatcher.js::getUserSubscriptions - got apis', apis.length);
+        //console.log('dispatcher.js::getUserSubscriptions - got apis', apis.length)
         // sort by the "most recent post first"
-        var list=[];
+        var list=[]
         for(var i in apis) {
-          var api=apis[i];
-          var ts=0;
+          var api=apis[i]
+          var ts=0
           if (api.recent_message) {
-            ts=new Date(api.recent_message.created_at).getTime();
+            ts=new Date(api.recent_message.created_at).getTime()
           }
-          //console.log('dispatcher.js::getUserSubscriptions - presort list', api.id);
-          list.push([i, ts]);
+          //console.log('dispatcher.js::getUserSubscriptions - presort list', api.id)
+          list.push([i, ts])
         }
-        //console.log('dispatcher.js::getUserSubscriptions - presort list', list);
+        //console.log('dispatcher.js::getUserSubscriptions - presort list', list)
         // sort list (ts desc (highest first))
         list=list.sort(function(a, b) {
-          if (a[1] < b[1]) return 1;
-          if (a[1] > b[1]) return -1;
-          return 0;
+          if (a[1] < b[1]) return 1
+          if (a[1] > b[1]) return -1
+          return 0
         })
-        //console.log('dispatcher.js::getUserSubscriptions - postsort list', list);
-        var nlist=[];
+        //console.log('dispatcher.js::getUserSubscriptions - postsort list', list)
+        var nlist=[]
         for(var i in list) {
           // strip out the recent_messages?
           if (result_recent_messages) {
             //
           }
-          var api=apis[list[i][0]];
-          //console.log('dispatcher.js::getUserSubscriptions - post list', api.id);
-          nlist.push(api);
+          var api=apis[list[i][0]]
+          //console.log('dispatcher.js::getUserSubscriptions - post list', api.id)
+          nlist.push(api)
         }
-        //console.log('dispatcher.js::getUserSubscriptions - final count', nlist.length);
+        //console.log('dispatcher.js::getUserSubscriptions - final count', nlist.length)
         // we actually want the count from subsMeta
-        callback(nlist, apiErr, subsMeta);
-      });
+        callback(nlist, apiErr, subsMeta)
+      })
       /*
-      var channelCriteria={ where: { id: { in: channelids } } };
+      var channelCriteria={ where: { id: { in: channelids } } }
       if (params.types) {
-        channelCriteria.where['type']={ in: params.types.split(/,/) };
-        //console.log('dataaccess.caminte.js::getUserSubscriptions - types', channelCriteria.where['type']);
+        channelCriteria.where['type']={ in: params.types.split(/,/) }
+        //console.log('dataaccess.caminte.js::getUserSubscriptions - types', channelCriteria.where['type'])
       }
       channelModel.find(channelCriteria, function (err, channels) {
-        callback(channels, err, meta);
-      });
+        callback(channels, err, meta)
+      })
       */
 
       /*
-      var apis={};
-      var count=0;
-      var min_id = 999999;
-      var max_id = 0;
+      var apis={}
+      var count=0
+      var min_id = 999999
+      var max_id = 0
       for(var i in channels) {
         var channel_id=channels[i].id
-        console.log('dispatcher.js::getUserSubscriptions - in order', channel_id);
-        min_id=Math.min(channel_id, min_id);
-        max_id=Math.max(channel_id, max_id);
-        params.tokenobj.subscribedOpt=true;
+        console.log('dispatcher.js::getUserSubscriptions - in order', channel_id)
+        min_id=Math.min(channel_id, min_id)
+        max_id=Math.max(channel_id, max_id)
+        params.tokenobj.subscribedOpt=true
         // channel, params, tokenObj, callback, meta
         ref.channelToAPI(channels[i], params, params.tokenobj, function(channel, cErr) {
-          //apis.push(channel);
-          apis[channel.id]=channel;
-          count++;
+          //apis.push(channel)
+          apis[channel.id]=channel
+          count++
           if (count == channels.length) {
-            var nlist=[];
+            var nlist=[]
             for(var i in channels) {
-              //console.log('dispatcher.js::getUserSubscriptions - out order', channels[i].id);
-              nlist.push(apis[channels[i].id]);
+              //console.log('dispatcher.js::getUserSubscriptions - out order', channels[i].id)
+              nlist.push(apis[channels[i].id])
             }
             callback(nlist, err || cErr, { code: 200, min_id: min_id,
-              max_id: max_id, more: false});
+              max_id: max_id, more: false})
           }
-        });
+        })
       }
       */
-    });
+    })
   },
   /**
    * get subscriptions for specified channel id
@@ -3133,37 +3133,37 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getChannelSubscriptions: function(channelid, params, callback) {
-    var ref = this;
-    //console.log('dispatcher.js::getChannelSubscriptions - start');
+    var ref = this
+    //console.log('dispatcher.js::getChannelSubscriptions - start')
     this.cache.getChannelSubscriptions([channelid], params, function(err, subs, meta) {
       if (!subs.length) {
-        return callback([], '', meta);
+        return callback([], '', meta)
       }
-      var list = [];
+      var list = []
       for(var i in subs) {
-        var sub = subs[i].userid;
+        var sub = subs[i].userid
         // FIXME: remove N+1
-        //console.log('dispatcher.js::getChannelSubscriptions - user', sub);
+        //console.log('dispatcher.js::getChannelSubscriptions - user', sub)
         ref.getUser(sub, params, function(user, uErr, uMeta) {
-          list.push(user);
-          //console.log('dispatcher.js::getChannelSubscriptions -', list.length, subs.length);
+          list.push(user)
+          //console.log('dispatcher.js::getChannelSubscriptions -', list.length, subs.length)
           if (list.length == subs.length) {
-            callback(list, '', meta);
+            callback(list, '', meta)
           }
         })
       }
-    });
+    })
   },
   getChannelsSubscriptions: function(ids, params, token, callback) {
-    var ref = this;
-    //console.log('dispatcher.js::getChannelsSubscriptions - start', ids);
+    var ref = this
+    //console.log('dispatcher.js::getChannelsSubscriptions - start', ids)
     this.cache.getChannelSubscriptions(ids, params, function(err, subs, meta) {
       if (err) console.error('dispatcher.js::getChannelSubscriptions - err', err)
       if (!subs.length) {
         return callback([], '', meta)
       }
       callback(subs, '', meta)
-    });
+    })
   },
   //
   // stream_marker
@@ -3175,9 +3175,9 @@ module.exports = {
    * @param {object} data - stream marker data object
    */
   setStreamMarkerdata: function(data) {
-    console.log('dispatcher.js::setStreamMarkerdata - write me!');
+    console.log('dispatcher.js::setStreamMarkerdata - write me!')
     if (callback) {
-      callback(null, null);
+      callback(null, null)
     }
   },
   //
@@ -3186,7 +3186,7 @@ module.exports = {
   // so we need access to the session store
   // or some way to get context
   getAppCallbacks: function(client_id, client_secret, callback) {
-    this.cache.getAppCallbacks(client_id, client_secret, callback);
+    this.cache.getAppCallbacks(client_id, client_secret, callback)
   },
   /**
    * get current context user token
@@ -3219,14 +3219,14 @@ module.exports = {
         },
         user: user,
         "invite_link": "https://join.app.net/from/notareallink"
-      };
-      //console.log('dispatcher::getToken - ', token);
-      callback(token, null);
-    });
+      }
+      //console.log('dispatcher::getToken - ', token)
+      callback(token, null)
+    })
   },
   getUserClientByToken: function(token, callback) {
-    //console.log('dispatcher::getUserClientByToken', token);
-    this.cache.getAPIUserToken(token, callback);
+    //console.log('dispatcher::getUserClientByToken', token)
+    this.cache.getAPIUserToken(token, callback)
   },
   /**
    * add/update user token
@@ -3238,14 +3238,14 @@ module.exports = {
   // FIXME: store downstream token, so we can look it up later!
   setToken: function(userid, client_id, scopes, token, callback) {
     // function(userid, client_id, scopes, token, callback)
-    this.cache.addAPIUserToken(userid, client_id, scopes, token, callback);
+    this.cache.addAPIUserToken(userid, client_id, scopes, token, callback)
   },
   createOrFindToken: function(userid, client_id, scopes, token, callback) {
     // function(userid, client_id, scopes, token, callback)
-    this.cache.createOrFindUserToken(userid, client_id, scopes, token, callback);
+    this.cache.createOrFindUserToken(userid, client_id, scopes, token, callback)
   },
   setUpstreamToken: function(userid, token, scopes, callback) {
-    this.cache.setUpstreamUserToken(userid, token, scopes, callback);
+    this.cache.setUpstreamUserToken(userid, token, scopes, callback)
   },
   //
   // star (interaction)
@@ -3259,10 +3259,10 @@ module.exports = {
     // supposed to return post
     this.cache.addStar(postid, token, function() {
       ref.getPost(postid, {}, callback)
-    });
+    })
   },
   delStar: function(postid, token, callback) {
-    this.cache.delStar(postid, token, callback);
+    this.cache.delStar(postid, token, callback)
   },
   /**
    * add/update star
@@ -3276,29 +3276,29 @@ module.exports = {
     // update post
     // yea, there was one post that didn't has post set
     if (data && data.post) {
-      this.setPost(data.post);
+      this.setPost(data.post)
     }
     // update user record
     if (data && data.user && data.user.username) {
-      this.updateUser(data.user, ts);
+      this.updateUser(data.user, ts)
     }
     // create/update star
     if (data) {
       // we don't need source user because that'll be in the post
       // though maybe able to remove a look up if we pass it
-      this.cache.setInteraction(data.user.id, data.post.id, 'star', id, deleted, ts, callback);
+      this.cache.setInteraction(data.user.id, data.post.id, 'star', id, deleted, ts, callback)
     } else {
       if (deleted) {
-        this.cache.setInteraction(0, 0, 'star', id, deleted, ts, callback);
+        this.cache.setInteraction(0, 0, 'star', id, deleted, ts, callback)
       } else {
-        console.log('dispatcher.js::setStar - Create empty?');
+        console.log('dispatcher.js::setStar - Create empty?')
         if (callback) {
-          callback(null, null);
+          callback(null, null)
         }
       }
     }
     if (this.notsilent) {
-      process.stdout.write(deleted?'_':'*');
+      process.stdout.write(deleted?'_':'*')
     }
   },
   /**
@@ -3306,47 +3306,47 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getInteractions: function(userid, tokenObj, params, callback) {
-    //console.log('getInteractions - ', userid, typeof(tokenObj), typeof(params), typeof(callback));
-    var ref=this;
+    //console.log('getInteractions - ', userid, typeof(tokenObj), typeof(params), typeof(callback))
+    var ref=this
     params.tokenobj = tokenObj
     // FIXME: why do we need this getUser call?
     // is this just used to normalize the userid?
     // it's to insert ourselves as a receiver of actions
     this.getUser(userid, params, function(user, err) {
       // o(3) maybe 4 if toApi
-      //console.log('getInteractions - gotUser');
+      //console.log('getInteractions - gotUser')
       // was base class getting in the way
-      //console.log('getInteractions - calling', userid, params, tokenObj);
+      //console.log('getInteractions - calling', userid, params, tokenObj)
       ref.cache.getNotices(userid, params, tokenObj, function(err, notices) {
-        //console.log('dispatcher.js::getInteractions - gotNotice', notices.length);
+        //console.log('dispatcher.js::getInteractions - gotNotice', notices.length)
 
         // actionuserid <= may have to look this up too
         // look up: notice.postid => post
         // look up: post.user.id => post.user
         // we can roll up multiple entries for same type and post objects
         if (!notices.length) {
-          callback([], err);
-          return;
+          callback([], err)
+          return
         }
-        var interactions={};
+        var interactions={}
         // we need to maintain the order of the result set
         function resortReturn(interactions, err) {
-          //console.log('dispatcher.js::getInteractions - resortReturn');
-          var res=[];
+          //console.log('dispatcher.js::getInteractions - resortReturn')
+          var res=[]
           for(var i in notices) {
-            var id=notices[i].id;
+            var id=notices[i].id
             if (interactions[id]) {
-              res.push(interactions[id]);
+              res.push(interactions[id])
             } else {
-              console.log('cant find', id, 'in', interactions);
+              console.log('cant find', id, 'in', interactions)
             }
           }
-          //console.log('dispatcher.js::getInteractions - calling back');
-          callback(res, err);
+          //console.log('dispatcher.js::getInteractions - calling back')
+          callback(res, err)
         }
-        var count=0;
+        var count=0
         for(var i in notices) {
-          var notice=notices[i];
+          var notice=notices[i]
           var scope=function(notice) {
             if (notice.type==='follow') {
               // follow, look up user
@@ -3368,7 +3368,7 @@ module.exports = {
                     counts: {
                       following: 0,
                     }
-                  };
+                  }
                 }
                 interactions[notice.id]={
                     "event_date": notice.event_date,
@@ -3380,13 +3380,13 @@ module.exports = {
                       fuser
                     ],
                     "pagination_id": notice.id
-                };
-                count++;
-                if (count==notices.length) {
-                  //console.log('dispatcher.js::getInteractions - resortReturn');
-                  resortReturn(interactions, err);
                 }
-              });
+                count++
+                if (count==notices.length) {
+                  //console.log('dispatcher.js::getInteractions - resortReturn')
+                  resortReturn(interactions, err)
+                }
+              })
             } else {
               // probably a star
               // not follow, look up post
@@ -3403,64 +3403,64 @@ module.exports = {
                         auser
                       ],
                       "pagination_id": notice.id
-                  };
+                  }
                   if (notice.altnum) {
                     ref.getPost(notice.altnum, {}, function(post2, err) {
                       interactions[notice.id].objects.push(post2)
-                      count++;
+                      count++
                       if (count==notices.length) {
-                        //console.log('dispatcher.js::getInteractions - resortReturn');
-                        resortReturn(interactions, err);
+                        //console.log('dispatcher.js::getInteractions - resortReturn')
+                        resortReturn(interactions, err)
                       }
                     })
                   } else {
-                    count++;
+                    count++
                     if (count==notices.length) {
-                      //console.log('dispatcher.js::getInteractions - resortReturn');
-                      resortReturn(interactions, err);
+                      //console.log('dispatcher.js::getInteractions - resortReturn')
+                      resortReturn(interactions, err)
                     }
                   }
-                });
-              });
+                })
+              })
             }
-          }(notice);
+          }(notice)
         }
-        //console.log('getInteractions - done');
-        //callback(interactions, err);
-      });
-    });
+        //console.log('getInteractions - done')
+        //callback(interactions, err)
+      })
+    })
   },
   getInteractions2: function(userid, token, params, callback) {
     // probably will needs params
     // if each returns 0-count, that should be more than enough to fulfill count
     // 4xcount but let's say we get less than count, that means there isn't the data
     // so we can't provide more
-    var interactions=[]; // [ts, {}]
+    var interactions=[] // [ts, {}]
     // get a list of interactions for this user
     // interactions are follows = users
     // stars, reposts, reply = posts
     // welcome will be empty
     // broadcast_create, broadcast_subscribe, broadcast_subscribe will be channels
     // build a list sorted by timestamp
-    var ref=this;
-    var done_follows=0;
-    var done_stars=0;
-    var done_reposts=0;
-    var done_replies=0;
-    //var list=[]; // (timestamp, action, objects, users)
-    var sent=0;
+    var ref=this
+    var done_follows=0
+    var done_stars=0
+    var done_reposts=0
+    var done_replies=0
+    //var list=[] // (timestamp, action, objects, users)
+    var sent=0
     var checkdone=function() {
-      if (sent) return;
-      var list=followlist.concat(starlist).concat(repostlist).concat(replieslist);
-      console.log('dispatcher.js::getInteractions check', done_follows, done_stars, done_reposts, done_replies, 'items', list.length);
+      if (sent) return
+      var list=followlist.concat(starlist).concat(repostlist).concat(replieslist)
+      console.log('dispatcher.js::getInteractions check', done_follows, done_stars, done_reposts, done_replies, 'items', list.length)
       if (done_follows && done_stars && done_reposts && done_replies) {
-        //console.log('dispatcher.js::getInteractions done');
-        sent=1; // sent lock
+        //console.log('dispatcher.js::getInteractions done')
+        sent=1 // sent lock
         //ref.getUser(userid, null, function(self, err) {
-          //console.log('self');
+          //console.log('self')
           /*
           ref.getUser(2, null, function(actor, err) {
-            //console.log('berg');
+            //console.log('berg')
             var interaction={
                 "action": "follow",
                 "event_date": "2012-07-16T17:23:34Z",
@@ -3470,20 +3470,20 @@ module.exports = {
                 "users": [
                   actor
                 ]
-            };
+            }
             // pagination_id
-            //console.log('sending back');
-            callback([interaction], null);
-          });
+            //console.log('sending back')
+            callback([interaction], null)
+          })
           */
           // since we only need count (20)
           // let's only do the getUser here
-          var interactions=[];
-          console.log('dispatcher.js::getInteractions - list len',list.length);
+          var interactions=[]
+          console.log('dispatcher.js::getInteractions - list len',list.length)
           // so the way node works is that if we have 900 items
           // we have to issue all 900 items before we'll get one response
           for(var i in list) {
-            if (i>20) break;
+            if (i>20) break
             // yield and then run this
             //setImmediate(function() {
               ref.getUser(list[i][3], null, function(fuser, err) {
@@ -3496,234 +3496,234 @@ module.exports = {
                     "users": [
                       fuser
                     ]
-                };
-                //console.log(interaction.objects,interaction.users);
-                interactions.push(interaction);
-                console.log('i',i,'len',interactions.length);
+                }
+                //console.log(interaction.objects,interaction.users)
+                interactions.push(interaction)
+                console.log('i',i,'len',interactions.length)
                 if (interactions.length==list.length || interactions.length==20) {
                   // 16-70s on 54posts 0 followers
-                  console.log('sending');
-                  callback(interactions, null);
+                  console.log('sending')
+                  callback(interactions, null)
                 }
-              });
-            //});
+              })
+            //})
           }
-          console.log('for is done, waiting on getUser');
-          //console.log('sending',interactions.length);
-          //callback(interactions, null);
-        //});
+          console.log('for is done, waiting on getUser')
+          //console.log('sending',interactions.length)
+          //callback(interactions, null)
+        //})
       }
     }
     // follows
     var followlist=[]
-    var followexpect=0;
+    var followexpect=0
     // only need the most recent 20 follows
-    console.log('getting followers for', userid);
+    console.log('getting followers for', userid)
     // lookup self first, and then get down to business
     this.getUser(userid, null, function(user, err) {
       ref.cache.getFollows(userid, { count: 20 }, function(err, follows) {
         if (!follows.length) {
-          done_follows=1;
-          checkdone();
+          done_follows=1
+          checkdone()
         } else {
           for(var i in follows) {
-            var follow=follows[i];
+            var follow=follows[i]
             if (follow.active) {
-              followexpect++;
-              done_follows=0;
-              //console.log('expecting',followexpect);
+              followexpect++
+              done_follows=0
+              //console.log('expecting',followexpect)
               //ref.getUser(follow.userid, null, function(fuser, err) {
                 followlist.push([follow.last_updated, 'follow', user, follow.userid])
-                //console.log('got',followlist.length,'vs',followexpect);
+                //console.log('got',followlist.length,'vs',followexpect)
                 if (followlist.length==followexpect) {
                   // move it into the main list
-                  done_follows=1;
-                  checkdone();
+                  done_follows=1
+                  checkdone()
                 }
-              //});
+              //})
             }
           }
           if (followexpect===0) {
-            console.log('no active followers');
-            done_follows=1;
+            console.log('no active followers')
+            done_follows=1
           }
-          checkdone();
+          checkdone()
         }
-      });
-    });
+      })
+    })
     // stars
     var starlist=[]
     // not that I starred a post...
     /*
     this.cache.getInteractions('star', userid, { count: 20 }, function(err, stars) {
       if (!stars.length) {
-        done_stars=1;
+        done_stars=1
       } else {
         for(var i in stars) {
-          var star=stars[i];
+          var star=stars[i]
           ref.getUser(userid, null, function(user, err) {
             ref.getPost(star.typeid, null, function(post, err) {
               starlist.push([star.datetime, 'star', post, user])
-              console.log('*i',i,'vs',stars.length,'vs',starlist.length,'starlist');
+              console.log('*i',i,'vs',stars.length,'vs',starlist.length,'starlist')
               if (starlist.length==stars.length) {
                 // move it into the main list
-                done_stars=1;
-                checkdone();
+                done_stars=1
+                checkdone()
               }
-            });
-          });
+            })
+          })
         }
       }
-      checkdone();
-    });
+      checkdone()
+    })
     */
     var repostlist=[]
     var replieslist=[]
     // can't count 20, we want any activity on all our posts
     this.getUserPosts(userid, { }, function(posts, err) {
       if (!posts.length) {
-        console.log('no posts');
-        done_reposts=1;
-        done_replies=1;
-        done_stars=1;
-        checkdone();
-        return;
+        console.log('no posts')
+        done_reposts=1
+        done_replies=1
+        done_stars=1
+        checkdone()
+        return
       }
-      var repostcount=0;
-      var replycount=0;
-      var starcount=0;
-      var postrepostcalls=0;
-      var postreplycalls=0;
-      var poststarcalls=0;
-      console.log('posts', posts.length);
-      var postcalls=0;
+      var repostcount=0
+      var replycount=0
+      var starcount=0
+      var postrepostcalls=0
+      var postreplycalls=0
+      var poststarcalls=0
+      console.log('posts', posts.length)
+      var postcalls=0
       for(var i in posts) {
-        var post=posts[i];
+        var post=posts[i]
         // skip delete posts...
-        if (post.deleted) continue;
-        postcalls++;
+        if (post.deleted) continue
+        postcalls++
         // reposts
         // get a list of all my posts, did any of them were a repost_of
         // up to 20 reposts (as long as their reposts replies)
         ref.cache.getReposts(post.id, { count: 20 }, token, function(err, reposts) {
           /*
           if (!reposts.length) {
-            console.log('well no reposts, let\'s check on things. posts: ',postcalls,'postrepostcalls',postrepostcalls);
+            console.log('well no reposts, let\'s check on things. posts: ',postcalls,'postrepostcalls',postrepostcalls)
           }
           */
-            //done_reposts=1;
+            //done_reposts=1
           //} else {
-          repostcount+=reposts.length;
+          repostcount+=reposts.length
           for(var j in reposts) {
-            var repost=reposts[j];
+            var repost=reposts[j]
             //ref.getUser(repost.userid, null, function(ruser, err) {
               repostlist.push([repost.created_at, 'repost', post, repost.userid])
-              //console.log('Pi',i,'vs',posts.length);
-              console.log('repost check',repostlist.length,'vs',repostcount,'repostcalls',postrepostcalls,'/',postcalls);
+              //console.log('Pi',i,'vs',posts.length)
+              console.log('repost check',repostlist.length,'vs',repostcount,'repostcalls',postrepostcalls,'/',postcalls)
               if (repostlist.length==repostcount && postcalls==postrepostcalls) {
                 // move it into the main list
                 // we're hitting this early
-                done_reposts=1;
-                checkdone();
+                done_reposts=1
+                checkdone()
               }
-            //});
+            //})
           }
-          postrepostcalls++;
+          postrepostcalls++
           if (postrepostcalls==postcalls) {
             // we're done, there maybe repostcount outstanding, let's check
-            console.log('repost done, count:',repostcount,'done:',repostlist.length);
+            console.log('repost done, count:',repostcount,'done:',repostlist.length)
             // if we never requested anything, then we're done
             if (!repostcount || repostcount==repostlist.length) {
-              done_reposts=1;
-              checkdone();
+              done_reposts=1
+              checkdone()
             }
           }
           //}
-        });
+        })
         // replys
         // get a list of all my posts, reply_to
-        //console.log('Calling getReplies');
+        //console.log('Calling getReplies')
         // up to 20 replies (as long as their recent replies)
         ref.cache.getReplies(post.id, { count: 20 }, token, function(err, replies) {
           //if (!replies.length) {
-            //done_replies=1;
+            //done_replies=1
           //} else {
-          replycount+=replies.length;
+          replycount+=replies.length
           for(var j in replies) {
-            var reply=replies[j];
+            var reply=replies[j]
             //ref.getUser(reply.userid, null, function(ruser, err) {
               replieslist.push([reply.created_at, 'reply', post, reply.userid])
-              //console.log('Li',i,'vs',posts.length);
-              console.log('reply check',replieslist.length,'vs',replycount,'replycalls',postreplycalls,'/',postcalls);
+              //console.log('Li',i,'vs',posts.length)
+              console.log('reply check',replieslist.length,'vs',replycount,'replycalls',postreplycalls,'/',postcalls)
               if (replieslist.length==replycount && postcalls==postreplycalls) {
                 // move it into the main list
-                done_replies=1;
-                checkdone();
+                done_replies=1
+                checkdone()
               }
-            //});
+            //})
           }
-          //console.log('uWotM8?',postreplycalls,'/',postcalls);
-          postreplycalls++;
+          //console.log('uWotM8?',postreplycalls,'/',postcalls)
+          postreplycalls++
           if (postreplycalls==postcalls) {
             // we're done, there maybe repostcount outstanding, let's check
-            console.log('reply done, count:',replycount,'done:',replieslist.length);
+            console.log('reply done, count:',replycount,'done:',replieslist.length)
             // if we never requested anything, then we're done
             if (!replycount || replycount==replieslist.length) {
-              done_replies=1;
-              checkdone();
+              done_replies=1
+              checkdone()
             }
           }
           //}
-        });
+        })
         // get people that have starred your posts
         // up to 20 stars (as long as their recent stars)
         ref.cache.getPostStars(post.id, { count: 20 }, function(err, starredposts) {
-          starcount+=starredposts.length;
+          starcount+=starredposts.length
           for(var j in starredposts) {
-            var starpost=starredposts[j];
+            var starpost=starredposts[j]
             //ref.getUser(starpost.userid, null, function(ruser, err) {
               starlist.push([starpost.created_at, 'star', post, starpost.userid])
-              //console.log('Li',i,'vs',posts.length);
-              console.log('star check',starlist.length,'vs',starcount,'starscalls',poststarcalls,'/',postcalls);
+              //console.log('Li',i,'vs',posts.length)
+              console.log('star check',starlist.length,'vs',starcount,'starscalls',poststarcalls,'/',postcalls)
               if (starlist.length==starcount && postcalls==poststarcalls) {
                 // move it into the main list
-                done_stars=1;
-                checkdone();
+                done_stars=1
+                checkdone()
               }
-            //});
+            //})
           }
-          poststarcalls++;
+          poststarcalls++
           if (poststarcalls==postcalls) {
             // we're done, there maybe repostcount outstanding, let's check
-            console.log('star done, count:',starcount,'done:',starlist.length);
+            console.log('star done, count:',starcount,'done:',starlist.length)
             // if we never requested anything, then we're done
             if (!starcount || starcount==starlist.length) {
-              done_stars=1;
-              checkdone();
+              done_stars=1
+              checkdone()
             }
           }
-        });
+        })
       }
-      console.log('postcalls',postcalls);
-      console.log('counts',repostcount,replycount);
+      console.log('postcalls',postcalls)
+      console.log('counts',repostcount,replycount)
       if (!postcalls) {
         // if no valid posts to inspect, we're done
-        done_reposts=1;
-        done_replies=1;
-        done_stars=1;
+        done_reposts=1
+        done_replies=1
+        done_stars=1
       } else {
         // if post checks are done and there's no repostcost, then it's done
         // do we even need these? if there are psts, we deal with it in the replycount
-        console.log('postcalls',postcalls);
-        console.log('reposts',postrepostcalls,'counts',repostcount,replycount);
-        console.log('replies',postreplycalls,'counts',replycount);
-        console.log('stars',poststarcalls,'counts',starcount);
-        //if (postcalls==postrepostcalls && !repostcount) done_reposts=1;
-        //if (postcalls==postreplycalls && !replycount) done_reposts=1;
-        //if (postcalls==poststarcalls && !starcount) done_stars=1;
+        console.log('postcalls',postcalls)
+        console.log('reposts',postrepostcalls,'counts',repostcount,replycount)
+        console.log('replies',postreplycalls,'counts',replycount)
+        console.log('stars',poststarcalls,'counts',starcount)
+        //if (postcalls==postrepostcalls && !repostcount) done_reposts=1
+        //if (postcalls==postreplycalls && !replycount) done_reposts=1
+        //if (postcalls==poststarcalls && !starcount) done_stars=1
       }
-      checkdone();
-    }); // getUserPosts
+      checkdone()
+    }) // getUserPosts
   },
   //
   // mute
@@ -3744,73 +3744,73 @@ module.exports = {
    */
   updateUser: function(data, ts, callback) {
     if (!data) {
-      console.log('dispatcher.js:updateUser - data is missing', data);
-      callback(null, 'data is missing');
-      return;
+      console.log('dispatcher.js:updateUser - data is missing', data)
+      callback(null, 'data is missing')
+      return
     }
     if (!data.id) {
-      console.log('dispatcher.js:updateUser - id is missing', data);
-      callback(null, 'id is missing');
-      return;
+      console.log('dispatcher.js:updateUser - id is missing', data)
+      callback(null, 'id is missing')
+      return
     }
     // FIXME: current user last_updated
-    var ref=this;
+    var ref=this
     if (data.annotations) {
       //console.log('dispatcher.js:updateUser - hasNotes, userid', data.id, 'notes', data.annotations, 'full', data)
       // FIXME: only updated annotation if the timestamp is newer than we have
-      this.setAnnotations('user', data.id, data.annotations);
+      this.setAnnotations('user', data.id, data.annotations)
     }
     // fix api/stream record in db format
     this.apiToUser(data, function(userData) {
-      //console.log('made '+data.created_at+' become '+userData.created_at);
+      //console.log('made '+data.created_at+' become '+userData.created_at)
       // can we tell the difference between an add or update?
       //console.log('dispatcher.js::updateUser - final', userData)
       ref.cache.setUser(userData, ts, function(err, user, meta) {
         // TODO: define signal if ts is old
         if (callback) {
-          callback(user, err, meta);
+          callback(user, err, meta)
         }
-      });
-    });
+      })
+    })
     /*
-    userData.username=data.username.toLowerCase(); // so we can find it
-    userData.created_at=new Date(data.created_at); // fix incoming created_at iso date to Date
+    userData.username=data.username.toLowerCase() // so we can find it
+    userData.created_at=new Date(data.created_at) // fix incoming created_at iso date to Date
     // if there isn't counts probably a bad input
     if (data.counts) {
-      userData.following=data.counts.following;
-      userData.followers=data.counts.followers;
-      userData.posts=data.counts.posts;
-      userData.stars=data.counts.stars;
+      userData.following=data.counts.following
+      userData.followers=data.counts.followers
+      userData.posts=data.counts.posts
+      userData.stars=data.counts.stars
     }
     // set avatar to null if is_default true
-    userData.avatar_width=data.avatar_image.width;
-    userData.avatar_height=data.avatar_image.height;
-    userData.avatar_image=data.avatar_image.url;
-    userData.cover_width=data.cover_image.width;
-    userData.cover_height=data.cover_image.height;
-    userData.cover_image=data.cover_image.url;
+    userData.avatar_width=data.avatar_image.width
+    userData.avatar_height=data.avatar_image.height
+    userData.avatar_image=data.avatar_image.url
+    userData.cover_width=data.cover_image.width
+    userData.cover_height=data.cover_image.height
+    userData.cover_image=data.cover_image.url
 
     if (data.description) {
-      //console.log('user '+data.id+' has description', data.description.entities);
+      //console.log('user '+data.id+' has description', data.description.entities)
       if (data.description.entities) {
-        //console.log('user '+data.id+' has entities');
+        //console.log('user '+data.id+' has entities')
         this.setEntities('user', data.id, data.description.entities, function(entities, err) {
           if (err) {
-            console.log("entities Update err: "+err);
+            console.log("entities Update err: "+err)
           //} else {
-            //console.log("entities Updated");
+            //console.log("entities Updated")
           }
-        });
+        })
       }
       // cache html version
-      userData.descriptionhtml=data.description.html;
+      userData.descriptionhtml=data.description.html
       // since userData is a reference to data, we can't stomp on it until we're done
-      userData.description=data.description.text;
+      userData.description=data.description.text
     }
     */
 
     if (this.notsilent) {
-      process.stdout.write('U');
+      process.stdout.write('U')
     }
   },
   patchUser: function(request, params, tokenObj, callback) {
@@ -3820,123 +3820,123 @@ module.exports = {
         timezone: req.body.timezone,
         description: req.body.description,
     */
-    var changes={};
-    if (request.name!==undefined) changes.name=request.name;
-    if (request.locale!==undefined) changes.locale=request.locale;
-    if (request.timezone!==undefined) changes.timezone=request.timezone;
+    var changes={}
+    if (request.name!==undefined) changes.name=request.name
+    if (request.locale!==undefined) changes.locale=request.locale
+    if (request.timezone!==undefined) changes.timezone=request.timezone
     if (request.description!==undefined) {
-      if (request.description.text) changes.description=request.description.text;
-      if (request.description.html) changes.descriptionhtml=request.description.html;
+      if (request.description.text) changes.description=request.description.text
+      if (request.description.html) changes.descriptionhtml=request.description.html
     }
-    //console.log("dispatcher.js::patchUser - user", tokenObj.userid, 'changes', changes);
+    //console.log("dispatcher.js::patchUser - user", tokenObj.userid, 'changes', changes)
     // params we'd have to pay attention to:
     // include_annotations, include_user_annotations, include_html
-    var ref=this;
+    var ref=this
     if (request.annotations) {
-      //console.log('dispatcher.js::patchUser - annotations', request.annotations);
-      this.setAnnotations('user', tokenObj.userid, request.annotations);
+      //console.log('dispatcher.js::patchUser - annotations', request.annotations)
+      this.setAnnotations('user', tokenObj.userid, request.annotations)
     }
-    //console.log('dispatcher.js::patchUser - changes', changes);
+    //console.log('dispatcher.js::patchUser - changes', changes)
     if (JSON.stringify(changes) === '{}') {
-      return;
+      return
     }
     this.cache.patchUser(tokenObj.userid, changes, function(err, user, meta) {
       if (err) console.error('dispatcher.js::patchUser - err', err)
       if (callback) {
         ref.userToAPI(user, tokenObj, function(apiUser, apiErr, apiMeta) {
-          callback(apiUser, apiErr, apiMeta);
-        }, meta);
+          callback(apiUser, apiErr, apiMeta)
+        }, meta)
       }
-    });
+    })
   },
   updateUserAvatar: function(avatar_url, params, tokenObj, callback) {
     if (!tokenObj.userid) {
-      console.trace('dispatcher.js::updateUserAvatar - no user id in tokenObj', tokenObj, tokenObj.userid);
-      return callback({}, 'not userid');
+      console.trace('dispatcher.js::updateUserAvatar - no user id in tokenObj', tokenObj, tokenObj.userid)
+      return callback({}, 'not userid')
     }
-    //console.log('dispatcher.js::updateUserAvatar - avatar', avatar_url);
+    //console.log('dispatcher.js::updateUserAvatar - avatar', avatar_url)
     // we can also set the image width/height...
     changes = {
       avatar_image: avatar_url
     }
-    var ref=this;
+    var ref=this
     this.cache.patchUser(tokenObj.userid, changes, function(changes, err, meta) {
       // hrm memory driver does return the complete object...
-      //console.log('dispatcher.js::updateUserAvatar - changes', changes);
+      //console.log('dispatcher.js::updateUserAvatar - changes', changes)
       if (callback) {
-        ref.getUser(tokenObj.userid, params, callback);
+        ref.getUser(tokenObj.userid, params, callback)
       }
-    });
+    })
   },
   // destructive to user
   // to database format
   apiToUser: function(user, callback) {
     // collapse API to db structure
     // copy what we can without linking to the orignal, so we don't destroy
-    var userData=JSON.parse(JSON.stringify(user));
+    var userData=JSON.parse(JSON.stringify(user))
     if (user.username === undefined) {
       console.log('dispatcher::apiToUser - user', user.id, 'doesnt have a username', user)
       user.username = ''
     }
-    userData.username=user.username.toLowerCase(); // so we can find it
-    userData.created_at=new Date(user.created_at); // fix incoming created_at iso date to Date
+    userData.username=user.username.toLowerCase() // so we can find it
+    userData.created_at=new Date(user.created_at) // fix incoming created_at iso date to Date
     // if there isn't counts probably a bad input
     if (user.counts) {
-      userData.following=user.counts.following;
-      userData.followers=user.counts.followers;
-      userData.posts=user.counts.posts;
-      userData.stars=user.counts.stars;
+      userData.following=user.counts.following
+      userData.followers=user.counts.followers
+      userData.posts=user.counts.posts
+      userData.stars=user.counts.stars
     }
     if (user.avatar_image === undefined) {
       console.log('dispatcher::apiToUser - user', user.id, 'doesnt have a avatar_image', user)
       user.avatar_image = {}
     }
     // set avatar to null if is_default true
-    userData.avatar_width=user.avatar_image.width;
-    userData.avatar_height=user.avatar_image.height;
-    userData.avatar_image=user.avatar_image.url;
+    userData.avatar_width=user.avatar_image.width
+    userData.avatar_height=user.avatar_image.height
+    userData.avatar_image=user.avatar_image.url
     if (user.cover_image === undefined) {
       console.log('dispatcher::apiToUser - user', user.id, 'doesnt have a cover_image', user)
       user.cover_image = {}
     }
-    userData.cover_width=user.cover_image.width;
-    userData.cover_height=user.cover_image.height;
-    userData.cover_image=user.cover_image.url;
+    userData.cover_width=user.cover_image.width
+    userData.cover_height=user.cover_image.height
+    userData.cover_image=user.cover_image.url
 
     if (user.description) {
-      //console.log('user '+data.id+' has description', data.description.entities);
+      //console.log('user '+data.id+' has description', data.description.entities)
       if (user.description.entities) {
-        //console.log('user '+data.id+' has entities');
+        //console.log('user '+data.id+' has entities')
         this.setEntities('user', user.id, user.description.entities, function(entities, err) {
           if (err) {
-            console.log("entities Update err: "+err);
+            console.log("entities Update err: "+err)
           //} else {
-            //console.log("entities Updated");
+            //console.log("entities Updated")
           }
-        });
+        })
       }
       // cache html version
-      userData.descriptionhtml=user.description.html;
+      userData.descriptionhtml=user.description.html
       // since userData is a reference to data, we can't stomp on it until we're done
-      userData.description=user.description.text;
+      userData.description=user.description.text
     }
-    callback(userData, null);
-    //return userData;
+    callback(userData, null)
+    //return userData
   },
   // from internal database format
   userToAPI: function(user, token, callback, meta) {
-    //console.log('dispatcher.js::userToAPI - '+user.id, callback, meta);
+    //console.log('dispatcher.js::userToAPI - '+user.id, callback, meta)
     if (!user) {
-      callback(null, 'dispatcher.js::userToAPI - no user passed in');
-      return;
+      callback(null, 'dispatcher.js::userToAPI - no user passed in')
+      return
     }
     if (!callback) {
-      callback(null, 'dispatcher.js::userToAPI - no callback passed in');
-      return;
+      callback(null, 'dispatcher.js::userToAPI - no callback passed in')
+      return
     }
-    //console.log('dispatcher.js::userToAPI - setting up res');
-    //console.log('dispatcher.js::userToAPI - base user', user);
-    //console.log('dispatcher.js::userToAPI - base avatar_image', user.avatar_image);
+    //console.log('dispatcher.js::userToAPI - setting up res')
+    //console.log('dispatcher.js::userToAPI - base user', user)
+    //console.log('dispatcher.js::userToAPI - base avatar_image', user.avatar_image)
     // copy user structure
     var res={
       id: user.id,
@@ -3964,7 +3964,7 @@ module.exports = {
         followers: user.followers,
         stars: user.stars,
       }
-    };
+    }
     if (user.description) {
       res.description={
         text: user.description,
@@ -3974,20 +3974,20 @@ module.exports = {
           hashtags: [],
           links: []
         }
-      };
+      }
     }
     // conditionals
     if (user.name) {
-      res.name=user.name; // 530 was cast as a int
+      res.name=user.name // 530 was cast as a int
     }
     if (user.verified_domain) {
-      res.verified_domain=user.verified_domain;
+      res.verified_domain=user.verified_domain
       // alpha needs this and the dev doesn't seem to cover it
-      res.verified_link='http://'+user.verified_domain;
+      res.verified_link='http://'+user.verified_domain
     }
 
     if (user.description && !res.description) {
-      console.log('dispatcher.js::userToAPI - sanity check failure...');
+      console.log('dispatcher.js::userToAPI - sanity check failure...')
     }
 
     var need = {
@@ -3996,30 +3996,30 @@ module.exports = {
     }
 
     function needComplete(type) {
-      need[type] = false;
+      need[type] = false
       // if something is not done
-      //console.log('dispatcher.js::userToAPI - checking if done, just finished', type);
+      //console.log('dispatcher.js::userToAPI - checking if done, just finished', type)
       for(var i in need) {
         if (need[i]) {
-          if (user.debug) console.log('dispatcher.js::userToAPI('+user.id+') -', i, 'is not done');
-          return;
+          if (user.debug) console.log('dispatcher.js::userToAPI('+user.id+') -', i, 'is not done')
+          return
         }
       }
       // , res, meta
-      if (user.debug) console.log('dispatcher.js::userToAPI ('+user.id+') - done');
-      //console.log('dispatcher.js::userToAPI - done, text', data.text);
+      if (user.debug) console.log('dispatcher.js::userToAPI ('+user.id+') - done')
+      //console.log('dispatcher.js::userToAPI - done, text', data.text)
       // everything is done
-      reallyDone();
-      //callback(data, null, meta);
+      reallyDone()
+      //callback(data, null, meta)
     }
 
-    var ref=this;
+    var ref=this
     function reallyDone() {
       // final peice
       if (user.description) {
         // use entity cache?
         if (1) {
-          //console.log('dispatcher.js::userToAPI - getEntities '+user.id);
+          //console.log('dispatcher.js::userToAPI - getEntities '+user.id)
           ref.getEntities('user', user.id, function(userEntitiesErr, userEntities, userEntitiesMeta) {
             if (userEntities) {
               copyentities('mentions', userEntities.mentions, res.description)
@@ -4091,53 +4091,53 @@ module.exports = {
     }
 
     if (token && token.userid) {
-      need.tokenFollow = true;
-      //console.log('dispatcher.js::userToAPI - need tokenFollow');
+      need.tokenFollow = true
+      //console.log('dispatcher.js::userToAPI - need tokenFollow')
       // follows_you
       // you_follow
       this.cache.follows(token.userid, user.id, function(err, following) {
-        //console.log('do we follow this guy?', following, 'err', err);
+        //console.log('do we follow this guy?', following, 'err', err)
         if (following && following.active) {
-          //console.log('flagging as followed');
-          res.you_follow=true;
+          //console.log('flagging as followed')
+          res.you_follow=true
         }
-        //reallyDone();
+        //reallyDone()
         needComplete('tokenFollow')
-      });
+      })
     } else {
-      //reallyDone();
+      //reallyDone()
       needComplete('tokenFollow')
     }
   },
   getUser: function(user, params, callback) {
-    //console.log('dispatcher.js::getUser - '+user, params);
+    //console.log('dispatcher.js::getUser - '+user, params)
     if (!callback) {
-      console.error('dispatcher.js::getUser - no callback passed in');
-      callback(null, 'dispatcher.js::getUser - no callback passed in');
-      return;
+      console.error('dispatcher.js::getUser - no callback passed in')
+      callback(null, 'dispatcher.js::getUser - no callback passed in')
+      return
     }
     if (!user) {
-      callback(null, 'dispatcher.js::getUser - no getUser passed in');
-      return;
+      callback(null, 'dispatcher.js::getUser - no getUser passed in')
+      return
     }
     if (params===null) {
-      console.log('dispatcher.js::getUser - params are null');
+      console.log('dispatcher.js::getUser - params are null')
       params={
         generalParams: {},
         tokenobj: {}
-      };
+      }
     }
-    //console.log('dispatcher.js::getUser - params', params);
-    var ref=this;
+    //console.log('dispatcher.js::getUser - params', params)
+    var ref=this
     normalizeUserID(user, params.tokenobj, function(userid, err) {
       if (err) {
-        console.log('dispatcher.js::getUser - cant normalize user', user, err);
+        console.log('dispatcher.js::getUser - cant normalize user', user, err)
       }
       // maybe just spare caminte all together and just callback now
       if (!userid) userid = 0 // don't break caminte
       ref.cache.getUser(userid, function(userErr, userobj, userMeta) {
         if (userErr) {
-          console.log('dispatcher.js::getUser - cant get user', userid, userErr);
+          console.log('dispatcher.js::getUser - cant get user', userid, userErr)
         }
         if (userobj && params.generalParams) {
           // FIXME: temp hack (until we can change the userToAPI prototype)
@@ -4147,77 +4147,77 @@ module.exports = {
         }
         //console.log('found user', userobj.id, '==', user)
         if (!userobj) {
-          console.error('dispatcher.js::getUser - no userobj', userobj);
+          console.error('dispatcher.js::getUser - no userobj', userobj)
           // this breaks token registration
           // userobj = {}
         }
         //if (params.debug) userobj.debug = true
-        ref.userToAPI(userobj, params.tokenobj, callback, userMeta);
-      });
+        ref.userToAPI(userobj, params.tokenobj, callback, userMeta)
+      })
     })
     /*
     if (user=='me') {
-      //console.log('getUser token', params.tokenobj);
+      //console.log('getUser token', params.tokenobj)
       if (params.tokenobj) {
-        console.dir(params.tokenobj);
+        console.dir(params.tokenobj)
         this.cache.getUser(params.tokenobj.userid, function(userobj, userErr, userMeta) {
-          //console.log('dispatcher.js::getUser - gotUser', userErr);
-          ref.userToAPI(userobj, params.tokenobj, callback, userMeta);
-        });
+          //console.log('dispatcher.js::getUser - gotUser', userErr)
+          ref.userToAPI(userobj, params.tokenobj, callback, userMeta)
+        })
       } else {
         this.getUserClientByToken(params.token, function(usertoken, err) {
           if (usertoken==null) {
-            console.log('dispatcher.js::getUser - me but not token');
-            callback(null, 'dispatcher.js::getUser - me but not token');
-            return;
+            console.log('dispatcher.js::getUser - me but not token')
+            callback(null, 'dispatcher.js::getUser - me but not token')
+            return
           } else {
             ref.cache.getUser(usertoken.userid, function(userobj, userErr, userMeta) {
-              //console.log('dispatcher.js::getUser - gotUser', userErr);
-              ref.userToAPI(userobj, params.token, callback, userMeta);
-            });
+              //console.log('dispatcher.js::getUser - gotUser', userErr)
+              ref.userToAPI(userobj, params.token, callback, userMeta)
+            })
           }
-        });
+        })
       }
     } else {
-      var func='getUser';
+      var func='getUser'
       // make sure we check the cache
       if (user[0]=='@') {
-        func='getUserID';
+        func='getUserID'
         // strip @ from beginning
-        user=user.substr(1);
+        user=user.substr(1)
       }
-      //console.log('dispatcher.js::getUser - calling', func);
+      //console.log('dispatcher.js::getUser - calling', func)
       this.cache[func](user, function(userobj, userErr, userMeta) {
-        //console.log('dispatcher.js::getUser - gotUser', userErr);
-        ref.userToAPI(userobj, params.tokenobj, callback, userMeta);
-      });
+        //console.log('dispatcher.js::getUser - gotUser', userErr)
+        ref.userToAPI(userobj, params.tokenobj, callback, userMeta)
+      })
     }
     */
   },
   // NOTE: users has to be an array!
   getUsers: function(users, params, callback) {
-    //console.log('dispatcher.js::getUsers - '+user, params);
+    //console.log('dispatcher.js::getUsers - '+user, params)
     if (!callback) {
-      console.log('dispatcher.js::getUsers - no callback passed in');
-      return;
+      console.log('dispatcher.js::getUsers - no callback passed in')
+      return
     }
     if (!users) {
-      callback(null, 'dispatcher.js::getUsers - no getUser passed in');
-      return;
+      callback(null, 'dispatcher.js::getUsers - no getUser passed in')
+      return
     }
     if (params===null) {
-      console.log('dispatcher.js::getUsers - params are null');
+      console.log('dispatcher.js::getUsers - params are null')
       params={
         tokenobj: {}
-      };
+      }
     }
 
-    var ref=this;
+    var ref=this
     /*
     this.cache.getUsers(users, params, function(userObjs, userErr, meta) {
       if (!userObjs.length) {
-        callback([], null, meta);
-        return;
+        callback([], null, meta)
+        return
       }
       var rUsers=[]
       for(var i in userObjs) {
@@ -4225,20 +4225,20 @@ module.exports = {
           //console.log('dispatcher.js::getUsers - got', adnUserObj, 'for', users[i])
           rUsers.push(adnUserObj)
           if (rUsers.length==users.length) {
-            callback(rUsers, null, meta);
+            callback(rUsers, null, meta)
           }
-        }, meta);
+        }, meta)
       }
-    });
+    })
     */
-    //console.log('dispatcher.js::getUsers - calling', func);
+    //console.log('dispatcher.js::getUsers - calling', func)
     var rUsers=[]
-    //console.log('dispatcher.js::getUsers - users', users);
+    //console.log('dispatcher.js::getUsers - users', users)
     for(var i in users) {
-      //console.log('dispatcher.js::getUsers - user', users[i]);
+      //console.log('dispatcher.js::getUsers - user', users[i])
       normalizeUserID(users[i], params.tokenobj, function(userid, err) {
         ref.cache.getUser(userid, function(userErr, userobj, userMeta) {
-          //console.log('dispatcher.js::getUsers - gotUser', userErr);
+          //console.log('dispatcher.js::getUsers - gotUser', userErr)
 
           if (userobj && params.generalParams) {
             // FIXME: temp hack (until we can change the userToAPI prototype)
@@ -4251,20 +4251,20 @@ module.exports = {
             //console.log('dispatcher.js::getUsers - got', adnUserObj, 'for', users[i])
             rUsers.push(adnUserObj)
             if (rUsers.length==users.length) {
-              callback(rUsers, '');
+              callback(rUsers, '')
             }
-          }, userMeta);
-        });
-      });
+          }, userMeta)
+        })
+      })
     }
   },
   userSearch: function(query, params, tokenObj, callback) {
-    var ref=this;
+    var ref=this
     this.cache.searchUsers(query, params, function(err, users, meta) {
       //console.log('dispatcher.js::userSearch - got', users.length, 'users')
       if (!users.length) {
-        callback([], null, meta);
-        return;
+        callback([], null, meta)
+        return
       }
       var rUsers=[]
       for(var i in users) {
@@ -4273,88 +4273,88 @@ module.exports = {
           rUsers.push(adnUserObj)
           if (rUsers.length==users.length) {
             //console.log('dispatcher.js::userSearch - final', rUsers)
-            callback(rUsers, null, meta);
+            callback(rUsers, null, meta)
           }
-        }, meta);
+        }, meta)
       }
-    });
+    })
   },
   /** user_follow */
   setFollows: function(data, deleted, id, ts, callback) {
-    //console.log('dispatcher.js::setFollows - data', data);
+    //console.log('dispatcher.js::setFollows - data', data)
     // data can be null
     if (data) {
-      //console.log('dispatcher.js::setFollows - has data');
+      //console.log('dispatcher.js::setFollows - has data')
       // update user object
       // so we need the username check
       // because user/ID/follow calls this without looking up the complete user
       if (data.user && data.user.username) {
-        this.updateUser(data.user, ts);
+        this.updateUser(data.user, ts)
       //} else {
-        //console.log('dispatcher.js::setFollows - no user', data);
+        //console.log('dispatcher.js::setFollows - no user', data)
       }
       // update user object
       if (data.follows_user && data.follows_user.username) {
-        this.updateUser(data.follows_user, ts);
+        this.updateUser(data.follows_user, ts)
       //} else {
-        //console.log('dispatcher.js::setFollows - no follows_user', data);
+        //console.log('dispatcher.js::setFollows - no follows_user', data)
       }
       // set relationship status
-      //console.log('dispatcher.js::setFollows - has data', data.user.id, data.follows_user.id, 'id', id, 'deleted', deleted, 'ts', ts);
+      //console.log('dispatcher.js::setFollows - has data', data.user.id, data.follows_user.id, 'id', id, 'deleted', deleted, 'ts', ts)
       // probably dont' need this first one but we're an internal API
       // maybe something will need it eventually
-      var ref = this;
+      var ref = this
       normalizeUserID(data.user.id, {}, function(normalUserId) {
         normalizeUserID(data.follows_user.id, {}, function(normalFollowId) {
-          ref.cache.setFollow(normalUserId, normalFollowId, id, deleted, ts);
+          ref.cache.setFollow(normalUserId, normalFollowId, id, deleted, ts)
         })
       })
     } else {
       // likely deleted is true in this path
-      this.cache.setFollow(0, 0, id, deleted, ts);
+      this.cache.setFollow(0, 0, id, deleted, ts)
     }
     if (this.notsilent) {
-      process.stdout.write(deleted?'f':'F');
+      process.stdout.write(deleted?'f':'F')
     }
     if (callback) {
       this.getUser(data.follows_user.id, null, function(user, err) {
-        callback(user, err);
-      });
+        callback(user, err)
+      })
     }
   },
   getFollowings: function(user, params, tokenObj, callback) {
-    //console.log('dispatcher.js::getFollowing - for', userid);
-    var ref=this;
+    //console.log('dispatcher.js::getFollowing - for', userid)
+    var ref=this
     normalizeUserID(user, tokenObj, function(userid) {
       ref.cache.getFollowing(userid, params, function(err, follows, meta) {
         if (err || !follows || !follows.length) {
-          callback([], err);
-          return;
+          callback([], err)
+          return
         }
         var users=[]
-        //console.log('dispatcher.js::getFollowing', follows.length);
-        var min_id = 9999;
-        var max_id = 0;
+        //console.log('dispatcher.js::getFollowing', follows.length)
+        var min_id = 9999
+        var max_id = 0
         for(var i in follows) {
-          min_id=Math.min(min_id, follows[i].id);
-          max_id=Math.max(max_id, follows[i].id);
+          min_id=Math.min(min_id, follows[i].id)
+          max_id=Math.max(max_id, follows[i].id)
           var scope=function(i) {
             ref.getUser(follows[i].followsid, { tokenobj: tokenObj }, function(user, err) {
               if (err) {
-                console.error('dispatcher.js::getFollowers - err', err);
+                console.error('dispatcher.js::getFollowers - err', err)
               }
               if (!user) {
-                console.log('dispatcher.js::getFollowers - empty user gotten for', follows[i].userid);
+                console.log('dispatcher.js::getFollowers - empty user gotten for', follows[i].userid)
                 user = {} // fix it so setting pagination doesn't crash
               }
               /*
               if (!user.avatar_image.url) {
-                user.avatar_image.url='http://cdn.discordapp.com/icons/235920083535265794/a0f48aa4e45d17d1183a563b20e15a54.png';
-                user.avatar_image.height=128;
-                user.avatar_image.width=128;
+                user.avatar_image.url='http://cdn.discordapp.com/icons/235920083535265794/a0f48aa4e45d17d1183a563b20e15a54.png'
+                user.avatar_image.height=128
+                user.avatar_image.width=128
               }
               */
-              //console.log('dispatcher.js::getFollowing - adding user', user);
+              //console.log('dispatcher.js::getFollowing - adding user', user)
               // alpha needs this dummy wrapper
               // but it's against spec
               /*
@@ -4368,8 +4368,8 @@ module.exports = {
                 user: user
               }
               */
-              user.pagination_id = follows[i].id;
-              users.push(user);
+              user.pagination_id = follows[i].id
+              users.push(user)
               if (users.length==follows.length) {
                 // supposed to return meta too
                 var imeta={
@@ -4377,36 +4377,36 @@ module.exports = {
                   min_id: min_id,
                   max_id: max_id,
                   more: users.length==params.count
-                };
-                callback(users, err, imeta);
+                }
+                callback(users, err, imeta)
               }
             })
-          }(i);
+          }(i)
         }
-      });
-    });
+      })
+    })
   },
   getFollowers: function(user, params, tokenObj, callback) {
-    //console.log('dispatcher.js::getFollowers - for', userid);
-    var ref=this;
+    //console.log('dispatcher.js::getFollowers - for', userid)
+    var ref=this
     normalizeUserID(user, tokenObj, function(userid) {
       ref.cache.getFollows(userid, params, function(err, follows, meta) {
         if (err || !follows || !follows.length) {
-          if (err) console.error('dispatcher::getFollowers', err);
-          callback([], err);
-          return;
+          if (err) console.error('dispatcher::getFollowers', err)
+          callback([], err)
+          return
         }
         var users=[]
-        //console.log('dispatcher.js::getFollowers', follows.length);
+        //console.log('dispatcher.js::getFollowers', follows.length)
         for(var i in follows) {
           ref.getUser(follows[i].userid, { tokenobj: tokenObj }, function(user, err) {
             if (err) {
-              console.error('dispatcher.js::getFollowers - err', err);
+              console.error('dispatcher.js::getFollowers - err', err)
             }
             if (!user) {
-              console.log('dispatcher.js::getFollowers - empty user gotten for', follows[i].userid);
+              console.log('dispatcher.js::getFollowers - empty user gotten for', follows[i].userid)
             }
-            //console.log('dispatcher.js::getFollowers - adding user', user);
+            //console.log('dispatcher.js::getFollowers - adding user', user)
             // alpha needs this dummy wrapper
             // but it's against spec
             /*
@@ -4420,71 +4420,71 @@ module.exports = {
               user: user
             }
             */
-            users.push(user);
-            //console.log('dispatcher.js::getFollowers - users', users.length, 'follows', follows.length);
+            users.push(user)
+            //console.log('dispatcher.js::getFollowers - users', users.length, 'follows', follows.length)
             if (users.length==follows.length) {
               // supposed to return meta too
-              callback(users, err, meta);
+              callback(users, err, meta)
             }
           })
         }
-      });
-    });
+      })
+    })
   },
   /** mutes */
   //req.params.user_id, req.apiParams, req.usertoken, callbacks.dataCallback(resp)
   getMutes: function(userids, params, tokenObj, callback) {
-    var ref = this;
-    var userid = userids;
+    var ref = this
+    var userid = userids
     if (userids == 'me') {
-      userid = tokenObj.userid;
+      userid = tokenObj.userid
     }
     this.cache.getMutes(userid, params, function(err, mutes, meta) {
       if (mutes === false || !mutes.length) {
-        callback([], err, meta);
-        return;
+        callback([], err, meta)
+        return
       }
-      var userMutes = [];
+      var userMutes = []
       for(var i in mutes) {
-        var userid = mutes[i].muteeid;
+        var userid = mutes[i].muteeid
         // strip paging out params but leave includes
         // FIXME: turn into function
-        var nParams = params;
-        delete nParams.before_id;
-        delete nParams.since_id;
+        var nParams = params
+        delete nParams.before_id
+        delete nParams.since_id
         ref.getUser(userid, nParams, function(user, userErr, userMeta) {
-          userMutes.push(user);
+          userMutes.push(user)
           if (mutes.length == userMutes.length) {
-            callback(userMutes, err, meta);
+            callback(userMutes, err, meta)
           }
         })
       }
-    });
+    })
   },
   addMute: function(userid, params, tokenObj, callback) {
-    var ref = this;
-    console.log('dispatcher::addMute', userid, 'for', tokenObj.userid);
+    var ref = this
+    console.log('dispatcher::addMute', userid, 'for', tokenObj.userid)
     this.cache.addMute(tokenObj.userid, userid, params, function(err, mute) {
-      var nParams = params;
-      delete nParams.before_id;
-      delete nParams.since_id;
-      ref.getUser(mute.muteeid, nParams, callback);
-    });
+      var nParams = params
+      delete nParams.before_id
+      delete nParams.since_id
+      ref.getUser(mute.muteeid, nParams, callback)
+    })
   },
   deleteMute: function(userid, params, tokenObj, callback) {
-    var ref = this;
-    console.log('dispatcher::deleteMute', userid, 'for', tokenObj.userid);
+    var ref = this
+    console.log('dispatcher::deleteMute', userid, 'for', tokenObj.userid)
     this.cache.delMute(tokenObj.userid, userid, params, function(err, mute) {
-      var nParams = params;
-      delete nParams.before_id;
-      delete nParams.since_id;
+      var nParams = params
+      delete nParams.before_id
+      delete nParams.since_id
       if (mute) {
-        ref.getUser(mute.muteeid, nParams, callback);
+        ref.getUser(mute.muteeid, nParams, callback)
       } else {
-        console.log('dispatcher::deleteMute - mute not found', userid, 'for', tokenObj.userid);
-        callback([], '404 mute not found');
+        console.log('dispatcher::deleteMute - mute not found', userid, 'for', tokenObj.userid)
+        callback([], '404 mute not found')
       }
-    });
+    })
   },
   /** files */
   fileToAPI: function(file, params, token, callback) {
@@ -4509,27 +4509,27 @@ module.exports = {
       url: file.url,
       //url_expires
       //user
-    };
+    }
     function checkDone() {
       if (api.user && api.source) {
-        callback(api, null);
+        callback(api, null)
       }
     }
     this.getUser(file.userid, params, function(user, userErr, userMeta) {
-      api.user = user;
-      checkDone();
-    });
+      api.user = user
+      checkDone()
+    })
     this.getClient(file.client_id, function(source, clientErr, clientMeta) {
-      api.source = source;
-      checkDone();
-    }, false); // don't need to add if d.n.e.
+      api.source = source
+      checkDone()
+    }, false) // don't need to add if d.n.e.
   },
   getFile: function(fileid, params, callback) {
-    console.log('dispatcher.js::getFile - write me!');
-    callback(null, null);
+    console.log('dispatcher.js::getFile - write me!')
+    callback(null, null)
   },
   getFiles: function(userid, params, callback) {
-    //console.log('dispatcher.js::getFiles - for user', userid, params);
+    //console.log('dispatcher.js::getFiles - for user', userid, params)
     var ref=this
     this.cache.getFiles(userid, params, function(err, dbFiles, meta) {
       if (!dbFiles.length) {
@@ -4538,218 +4538,218 @@ module.exports = {
       var files=[]
       for(var i in dbFiles) {
         ref.fileToAPI(dbFiles[i], params, { userid: userid }, function(api, err) {
-          files.push(api);
+          files.push(api)
           if (files.length === dbFiles.length) {
             callback(files, err, meta)
           }
         })
       }
-    });
+    })
   },
   addFile: function(apiFile, tokenObj, params, callback) {
     // so translate ADN file object stuffs into fileModel
-    var file=apiFile;
-    file.userid=tokenObj.userid;
-    file.client_id=tokenObj.client_id;
-    file.complete=true; // very true if we have a url
-    file.total_size=file.size;
-    file.created_at=new Date();
-    var ref=this;
+    var file=apiFile
+    file.userid=tokenObj.userid
+    file.client_id=tokenObj.client_id
+    file.complete=true // very true if we have a url
+    file.total_size=file.size
+    file.created_at=new Date()
+    var ref=this
     this.cache.addFile(file, tokenObj, function(err, dbFile, meta) {
       // and convert back
       ref.fileToAPI(dbFile, params, tokenObj, function(api, err) {
-        callback(api, err);
-      });
+        callback(api, err)
+      })
       /*
-      var resFile=dbFile;
+      var resFile=dbFile
       // probably can be optimized out
       ref.getUser(dbFile.userid, { tokenobj: tokenObj }, function(user, userErr, userMeta) {
-        resFile.user=user;
+        resFile.user=user
         // could also dab client obj but who needs that...
         // need to return
         // id: numeric
         // file_token: auCj3h64JZrhQ9aJdmwre3KP-QL9UtWHYvt5tj_64rUJWemoIV2W8eTJv9NMaGpBFk-BbU_aWA26Q40w4jFhiPBpnIQ_lciLwfh6o8YIAQGEQziksUMxZo7gOHJ_-niw3l3MZCh7QRWzqNGpiVaUEptfKO0fETrZ8bJjDa61234a
-        callback(resFile, err, meta);
+        callback(resFile, err, meta)
       })
       */
-    });
+    })
   },
   setFile: function(data, deleted, id, ts, callback) {
     // map data onto model
     if (data.user) {
-      this.updateUser(data.user);
+      this.updateUser(data.user)
     }
-    var file=data;
+    var file=data
     if (deleted) {
-      file.id=id; // we need this for delete
+      file.id=id // we need this for delete
     }
-    file.userid=data.user.id;
+    file.userid=data.user.id
     // client_id?
     // data.source handling...
-    this.cache.setFile(data, deleted, id, callback);
+    this.cache.setFile(data, deleted, id, callback)
     // file annotations are this mutable
     // if so we need to make sure we only update if timestamp if newer
     /*
       if (data.annotations) {
-        ref.setAnnotations('file', data.id, data.annotations);
+        ref.setAnnotations('file', data.id, data.annotations)
       }
     */
   },
   /** client */
   getSource: function(source, callback) {
     if (source==undefined) {
-      callback(null, 'source is undefined');
-      return;
+      callback(null, 'source is undefined')
+      return
     }
-    //console.dir(source);
-    var ref=this.cache;
-    console.log('dispatcher.js::getSource ', source.client_id);
+    //console.dir(source)
+    var ref=this.cache
+    console.log('dispatcher.js::getSource ', source.client_id)
     this.cache.getClient(source.client_id, function(err, client, meta) {
       if (client==null || err) {
-        //console.log('dispatcher.js::getSource failure ', err, client);
+        //console.log('dispatcher.js::getSource failure ', err, client)
         // we need to create it
-        ref.addSource(source.client_id, source.name, source.link, callback);
+        ref.addSource(source.client_id, source.name, source.link, callback)
       } else {
-        callback(client, err, meta);
+        callback(client, err, meta)
       }
-    });
+    })
     if (this.notsilent) {
-      process.stdout.write('c');
+      process.stdout.write('c')
     }
   },
   getClient: function(client_id, callback, shouldAdd) {
     if (client_id==undefined) {
-      callback(null, 'client_id is undefined');
-      return;
+      callback(null, 'client_id is undefined')
+      return
     }
     if (client_id==null) {
-      callback(null, 'client_id is null');
-      return;
+      callback(null, 'client_id is null')
+      return
     }
-    var ref=this.cache;
-    //console.log('dispatcher.js::getClient', client_id);
+    var ref=this.cache
+    //console.log('dispatcher.js::getClient', client_id)
     this.cache.getClient(client_id, function(err, client, meta) {
       if (err) {
-        console.error('dispatcher.js::getClient - err', err);
+        console.error('dispatcher.js::getClient - err', err)
       }
       if (client) {
-        delete client.secret; // don't expose the secret!
+        delete client.secret // don't expose the secret!
       }
       if (client==null) {
-        console.log('dispatcher.js::getClient - no such client', client_id);
+        console.log('dispatcher.js::getClient - no such client', client_id)
         // should we just be setClient??
         if (shouldAdd!=undefined) {
-          console.log("Should add client_id: "+client_id, shouldAdd);
-          //var source={ client_id: client_id, name: ??, link: ?? };
-          //ref.setSource();
+          console.log("Should add client_id: "+client_id, shouldAdd)
+          //var source={ client_id: client_id, name: ??, link: ?? }
+          //ref.setSource()
         }
         // make dummy
         var client={
           name: 'Unknown',
           link: 'nowhere',
           client_id: client_id
-        };
+        }
       }
-      callback(client, err, meta);
-    });
+      callback(client, err, meta)
+    })
   },
   /** entities */
   getEntities: function(type, id, callback) {
-    this.cache.getEntities(type, id, callback);
+    this.cache.getEntities(type, id, callback)
   },
   setEntities: function(type, id, entities, callback) {
-    //console.dir('dispatcher.js::setEntities - '+type, entities);
-    var mentionsDone=false;
-    var hashtagsDone=false;
-    var linksDone=false;
+    //console.dir('dispatcher.js::setEntities - '+type, entities)
+    var mentionsDone=false
+    var hashtagsDone=false
+    var linksDone=false
     function checkDone() {
       if (mentionsDone && hashtagsDone && linksDone) {
         if (callback) {
-          callback();
+          callback()
         }
       }
     }
     // I'm pretty sure these arrays are always set
     if (entities.mentions && entities.mentions.length) {
       this.cache.extractEntities(type, id, entities.mentions, 'mention', function(err, nEntities, meta) {
-        mentionsDone=true;
-        checkDone();
-      });
+        mentionsDone=true
+        checkDone()
+      })
       if (this.notsilent) {
-        process.stdout.write('@');
+        process.stdout.write('@')
       }
     } else {
-      mentionsDone=true;
-      checkDone();
+      mentionsDone=true
+      checkDone()
     }
     if (entities.hashtags && entities.hashtags.length) {
       this.cache.extractEntities(type, id, entities.hashtags, 'hashtag', function(err, nEntities, meta) {
-        hashtagsDone=true;
-        checkDone();
-      });
+        hashtagsDone=true
+        checkDone()
+      })
       if (this.notsilent) {
-        process.stdout.write('#');
+        process.stdout.write('#')
       }
     } else {
-      hashtagsDone=true;
-      checkDone();
+      hashtagsDone=true
+      checkDone()
     }
     if (entities.links && entities.links.length) {
       this.cache.extractEntities(type, id, entities.links, 'link', function(err, nEntities, meta) {
-        linksDone=true;
-        checkDone();
-      });
+        linksDone=true
+        checkDone()
+      })
       if (this.notsilent) {
-        process.stdout.write('^');
+        process.stdout.write('^')
       }
     } else {
-      linksDone=true;
-      checkDone();
+      linksDone=true
+      checkDone()
     }
   },
   /** annotations */
   getAnnotation: function(type, id, callback) {
-    var ref=this;
-    var debug = false;
-    //if (id == 1861) debug = true;
+    var ref=this
+    var debug = false
+    //if (id == 1861) debug = true
     this.cache.getAnnotations(type, id, function(err, notes, meta) {
-      //if (debug) console.log(type, id, 'start notes', notes);
-      //var fixedNotes=[];
+      //if (debug) console.log(type, id, 'start notes', notes)
+      //var fixedNotes=[]
       if (!notes || !notes.length) {
-        callback(notes, err, meta);
-        return;
+        callback(notes, err, meta)
+        return
       }
 
-      var done={}, calls={};
-      var replaces=0;
+      var done={}, calls={}
+      var replaces=0
 
       function checkDone(i) {
-        done[i]++;
-        if (debug) console.log('(', type, id, ')', i, 'done', done[i], 'calls', calls[i]);
+        done[i]++
+        if (debug) console.log('(', type, id, ')', i, 'done', done[i], 'calls', calls[i])
         if (done[i]===calls[i]) {
           // replace value
-          notes[i].value=fixedSet;
-          replaces++;
-          //console.log('dispatcher.js::getAnnotation(', type, id, ') - checkdone replaces', replaces, 'notes', notes.length);
+          notes[i].value=fixedSet
+          replaces++
+          //console.log('dispatcher.js::getAnnotation(', type, id, ') - checkdone replaces', replaces, 'notes', notes.length)
           if (replaces===notes.length) {
-            //console.log('dispatcher.js::getAnnotation(', type, id, ') - final notes', notes);
-            callback(notes, err, meta);
+            //console.log('dispatcher.js::getAnnotation(', type, id, ') - final notes', notes)
+            callback(notes, err, meta)
           }
         }
       }
 
-      //if (debug) console.log('dispatcher.js::getAnnotation(', type, id, ') - notes', notes.length);
+      //if (debug) console.log('dispatcher.js::getAnnotation(', type, id, ') - notes', notes.length)
       for(var i in notes) {
         // check values
         var fixedSet={}
         notes[i].value = JSON.parse(notes[i].value)
-        var oldValue=notes[i].value;
-        calls[i]=0;
-        done[i]=0;
+        var oldValue=notes[i].value
+        calls[i]=0
+        done[i]=0
         // is notes[i].value is a key value tuple, not an array
-        if (debug) console.log('dispatcher.js::getAnnotation - note', i, 'has', notes[i].value);
+        if (debug) console.log('dispatcher.js::getAnnotation - note', i, 'has', notes[i].value)
         for(var k in notes[i].value) {
-          calls[i]++;
+          calls[i]++
         }
         // I think we only every have one value
         // nope because you can have an empty array
@@ -4757,173 +4757,173 @@ module.exports = {
         if (notes[i].value.constructor.name == 'Array' && !notes[i].value.length) {
           if (debug) console.log('checkDone cause empty array', i)
           fixedSet=notes[i].value
-          calls[i]++;
-          checkDone(i);
-          continue;
+          calls[i]++
+          checkDone(i)
+          continue
         }
         if (JSON.stringify(notes[i].value) === '{}') {
           if (debug) console.log('checkDone cause empty object', i)
           fixedSet=notes[i].value
-          calls[i]++;
-          checkDone(i);
-          continue;
+          calls[i]++
+          checkDone(i)
+          continue
         }
         for(var k in notes[i].value) {
-          //console.log('value', notes[i].value, 'vs', oldValue, 'k', k, 'val', notes[i].value[k], 'vs', oldValue[k]);
+          //console.log('value', notes[i].value, 'vs', oldValue, 'k', k, 'val', notes[i].value[k], 'vs', oldValue[k])
           if (k[0]=='+') {
             if (k=='+net.app.core.file') {
               // look up file
               var scope=function(k, oldValue, fixedSet,i ) {
-                //console.log('oldValue', oldValue);
-                //console.log('looking up', oldValue[k].file_id);
+                //console.log('oldValue', oldValue)
+                //console.log('looking up', oldValue[k].file_id)
                 ref.cache.getFile(oldValue[k].file_id, function(fErr, fData, fMeta) {
                   if (fErr) {
-                    console.error('getFile error', fErr);
+                    console.error('getFile error', fErr)
                   }
-                  //console.log('looking at', oldValue);
-                  //console.log('looking at', oldValue[k]);
+                  //console.log('looking at', oldValue)
+                  //console.log('looking at', oldValue[k])
                   if (fData)  {
-                    fixedSet.file_id=oldValue[k].file_id;
-                    fixedSet.file_token=oldValue[k].file_token;
-                    fixedSet.url=fData.url;
+                    fixedSet.file_id=oldValue[k].file_id
+                    fixedSet.file_token=oldValue[k].file_token
+                    fixedSet.url=fData.url
                     if (notes[i].type==='net.app.core.oembed') {
                       if (fData.kind==='image') {
-                        fixedSet.type='photo';
-                        fixedSet.version='1.0';
-                        fixedSet.width=128;
-                        fixedSet.height=128;
-                        fixedSet.thumbnail_url=fData.url;
-                        fixedSet.thumbnail_url_secure=fData.url;
-                        //fixedSet.thumbnail_url_immediate=fData.url;
-                        fixedSet.thumbnail_width=128;
-                        fixedSet.thumbnail_height=128;
-                        fixedSet.title=fData.name;
+                        fixedSet.type='photo'
+                        fixedSet.version='1.0'
+                        fixedSet.width=128
+                        fixedSet.height=128
+                        fixedSet.thumbnail_url=fData.url
+                        fixedSet.thumbnail_url_secure=fData.url
+                        //fixedSet.thumbnail_url_immediate=fData.url
+                        fixedSet.thumbnail_width=128
+                        fixedSet.thumbnail_height=128
+                        fixedSet.title=fData.name
                         // author_name from the external site
                         // author_url for the external site
-                        fixedSet.provider=ref.appConfig.provider;
-                        fixedSet.provider_url=ref.appConfig.provider_url;
-                        fixedSet.embeddable_url=fData.url;
+                        fixedSet.provider=ref.appConfig.provider
+                        fixedSet.provider_url=ref.appConfig.provider_url
+                        fixedSet.embeddable_url=fData.url
                       }
                     }
                   } else {
                     console.log('file', oldValue[k].file_id, 'not found')
                   }
-                  checkDone(i);
-                });
-              }(k, oldValue, fixedSet, i);
+                  checkDone(i)
+                })
+              }(k, oldValue, fixedSet, i)
             }
           } else {
-            //console.log('dispatcher.js::getAnnotation - note', i, 'value', k, 'copying', notes[i].value[k]);
-            fixedSet[k]=notes[i].value[k];
-            checkDone(i);
+            //console.log('dispatcher.js::getAnnotation - note', i, 'value', k, 'copying', notes[i].value[k])
+            fixedSet[k]=notes[i].value[k]
+            checkDone(i)
           }
         }
 
-        //fixedNotes.push();
+        //fixedNotes.push()
       }
-    });
+    })
   },
   setAnnotations: function(type, id, annotations, callback) {
-    //console.log('dispatcher.js::setAnnotations - id', id, 'annotations', annotations);
+    //console.log('dispatcher.js::setAnnotations - id', id, 'annotations', annotations)
     // probably should clear all the existing anntations for this ID
     // channel annotations mutable
     // and we don't have a unique constraint to tell if it's an add or update or del
-    var ref=this;
-    //console.log('dispatcher.js::setAnnotations - annotations', annotations);
-    //console.log('dispatcher.js::setAnnotations - clearing', type, id);
+    var ref=this
+    //console.log('dispatcher.js::setAnnotations - annotations', annotations)
+    //console.log('dispatcher.js::setAnnotations - clearing', type, id)
     this.cache.clearAnnotations(type, id, function() {
       for(var i in annotations) {
-        var note=annotations[i];
-        //console.log('dispatcher.js::setAnnotations - note', i, note);
+        var note=annotations[i]
+        //console.log('dispatcher.js::setAnnotations - note', i, note)
         // insert into idtype, id, type, value
         // type, id, note.type, note.value
-        //console.log('dispatcher.js::setAnnotations - insert', note.type, note.value);
+        //console.log('dispatcher.js::setAnnotations - insert', note.type, note.value)
         if (!note.value) {
-          continue; // support deleting annotations
+          continue // support deleting annotations
         }
         ref.cache.addAnnotation(type, id, note.type, note.value, function(err, nNote) {
           if (err) {
-            console.log('dispatcher.js::setAnnotations - addAnnotation failure', err);
+            console.log('dispatcher.js::setAnnotations - addAnnotation failure', err)
           //} else {
           }
           if (this.notsilent) {
-            process.stdout.write('a');
+            process.stdout.write('a')
           }
           /*
           if (note.value.length) {
-            writevaluearray(id, note.value);
+            writevaluearray(id, note.value)
           }
           */
-        });
+        })
       }
       if (callback) {
         // what would we return??
-        callback();
+        callback()
       }
-    });
+    })
   },
   /** stream marker */
   getStreamMarker: function(name, usertoken, params, callback) {
-    this.cache.getStreamMarker(usertoken.userid, name, callback);
+    this.cache.getStreamMarker(usertoken.userid, name, callback)
   },
   setStreamMarker: function(name, id, percentage, usertoken, params, callback) {
-    this.cache.setStreamMarker(usertoken.userid, name, id, percentage, params, callback);
+    this.cache.setStreamMarker(usertoken.userid, name, id, percentage, params, callback)
   },
   /** text process */
   // postcontext (bool) means this is a post
   // FIXME: pass in if it's a machine_only or not
   textProcess: function(text, entities, postcontext, callback) {
-    var ref=this;
-    var html=escapeHTML(text);
+    var ref=this
+    var html=escapeHTML(text)
     //console.log('dispatcher.js::textProcess - html', html)
-    var hashtags=[];
-    var links=[];
+    var hashtags=[]
+    var links=[]
     // from patter @duerig
     // FIXME: these text ranges aren't very i8n friendly, what about UTF stuff huh?
-    var mentionRegex = /@([a-zA-Z0-9\-_]+)\b/g;
-    var hashtagRegex = /#([a-zA-Z0-9\-_]+)\b/g;
+    var mentionRegex = /@([a-zA-Z0-9\-_]+)\b/g
+    var hashtagRegex = /#([a-zA-Z0-9\-_]+)\b/g
     // https://gist.github.com/gruber/8891611
     // https://alpha.app.net/dalton/post/6597#6595
-    var urlRegex = /\b((?:https?:(?:\/{1,3}|[a-z0-9%])|[a-z0-9.\-]+[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\/)(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’])|(?:[a-z0-9]+(?:[.\-][a-z0-9]+)*[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\b\/?))/ig;
+    var urlRegex = /\b((?:https?:(?:\/{1,3}|[a-z0-9%])|[a-z0-9.\-]+[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\/)(?:[^\s()<>{}\[\]]+|\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\))+(?:\([^\s()]*?\([^\s()]+\)[^\s()]*?\)|\([^\s]+?\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’])|(?:[a-z0-9]+(?:[.\-][a-z0-9]+)*[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\b\/?))/ig
 
     // data-mention-id="$1" will have to do a look up pass and set this back
-    //html = html.replace(mentionRegex, '<span data-mention-name="$1" itemprop="mention">@$1</span>');
+    //html = html.replace(mentionRegex, '<span data-mention-name="$1" itemprop="mention">@$1</span>')
 
     // since input is text, I believe we can safely assume it's not already in a tag
     // FIXME: we need to insert http:// if there's no protocol (post: 30795290)
     // be sure to check your html/entity caching to make sure it's off otherwise 30795290 is fine
-    //html = html.replace(urlRegex, '<a href="$1">$1</a>');
+    //html = html.replace(urlRegex, '<a href="$1">$1</a>')
     // since hash can be in a link, make sure we process hashtags last
-    //html = html.replace(hashtagRegex, '<span data-hashtag-name="$1" itemprop="hashtag">#$1</span>');
+    //html = html.replace(hashtagRegex, '<span data-hashtag-name="$1" itemprop="hashtag">#$1</span>')
     var re = [
       "@([a-zA-Z0-9\-_]+)\\b",
       "\\b((?:https?:(?:\\/{1,3}|[a-z0-9%])|[a-z0-9.\\-]+[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\\/)(?:[^\\s()<>{}\\[\\]]+|\\([^\\s()]*?\\([^\\s()]+\\)[^\\s()]*?\\)|\\([^\\s]+?\\))+(?:\\([^\\s()]*?\\([^\\s()]+\\)[^\\s()]*?\\)|\\([^\\s]+?\\)|[^\\s`!()\\[\\]{};:'\".,<>?«»“”‘’])|(?:[a-z0-9]+(?:[.\\-][a-z0-9]+)*[.](?:com|net|org|edu|gov|mil|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel|travel|xxx|ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|ax|az|ba|bb|bd|be|bf|bg|bh|bi|bj|bm|bn|bo|br|bs|bt|bv|bw|by|bz|ca|cc|cd|cf|cg|ch|ci|ck|cl|cm|cn|co|cr|cs|cu|cv|cx|cy|cz|dd|de|dj|dk|dm|do|dz|ec|ee|eg|eh|er|es|et|eu|fi|fj|fk|fm|fo|fr|ga|gb|gd|ge|gf|gg|gh|gi|gl|gm|gn|gp|gq|gr|gs|gt|gu|gw|gy|hk|hm|hn|hr|ht|hu|id|ie|il|im|in|io|iq|ir|is|it|je|jm|jo|jp|ke|kg|kh|ki|km|kn|kp|kr|kw|ky|kz|la|lb|lc|li|lk|lr|ls|lt|lu|lv|ly|ma|mc|md|me|mg|mh|mk|ml|mm|mn|mo|mp|mq|mr|ms|mt|mu|mv|mw|mx|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|Ja|sk|sl|sm|sn|so|sr|ss|st|su|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tp|tr|tt|tv|tw|tz|ua|ug|uk|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|yu|za|zm|zw)\\b\\/?))",
       "#([a-zA-Z0-9\-_]+)\\b",
-    ];
+    ]
     //console.log('array', re)
     //console.log('string', re.join('|'))
-    re = new RegExp(re.join('|'), "gi");
+    re = new RegExp(re.join('|'), "gi")
     html = html.replace(re, function(match, mention, link, hash) {
-      //console.log('html replace', match);
-      //console.log('html mention', mention);
-      //console.log('html link', link);
-      //console.log('html hash', hash);
+      //console.log('html replace', match)
+      //console.log('html mention', mention)
+      //console.log('html link', link)
+      //console.log('html hash', hash)
       if (mention) {
-        return '<span data-mention-name="'+mention+'" itemprop="mention">@'+mention+'</span>';
+        return '<span data-mention-name="'+mention+'" itemprop="mention">@'+mention+'</span>'
       }
       if (link) {
         if (!link.match(/:\/\//)) {
           link = 'http://'+link
         }
-        return '<a href="'+link+'">'+link+'</a>';
+        return '<a href="'+link+'">'+link+'</a>'
       }
       if (hash) {
-        return '<span data-hashtag-name="'+hash+'" itemprop="hashtag">#'+hash+'</span>';
+        return '<span data-hashtag-name="'+hash+'" itemprop="hashtag">#'+hash+'</span>'
       }
-      return match;
-    });
+      return match
+    })
 
-    var userlookup={};
+    var userlookup={}
 
     var finishcleanup=function(html, text, callback) {
       if (!entities) {
@@ -4931,18 +4931,18 @@ module.exports = {
           mentions: [],
           hashtags: [],
           links: []
-        };
+        }
       }
       //|| entities.parse_mentions isn't spec
       //should be on if not machine_only
       if (!entities.mentions || !entities.mentions.length) {
         // extract mentions
         var mentions=[]
-        var lastmenpos=0;
+        var lastmenpos=0
         while(match=mentionRegex.exec(text)) {
-          //console.log('Found '+match[1]+' at '+match.index);
-          var username=match[1].toLowerCase();
-          //console.log('@'+match.index+' vs '+lastmenpos);
+          //console.log('Found '+match[1]+' at '+match.index)
+          var username=match[1].toLowerCase()
+          //console.log('@'+match.index+' vs '+lastmenpos)
           if (userlookup[username]) {
             // only push if user exists
             var obj={
@@ -4953,17 +4953,17 @@ module.exports = {
             }
             if (postcontext) {
               // means no text before the mention...
-              obj.is_leading=match.index==lastmenpos;
+              obj.is_leading=match.index==lastmenpos
             }
-            mentions.push(obj);
+            mentions.push(obj)
           }
           // while we're matching
           if (match.index==lastmenpos) {
             // update it
-            lastmenpos=match.index+username.length+2; // @ and space after wards
+            lastmenpos=match.index+username.length+2 // @ and space after wards
           }
         }
-        entities.mentions=mentions;
+        entities.mentions=mentions
       }
       // we should do links before hashtags
       // since a # can be inside a link
@@ -4971,12 +4971,12 @@ module.exports = {
         // extract URLS
         var links=[]
         while(match=urlRegex.exec(text)) {
-          var url=match[1];
+          var url=match[1]
           // we need to insert http:// if there's no protocol (post: 30795290)
           // FIXME: colon isn't good enough
-          var text=url;
+          var text=url
           if (url.indexOf('://')==-1) {
-            url='http://'+url;
+            url='http://'+url
           }
           var obj={
             url: url,
@@ -4984,144 +4984,144 @@ module.exports = {
             pos: match.index,
             len: text.length,
           }
-          links.push(obj);
+          links.push(obj)
         }
-        entities.links=links;
+        entities.links=links
       }
 
-      //console.log('current hashtags', entities.hashtags);
+      //console.log('current hashtags', entities.hashtags)
       //|| entities.parse_hashtags isn't spec
       // should always be on
       if (!entities.hashtags || !entities.hashtags.length) {
         // extract hashtags
-        //console.log('extracting hashtags');
+        //console.log('extracting hashtags')
         // FIXME: 30792555 invisible hashtags?
         // we're not encoding text right...
-        var hashtags=[];
+        var hashtags=[]
         while(match=hashtagRegex.exec(text)) {
-          var hashtag = match[1];
-          var insideLink = false;
+          var hashtag = match[1]
+          var insideLink = false
           for(var i in entities.links) {
-            var link = entities.links[i];
-            var start=link.pos;
-            var end=start + link.len;
-            //console.log('hash start inside link?', start, '<?', match.index, '<?', end);
+            var link = entities.links[i]
+            var start=link.pos
+            var end=start + link.len
+            //console.log('hash start inside link?', start, '<?', match.index, '<?', end)
             if (start <= match.index && match.index <= end) {
-              //console.log('hash end inside link?', start, '<?', match.index+hashtag.length+1, '<?', end);
+              //console.log('hash end inside link?', start, '<?', match.index+hashtag.length+1, '<?', end)
               if (start <= match.index + hashtag.length+1 && match.index + hashtag.length+1 <= end) {
                 //console.log('hashtag', hashtag, 'is in link', link.url)
-                insideLink = true;
-                break;
+                insideLink = true
+                break
               }
             }
           }
           if (insideLink) {
-            continue;
+            continue
           }
           var obj={
             name: hashtag,
             pos: match.index,
             len: hashtag.length+1, // includes char for #
           }
-          //console.log('extracted hashtag:', hashtag);
-          hashtags.push(obj);
+          //console.log('extracted hashtag:', hashtag)
+          hashtags.push(obj)
         }
-        //console.log('extracted hashtags', hashtags);
-        entities.hashtags=hashtags;
+        //console.log('extracted hashtags', hashtags)
+        entities.hashtags=hashtags
       }
 
       /*
-      console.dir(mentions);
-      console.dir(hashtags);
-      console.dir(links);
+      console.dir(mentions)
+      console.dir(hashtags)
+      console.dir(links)
       */
 
       // unicode chars
       // <>\&
       //console.log('dispatcher.js::textProcess - html unicoding', html)
       html = html.replace(/[\u00A0-\u9999]/gim, function(i) {
-        if (i === 's') return 's';
-        if (i.charCodeAt(0) == 115) return 's';
+        if (i === 's') return 's'
+        if (i.charCodeAt(0) == 115) return 's'
         console.log('i', i, 'code', i.charCodeAt(0))
-        return '&#'+i.charCodeAt(0)+';';
-      });
+        return '&#'+i.charCodeAt(0)+';'
+      })
 
       // remove line breaks
       //console.log('dispatcher.js::textProcess - html line breaking', html)
-      html=html.replace(/\r/g, '&#10;');
-      html=html.replace(/\n/g, '<br>');
+      html=html.replace(/\r/g, '&#10;')
+      html=html.replace(/\n/g, '<br>')
 
       //console.log('dispatcher.js::textProcess - html wrapping', html)
       var res={
         entities: entities,
         html: '<span itemscope="https://app.net/schemas/Post">'+html+'</span>',
         text: text
-      };
-      callback(res, null);
+      }
+      callback(res, null)
     }
 
-    var mentionsSrch=text.match(mentionRegex);
-    var launches=0, completed=0;
+    var mentionsSrch=text.match(mentionRegex)
+    var launches=0, completed=0
     if (mentionsSrch && mentionsSrch.length) {
       for(var i in mentionsSrch) {
-        var mention=mentionsSrch[i]; // with @
+        var mention=mentionsSrch[i] // with @
         //RegExp.$1 // without @
-        //var username=RegExp.$1;
-        var username=mention.substr(1);
-        //console.log("Replacing "+username);
-        var pattern=new RegExp(' data-mention-name="'+username, 'gi');
-        launches++;
+        //var username=RegExp.$1
+        var username=mention.substr(1)
+        //console.log("Replacing "+username)
+        var pattern=new RegExp(' data-mention-name="'+username, 'gi')
+        launches++
         // renames are going to break this caching
         if (userlookup[username]) {
-          console.log('cached got', userlookup[username]);
-          html=html.replace(pattern, ' data-mention-id="'+userlookup[username]+'" data-mention-name="'+username);
-          completed++;
+          console.log('cached got', userlookup[username])
+          html=html.replace(pattern, ' data-mention-id="'+userlookup[username]+'" data-mention-name="'+username)
+          completed++
           if (completed==launches) {
-            finishcleanup(html, text, callback);
+            finishcleanup(html, text, callback)
           }
         } else {
-          //console.log('dispatcher.js::textProcess - Searching for', username);
+          //console.log('dispatcher.js::textProcess - Searching for', username)
           ref.cache.getUserID(username, function(userErr, user, userMeta) {
             if (user) {
-              //console.log('dispatcher.js::textProcess -got', user.id);
+              //console.log('dispatcher.js::textProcess -got', user.id)
               // save in cache
-              userlookup[user.username]=user.id;
+              userlookup[user.username]=user.id
               // fix up missing user ids
-              //var pattern=new RegExp(' data-mention-name="'+user.username, 'gi');
-              html=html.replace(pattern, ' data-mention-id="'+user.id+'" data-mention-name="'+user.username);
-              //console.log('Adjusted html '+html);
+              //var pattern=new RegExp(' data-mention-name="'+user.username, 'gi')
+              html=html.replace(pattern, ' data-mention-id="'+user.id+'" data-mention-name="'+user.username)
+              //console.log('Adjusted html '+html)
             }
-            completed++;
-            //console.log(completed+'/'+launches);
+            completed++
+            //console.log(completed+'/'+launches)
             // tired/lazy man's promise
             // I'm concerned that if we queue 2 and then finish 2, we may trigger the ending early
             // and possibly more than once
             if (completed==launches) {
-              finishcleanup(html, text, callback);
+              finishcleanup(html, text, callback)
             }
-          });
+          })
         }
       }
     } else {
-      finishcleanup(html, text, callback);
+      finishcleanup(html, text, callback)
     }
 
   },
   /** config **/
   // change to callback style?
   getConfig: function() {
-    return this.config;
+    return this.config
   },
   /** oembed **/
   getOEmbed: function(url, callback) {
-    this.cache.getOEmbed(url, callback);
+    this.cache.getOEmbed(url, callback)
   },
   /** dispatcher for streamrouter */
   dispatch: function(userid, json) {
     // remember json is in app streaming format!
-    //console.dir(json);
-    var data=json.data;
-    var meta=json.meta;
+    //console.dir(json)
+    var data=json.data
+    var meta=json.meta
     // the missing meta is going to be an issue
     /*
      { meta:
@@ -5135,71 +5135,71 @@ module.exports = {
       case 'post':
         // transfer stream encoding over to normal post structure
         if (meta && meta.is_deleted) {
-          if (data==undefined) data={};
-          data.is_deleted=true;
+          if (data==undefined) data={}
+          data.is_deleted=true
         }
         if (data.id) {
-          this.setPost(data);
+          this.setPost(data)
         }
-      break;
+      break
       case 'channel':
-        this.setChannel(data, meta.timestamp);
-      break;
+        this.setChannel(data, meta.timestamp)
+      break
       case 'message':
         // meta.timestamp is important here for channels
-        this.setMessage(data, meta.timestamp);
-      break;
+        this.setMessage(data, meta.timestamp)
+      break
       case 'channel_subscription':
-        this.setChannelSubscription(data, meta.is_deleted, meta.timestamp);
-      break;
+        this.setChannelSubscription(data, meta.is_deleted, meta.timestamp)
+      break
       case 'file':
-        console.log('file');
-      break;
+        console.log('file')
+      break
       case 'stream_marker':
-        console.log('stream_marker');
-      break;
+        console.log('stream_marker')
+      break
       case 'token':
-        console.log('token');
-      break;
+        console.log('token')
+      break
       case 'star':
-        this.setStar(data, meta.is_deleted, meta.id, meta.timestamp);
-      break;
+        this.setStar(data, meta.is_deleted, meta.id, meta.timestamp)
+      break
       case 'mute':
-        console.log('mute');
-      break;
+        console.log('mute')
+      break
       case 'block':
-        console.log('block');
-      break;
+        console.log('block')
+      break
       case 'user':
-        this.updateUser(data, meta.timestamp);
-      break;
+        this.updateUser(data, meta.timestamp)
+      break
       case 'user_follow':
         if (data) {
-          this.setFollows(data, meta.is_deleted, meta.id, meta.timestamp);
+          this.setFollows(data, meta.is_deleted, meta.id, meta.timestamp)
         } else {
-          this.setFollows(null, meta.is_deleted, meta.id, meta.timestamp);
+          this.setFollows(null, meta.is_deleted, meta.id, meta.timestamp)
         }
-      break;
+      break
       default:
-        console.log("dispatcher.js::dispatch - unknown appstream type ["+meta.type+"]");
-      break;
+        console.log("dispatcher.js::dispatch - unknown appstream type ["+meta.type+"]")
+      break
     }
     // done with data
-    data=false;
-    meta=false;
-    json=false;
+    data=false
+    meta=false
+    json=false
   },
   pumpStreams: function(options, data) {
     //console.log('dispatcher::pumpStreams -', options)
     // op isn't used (add/del), type is only used in the meta
     function checkKey(key, op, type) {
-      //console.log('dispatcher::pumpStreams - checking', key);
+      //console.log('dispatcher::pumpStreams - checking', key)
       // see if there's any connections we need to pump
       if (module.exports.pumps[key]) {
-        //console.log('pumping', key, 'with', module.exports.pumps[key].length);
+        //console.log('pumping', key, 'with', module.exports.pumps[key].length)
         // FIXME: by queuing all connections that data needs to be set on
         for(var i in module.exports.pumps[key]) {
-          var connId = module.exports.pumps[key][i];
+          var connId = module.exports.pumps[key][i]
           // push non-db object data to connection
           // is_deleted, deleted_id
           // subscription_ids
@@ -5210,7 +5210,7 @@ module.exports = {
             },
             data: data
           }
-          module.exports.streamEngine.handlePublish(connId, wrap);
+          module.exports.streamEngine.handlePublish(connId, wrap)
         }
       }
     }
@@ -5218,11 +5218,11 @@ module.exports = {
     // { id: x, type: 'post', op: 'del', }
     // conver to key
     if (options.type == 'message') {
-      checkKey('channel.'+options.channel_id+'.message', options.op, 'message');
+      checkKey('channel.'+options.channel_id+'.message', options.op, 'message')
     } else {
-      checkKey(options.type+'.'+options.id, options.op, 'post');
+      checkKey(options.type+'.'+options.id, options.op, 'post')
       if (options.type == 'post') {
-        checkKey('user.'+options.actor+'.post', options.op, 'post');
+        checkKey('user.'+options.actor+'.post', options.op, 'post')
       }
     }
   },
@@ -5243,4 +5243,4 @@ module.exports = {
 }
 
 // configure downloader
-downloader.dispatcher=module.exports;
+downloader.dispatcher=module.exports
