@@ -1,3 +1,5 @@
+const { URL, URLSearchParams } = require('url'); // node 8.x support
+
 // get request http library
 var request = require('request');
 
