@@ -1,6 +1,9 @@
 var messageModel
+let applyParams
 
-function start(schemaData) {
+function start(options) {
+  const schemaData = options.schemaData
+  applyParams = options.applyParams
   /** message storage model */
   messageModel = schemaData.define('message', {
     channel_id: { type: Number, index: true },
@@ -33,7 +36,7 @@ module.exports = {
         // if it's an update fMsg is number of rows affected
         //console.log('setMessage:::doCallback - ', fMsg);
         if (callback) {
-          callback(fMsg, err);
+          callback(err, fMsg);
         }
       }
       if (omsg) {
@@ -51,7 +54,7 @@ module.exports = {
         console.log('dataaccess.camtine.js::addMessage - err', err)
       }
       if (callback) {
-        callback(omsg, err);
+        callback(err, omsg);
       }
     });
   },
@@ -76,7 +79,7 @@ module.exports = {
       if (callback) {
         //console.log('dataaccess.camtine.js::deleteMessage - cb', omsg)
         // omsg is the number of records updated
-        callback(omsg, err);
+        callback(err, omsg);
       }
     });
   },
@@ -102,10 +105,10 @@ module.exports = {
         }
       }
       if (id instanceof Array) {
-        callback(messages, err);
+        callback(err, messages);
       } else {
         //console.log('dataaccess.caminte.js::getMessage single -', messages, messages[0])
-        callback(messages[0], err);
+        callback(err, messages[0]);
       }
     });
   },
@@ -121,7 +124,8 @@ module.exports = {
     //console.log('dataaccess.camintejs::getChannelMessages - channelid', channelid, 'token', params.tokenobj)
     if (params.tokenobj && params.tokenobj.userid) {
       var mutedUserIDs = []
-      muteModel.find({ where: { 'userid': { in: params.tokenobj.userid } } }, function(err, mutes) {
+      //muteModel.find({ where: { 'userid': { in: params.tokenobj.userid } } }, function(err, mutes) {
+      this.getAllMutesForUser(params.tokenobj.userid, function(err, mutes) {
         for(var i in mutes) {
           mutedUserIDs.push(mutes[i].muteeid)
         }
