@@ -3,22 +3,23 @@
  * @module dataaccess_camintejs
  */
 
-const userModel = require('./models/users')
-const muteModel = require('./models/mutes')
-const clientModel = require('./models/clients')
-const postModel = require('./models/posts')
-const channelModel = require('./models/channels')
-const messageModel = require('./models/messages')
-const annotationModel = require('./models/annotations')
-const entityModel = require('./models/entities')
-const interactionModel = require('./models/interactions')
-const followModel = require('./models/follows')
-const fileModel = require('./models/files')
-const userStreamModel = require('./models/userstreams')
-const appStreamModel = require('./models/appstreams')
-const sessionModel = require('./models/sessions')
-const subscriptionModel = require('./models/subscriptions')
-const streamMarkerModel = require('./models/streammarkers')
+const funcs = []
+funcs.push(require('./models/users'))
+funcs.push(require('./models/mutes'))
+funcs.push(require('./models/clients'))
+funcs.push(require('./models/posts'))
+funcs.push(require('./models/channels'))
+funcs.push(require('./models/messages'))
+funcs.push(require('./models/annotations'))
+funcs.push(require('./models/entities'))
+funcs.push(require('./models/interactions'))
+funcs.push(require('./models/follows'))
+funcs.push(require('./models/files'))
+funcs.push(require('./models/userstreams'))
+funcs.push(require('./models/appstreams'))
+funcs.push(require('./models/sessions'))
+funcs.push(require('./models/subscriptions'))
+funcs.push(require('./models/streammarkers'))
 
 /**
  * http://www.camintejs.com / https://github.com/biggora/caminte
@@ -151,23 +152,9 @@ function start(nconf) {
     // we could also just put it in the exports...
     applyParams: applyParams,
   }
-
-  userModel.start(schemaData)
-  muteModel.start(schemaData)
-  clientModel.start(schemaData)
-  postModel.start(schemaData)
-  channelModel.start(schemaData)
-  messageModel.start(schemaData)
-  annotationModel.start(schemaData)
-  entityModel.start(schemaData)
-  interactionModel.start(schemaData)
-  followModel.start(schemaData)
-  fileModel.start(modelOptions)
-  userStreamModel.start(schemaData)
-  appStreamModel.start(schemaData)
-  sessionModel.start(schemaData)
-  subscriptionModel.start(schemaData)
-  streamMarkerModel.start(schemaData)
+  funcs.forEach((func) => {
+    func.start(modelOptions)
+  })
 
   /**
    * Token Models
@@ -419,6 +406,21 @@ function generateToken(string_length) {
 // cheat macros
 function db_insert(rec, model, callback) {
   //console.log('dataaccess.caminte.js::db_insert - start')
+  if (!rec) {
+    if (callback) {
+      callback('no record', false, false)
+    }
+    return
+  }
+  if (!rec.isValid) {
+    var old = rec
+    rec = new model(old)
+    /*
+    for(var i in old) {
+      rec[i] = old[i]
+    }
+    */
+  }
   rec.isValid(function(valid) {
     //console.log('dataaccess.caminte.js::db_insert - Checked')
     if (valid) {
@@ -449,7 +451,7 @@ function db_insert(rec, model, callback) {
       console.dir(rec.errors)
       if (callback) {
         // can we tell the different between string and array?
-        callback(null, rec.errors)
+        callback(rec.errors, false, false)
       }
     }
   })
@@ -1147,55 +1149,20 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       }
     }
   },
-
-  updateUserCounts: function(userid, callback) {
-    var ref=this;
-    userModel.findById(userid, function(err, user) {
-      if (!user) {
-        console.log('updateUserCounts no user', user, 'for id', userid);
-        if (callback) {
-          callback();
-        }
-        return;
-      }
-      // this may only return up to 20, we'll need to set count=-1
-      postModel.count({ where: { userid: userid } }, function(err, postCount) {
-        if (err) console.error('updateUserCounts - posts:', err);
-        user.posts = postCount;
-        user.save();
-      });
-      followModel.count({ where: { userid: userid } }, function(err, followingCount) {
-        if (err) console.error('updateUserCounts - following:', err);
-        user.following = followingCount;
-        user.save();
-      });
-      followModel.count({ where: { followsid: userid } }, function(err, followerCount) {
-        if (err) console.error('updateUserCounts - follower:', err);
-        user.followers = followerCount;
-        user.save();
-      });
-      // FIXME: deleted stars? unstars?
-      interactionModel.count({ where: { userid: userid, type: 'star' } }, function(err, starCount) {
-        if (err) console.error('updateUserCounts - star:', err);
-        user.stars=starCount;
-        user.save();
-      });
-    });
-    // tight up later
-    if (callback) {
-      callback();
-    }
-  },
-  getChannelDeletions: function(channel_id, params, callback) {
-    //console.log('dataaccess.caminte.js::getChannelDeletions - ', channel_id);
-    if (callback === undefined) {
-      console.error('dataaccess.caminte.js::getChannelDeletions - no callback passed in');
-      return;
-    }
-    var query = interactionModel.find().where('userid', channel_id).where('type', 'delete').where('idtype', 'message');
-    applyParams(query, params, 0, callback);
-  },
   // user: userid
+  addNotice: function(notice, callback) {
+    db_insert(notice, noticeModel, callback);
+  },
+  delNotice: function(query, callback) {
+    noticeModel.find(query, function(err, noticies) {
+      for(var i in noticies) {
+        var notice=noticies[i]
+        notice.destroy(function(err) {
+        })
+      }
+      if (callback) callback()
+    })
+  },
   getNotices: function(user, params, tokenObj, callback) {
     //console.log('dataaccess.caminte.js::getNotices - user', user, 'params', params, 'tokenObj', typeof(tokenObj), 'callback', typeof(callback));
     /*
@@ -1246,50 +1213,11 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       finalfunc(user);
     }
   },
-  // USERS DONT INTERACT WITH EACH OTHER (except follows)
-  // THEY (mostly) INTERACT WITH POSTS
-  // and we'll need to deference the post.user as a user can have 10k posts
-  // and we need to be able to query by user without looking up 10k and joining that set
-  //
-  // getUserInteractions, remember reposts are stored here too
-  // if we're going to use one table, let's keep the code advantages from that
-  //
-  // this isn't good enough
-  // we will rarely query by user
-  // idtype and type are highly likely
-  // can be in context of token/user
-  getInteractions: function(type, user, params, callback) {
-    //console.log('Getting '+type+' for '+userid);
-    var ref=this;
-    var finishfunc=function(userid) {
-      //console.log('caminte::getInteractions', type, params, user, '=>', userid);
-      interactionModel.find({ where: { userid: userid, type: type, idtype: 'post' }, limit: params.count, order: "datetime DESC" }, function(err, interactions) {
-        if (interactions==null && err==null) {
-          // none found
-          //console.log('dataaccess.caminte.js::getStars - check proxy?');
-          // user.stars_updated vs appstream start
-          // if updated>appstream start, we can assume it's up to date
-          if (ref.next) {
-            ref.next.getInteractions(type, userid, params, callback);
-            return;
-          }
-        }
-        //console.dir(interactions);
-        callback(interactions, err);
-      });
-    };
-    if (user[0]=='@') {
-      var username=user.substr(1);
-      this.getUserID(username, function(userobj, err) {
-        var id = null;
-        if (userobj) {
-          id = userobj.id;
-        }
-        finishfunc(id);
-      });
-    } else {
-      finishfunc(user);
-    }
+  addEmpty: function(empty, callback) {
+    emptyModel.create(empty, callback)
+  },
+  findEmpty: function(type, id, callback) {
+    emptyModel.findOne({ where: { type: type, typeid: id } }, callback)
   },
   getOEmbed: function(url, callback) {
     if (this.next) {
@@ -1396,21 +1324,9 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
   }
 }
 
-functions = Object.assign(functions, userModel)
-functions = Object.assign(functions, muteModel)
-functions = Object.assign(functions, clientModel)
-functions = Object.assign(functions, channelModel)
-functions = Object.assign(functions, messageModel)
-functions = Object.assign(functions, annotationModel)
-functions = Object.assign(functions, entityModel)
-functions = Object.assign(functions, interactionModel)
-functions = Object.assign(functions, followModel)
-functions = Object.assign(functions, fileModel)
-functions = Object.assign(functions, userStreamModel)
-functions = Object.assign(functions, appStreamModel)
-functions = Object.assign(functions, sessionModel)
-functions = Object.assign(functions, subscriptionModel)
-functions = Object.assign(functions, streamMarkerModel)
+funcs.forEach((func) => {
+  functions = Object.assign(functions, func)
+});
 
 module.exports = functions
 module.exports.next = null
