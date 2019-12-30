@@ -1,6 +1,10 @@
 var userModel
 
-function start(schemaData) {
+var applyParams
+
+function start(modelOptions) {
+  applyParams = modelOptions.applyParams
+  schemaData = modelOptions.schemaData
   /** user storage model */
   userModel = schemaData.define('user', {
     /* API START */
@@ -78,19 +82,61 @@ module.exports = {
   patchUser: function(userid, changes, callback) {
     userModel.update({ where: { id: userid } }, changes, callback)
   },
+  updateUserCounts: function(userid, callback) {
+    var ref=this;
+    userModel.findById(userid, function(err, user) {
+      if (!user) {
+        console.log('updateUserCounts no user', user, 'for id', userid);
+        if (callback) {
+          callback();
+        }
+        return;
+      }
+      // this may only return up to 20, we'll need to set count=-1
+
+      /*
+      postModel.count({ where: { userid: userid } }, function(err, postCount) {
+        if (err) console.error('updateUserCounts - posts:', err);
+        user.posts = postCount;
+        user.save();
+      });
+      followModel.count({ where: { userid: userid } }, function(err, followingCount) {
+        if (err) console.error('updateUserCounts - following:', err);
+        user.following = followingCount;
+        user.save();
+      });
+      followModel.count({ where: { followsid: userid } }, function(err, followerCount) {
+        if (err) console.error('updateUserCounts - follower:', err);
+        user.followers = followerCount;
+        user.save();
+      });
+      // FIXME: deleted stars? unstars?
+      interactionModel.count({ where: { userid: userid, type: 'star' } }, function(err, starCount) {
+        if (err) console.error('updateUserCounts - star:', err);
+        user.stars=starCount;
+        user.save();
+      });
+      */
+
+    });
+    // tight up later
+    if (callback) {
+      callback();
+    }
+  },
   delUser: function(userid, callback) {
     if (this.next) {
       this.next.delUser(userid, callback)
     } else {
       if (callback) {
-        callback(null, null)
+        callback(false, false)
       }
     }
   },
   getUserID: function(username, callback) {
     if (!username) {
       console.log('dataaccess.caminte.js::getUserID() - username was not set')
-      callback('dataaccess.caminte.js::getUserID() - username was not set', null)
+      callback('dataaccess.caminte.js::getUserID() - username was not set', false)
       return
     }
     if (username[0]==='@') {
@@ -190,12 +236,12 @@ module.exports = {
           return
         }
       }
-      console.log('searchUsers done', ids.length)
+      //console.log('dataaccess.caminte::searchUsers done', ids.length)
       if (!ids.length) {
         callback(false, [], { code: 200, more: false })
         return
       }
-      applyParams(userModel.find().where('id', { in: ids }), params, 0, callback)
+      applyParams(userModel.find().where('id', { in: ids }), params, callback)
     }
     userModel.find({ where: { username: { like : '%' + query + '%' }} }, function(err, users) {
       for(var i in users) {
