@@ -7,13 +7,13 @@
  * @module dispatcher
  */
 
-var downloader=require('./downloader.js');
+var downloader=require('./downloader.js')
 
-var first_post_id;
-var last_post_id;
+var first_post_id
+var last_post_id
 
 /** for status reports */
-var lmem={ heapUsed: 0 };
+var lmem={ heapUsed: 0 }
 
 /**
  * Helper function for copying entities around
@@ -24,39 +24,39 @@ var lmem={ heapUsed: 0 };
  */
 function copyentities(type, src, dest, postcontext) {
   if (!dest) {
-    console.log('dispatcher.js::copyentities - dest not set ', dest);
-    return;
+    console.log('dispatcher.js::copyentities - dest not set ', dest)
+    return
   }
-  // dest.entities[type]=[];
+  // dest.entities[type]=[]
   for(var i in src) {
-    var res=src[i];
-    var obj=new Object;
+    var res=src[i]
+    var obj={}
     switch(type) {
       case 'mentions':
         // need is_leading only for post context
         if (postcontext && res.altnum!=undefined) {
-          obj.is_leading=res.altnum?true:false;
+          obj.is_leading=res.altnum?true:false
         }
-        obj.id=''+res.alt; // could be a hint of future issues here
-        obj.name=res.text;
-      break;
+        obj.id=''+res.alt // could be a hint of future issues here
+        obj.name=res.text
+      break
       case 'hashtags':
-        obj.name=res.text;
-      break;
+        obj.name=res.text
+      break
       case 'links':
-        obj.url=res.alt;
-        obj.text=res.text;
+        obj.url=res.alt
+        obj.text=res.text
         if (res.altnum) {
-          obj.amended_len=parseInt(0+res.altnum);
+          obj.amended_len=parseInt(0+res.altnum)
         }
-      break;
+      break
       default:
-        console.log('unknown type '+type);
-      break;
+        console.log('unknown type '+type)
+      break
     }
-    obj.pos=parseInt(0+res.pos);
-    obj.len=parseInt(0+res.len);
-    dest.entities[type].push(obj);
+    obj.pos=parseInt(0+res.pos)
+    obj.len=parseInt(0+res.len)
+    dest.entities[type].push(obj)
   }
 }
 
@@ -64,30 +64,30 @@ function normalizeUserID(input, tokenobj, callback) {
   //console.log('dispatcher::normalizeUserID', input)
   if (input=='me') {
     if (tokenobj && tokenobj.userid) {
-      //console.log('dispatcher.js::normalizeUserID - me became', tokenobj.userid);
-      callback(tokenobj.userid, '');
-      return;
+      //console.log('dispatcher.js::normalizeUserID - me became', tokenobj.userid)
+      callback(tokenobj.userid, '')
+      return
     } else {
-      callback(0, 'no or invalid token');
-      return;
+      callback(0, 'no or invalid token')
+      return
     }
   }
-  var ref=module.exports;
+  var ref=module.exports
   if (input[0]=='@') {
     //console.log('dispatcher::normalizeUserID @', input.substr(1))
     ref.cache.getUserID(input.substr(1), function(err, userobj) {
       if (err) {
-        console.log('dispatcher.js::normalizeUserID err', err);
+        console.log('dispatcher.js::normalizeUserID err', err)
       }
       if (userobj) {
-        callback(userobj.id, '');
+        callback(userobj.id, '')
       } else {
-        callback(0, 'no such user');
+        callback(0, 'no such user')
       }
-    });
+    })
   } else {
     // numeric
-    callback(input, '');
+    callback(input, '')
   }
 }
 
@@ -99,46 +99,46 @@ function escapeHTML(s) {
       '"': "&quot;",
       '<': "&lt;",
       '>': "&gt;"
-    }[c];
-  });
+    }[c]
+  })
 }
 
 // what calls this?? I think global did
 function postsToADN(posts, params, token) {
   // data is an array of entities
-  var apiposts={}, postcounter=0;
-  //console.log('dispatcher.js:getUserPosts - mapping '+posts.length);
+  var apiposts={}, postcounter=0
+  //console.log('dispatcher.js:getUserPosts - mapping '+posts.length)
   if (posts && posts.length) {
     posts.map(function(current, idx, Arr) {
-      //console.log('dispatcher.js:getUserPosts - map postid: '+current.id);
+      //console.log('dispatcher.js:getUserPosts - map postid: '+current.id)
       // get the post in API foromat
-      ref.postToAPI(current, params, token, function(post, err, postmeta) {
-        apiposts[post.id]=post;
-        postcounter++;
+      ref.postToAPI(current, params, token, function(err, post, postmeta) {
+        apiposts[post.id]=post
+        postcounter++
         // join
-        //console.log(apiposts.length+'/'+entities.length);
+        //console.log(apiposts.length+'/'+entities.length)
         if (postcounter==posts.length) {
-          //console.log('dispatcher.js::getUserPosts - finishing');
-          var res=[];
+          //console.log('dispatcher.js::getUserPosts - finishing')
+          var res=[]
           for(var i in posts) {
-            res.push(apiposts[posts[i].id]);
+            res.push(apiposts[posts[i].id])
           }
-          callback(res, null, meta);
+          callback(res, null, meta)
         }
-      });
-    }, ref);
+      })
+    }, ref)
   } else {
     // no posts
-    callback([], 'no posts for postsToADN', meta);
+    callback([], 'no posts for postsToADN', meta)
   }
 }
 
-var humanFormat=require('human-format');
+var humanFormat=require('human-format')
 
 /** minutely status report */
 setInterval(function () {
-  var ts=new Date().getTime();
-  var mem=process.memoryUsage();
+  var ts=new Date().getTime()
+  var mem=process.memoryUsage()
   /*
   regarding: the dispatcher stdout writes (isThisDoingAnything)
   it's pretty compact, only one or two lines per minute
@@ -147,11 +147,11 @@ setInterval(function () {
   either case the exceptions need to be logged in a proper log file
   */
   // break so the line stands out from the instant updates
-  process.stdout.write("\n");
-  console.log("dispatcher @"+ts+" Memory+["+humanFormat(mem.heapUsed-lmem.heapUsed)+"] Heap["+humanFormat(mem.heapUsed)+"] uptime: "+process.uptime());
-  lmem=mem;
-  ts=null;
-}, 60*1000);
+  process.stdout.write("\n")
+  console.log("dispatcher @"+ts+" Memory+["+humanFormat(mem.heapUsed-lmem.heapUsed)+"] Heap["+humanFormat(mem.heapUsed)+"] uptime: "+process.uptime())
+  lmem=mem
+  ts=null
+}, 60*1000)
 
 // cache is available at this.cache
 // we set from API to DB format
@@ -192,67 +192,72 @@ module.exports = {
   // tokenObj isn't really used at this point...
   // difference between stream and api?
   addPost: function(post, tokenObj, callback) {
-
-    var ref=this;
+    //console.log('dispatcher::addPost post - ', post)
+    //console.log('dispatcher::addPost tokenObj - ', tokenObj)
+    var ref=this
     function makePost() {
-      //console.log('dispatcher::addPost annotations - ', post.annotations);
+      //console.log('dispatcher::addPost annotations - ', post.annotations)
       // text, entities, postcontext, callback
       ref.cache.addPost(post, tokenObj, function(err, dbpost, meta) {
+        if (err) {
+          console.error('dispatcher::addPost - err', err)
+        }
+        //console.log('dispatcher::addPost dbpost - ', dbpost)
         if (dbpost) {
           // FIXME: annotations may not be returned on post creation
           if (post.annotations) {
-            ref.setAnnotations('post', dbpost.id, post.annotations);
+            ref.setAnnotations('post', dbpost.id, post.annotations)
           }
-          console.log('dispatcher.js::addPost - GotPost', dbpost.id);
+          //console.log('dispatcher.js::addPost - GotPost', dbpost.id)
 
 
-          //console.log('dispatcher.js::addPost - postToAPI params', params);
+          //console.log('dispatcher.js::addPost - postToAPI params', params)
           // well we have to wait until we have the post.id and then we can write it
           function finishCreatingPost() {
             ref.setEntities('post', dbpost.id, post.entities, function() {
-              //console.log('dispatcher.js::addPost - Entities set', post.entities.links);
-              ref.postToAPI(dbpost, {}, tokenObj, function(apiPost, err, meta) {
+              //console.log('dispatcher.js::addPost - Entities set', post.entities.links)
+              ref.postToAPI(dbpost, {}, tokenObj, function(err, apiPost, meta) {
                 module.exports.pumpStreams({
                   id:   dbpost.id,
                   type: 'post',
                   op:   'add',
                   actor: post.userid
-                }, apiPost);
-                callback(apiPost, err, meta);
-              }, meta);
-            });
+                }, apiPost)
+                callback(err, apiPost, meta)
+              }, meta)
+            })
           }
 
           if (post.html.match(/{post_id}/) || post.text.match(/{post_id}/)) {
-            //console.log('dispatcher.js::addPost - {post_id} live tag detected');
-            //console.log('dispatcher.js::addPost - reading', dbpost.id, 'got', dbpost.text);
+            //console.log('dispatcher.js::addPost - {post_id} live tag detected')
+            //console.log('dispatcher.js::addPost - reading', dbpost.id, 'got', dbpost.text)
             // recalculate entities and html
             ref.textProcess(dbpost.text, false, true, function(textProc, err) {
-              //console.log('dispatcher.js::addPost - got new links', textProc.entities.links);
+              //console.log('dispatcher.js::addPost - got new links', textProc.entities.links)
               // need dbpost for the id
-              //dbpost.html=textProc.html;
-              //console.log('dispatcher.js::addPost - rewriting HTML to', dbpost.html, 'for', dbpost.id);
+              //dbpost.html=textProc.html
+              //console.log('dispatcher.js::addPost - rewriting HTML to', dbpost.html, 'for', dbpost.id)
               //updatePostHTML: function(postid, html, callback) {
               //ref.cache.setPost(dbpost, function(fixedPost, err) {
               ref.cache.updatePostHTML(dbpost.id, textProc.html, function(err, fixedPost) {
-                if (err) console.error('dispatcher.js::addPost - fixedPost', err);
+                if (err) console.error('dispatcher.js::addPost - fixedPost', err)
                 if (fixedPost) {
-                  //console.log('dispatcher.js::addPost - fixedPost', fixedPost);
-                  dbpost=fixedPost;
-                  post.entities=textProc.entities;
-                  //console.log('dispatcher.js::addPost - new entity links', post.entities.links);
-                  finishCreatingPost();
+                  //console.log('dispatcher.js::addPost - fixedPost', fixedPost)
+                  dbpost=fixedPost
+                  post.entities=textProc.entities
+                  //console.log('dispatcher.js::addPost - new entity links', post.entities.links)
+                  finishCreatingPost()
                 }
-              });
-            });
+              })
+            })
           } else {
-            finishCreatingPost();
+            finishCreatingPost()
           }
         } else {
           // may need to delete entities
-          callback(null, 'empty_result');
+          callback(null, 'empty_result')
         }
-      });
+      })
     }
 
     var postDone={
@@ -260,82 +265,90 @@ module.exports = {
       thread: false,
     }
     function setDone(type) {
-      postDone[type]=true;
+      postDone[type]=true
       // if something is not done
-      //console.log('dispatcher.js::addPost - checking if done');
+      //console.log('dispatcher.js::addPost - checking if done')
       for(var i in postDone) {
         if (!postDone[i]) {
-          //console.log('dispatcher.js::addPost -', i, 'is not done');
-          return;
+          //console.log('dispatcher.js::addPost -', i, 'is not done')
+          return
         }
       }
-      //console.log('dispatcher.js::addPost - done', data, meta);
-      //console.log('dispatcher.js::addPost - done, text', data.text);
+      //console.log('dispatcher.js::addPost - done', data, meta)
+      //console.log('dispatcher.js::addPost - done, text', data.text)
       // everything is done
-      makePost();
-      //callback(data, null, meta);
+      makePost()
+      //callback(data, null, meta)
     }
 
     function getEntities(post, cb) {
       ref.textProcess(post.text, post.entities, true, function(textProc, err) {
-        console.log('dispatcher.js::addPost - textProc', textProc);
-        post.entities=textProc.entities;
-        post.html=textProc.html;
-        cb();
-      });
+        //console.log('dispatcher.js::addPost - textProc', textProc)
+        post.entities=textProc.entities
+        post.html=textProc.html
+        cb()
+      })
     }
     // check out postToAPI
     // needs to run before textProcess
     function checkTagUser(post, cb) {
       if (!((post.text && post.text.match(/{username}/)) || (post.html && post.html.match(/{username}/)))) {
-        cb();
-        return;
+        cb()
+        return
       }
       ref.cache.getUser(post.userid, function(err, user, meta) {
         if (post.text && post.text.match(/{username}/)) {
-          post.text=post.text.replace(new RegExp('{username}', 'g'), user.username);
+          post.text=post.text.replace(new RegExp('{username}', 'g'), user.username)
         }
         if (post.html && post.html.match(/{username}/)) {
-          post.html=post.html.replace(new RegExp('{username}', 'g'), user.username);
+          post.html=post.html.replace(new RegExp('{username}', 'g'), user.username)
         }
-        cb();
-      });
+        cb()
+      })
     }
     function getThreadID(post, cb) {
       // cache expects post to be in our internal db format
-      console.log('post.reply_to', post.reply_to);
+      //console.log('dispatcher.js::addPost getThreadID post.reply_to', post.reply_to)
       if (post.reply_to) {
         ref.cache.getPost(post.reply_to, function(err, parentPost, meta) {
-          post.thread_id=parentPost.thread_id;
-          console.log('post.threadid', post.thread_id);
-          cb();
-        });
+          post.thread_id=parentPost.thread_id
+          //console.log('post.threadid', post.thread_id)
+          cb()
+        })
       } else {
-        cb();
+        cb()
       }
     }
     // these both mess with .html / .text
     checkTagUser(post, function() {
       // after username is in place, we'll have better positions
       getEntities(post, function() {
-        setDone('html');
-      });
-    });
+        setDone('html')
+      })
+    })
     getThreadID(post, function() {
-      setDone('thread');
-    });
+      setDone('thread')
+    })
   },
   // FIXME change API to access params
   delPost: function(postid, token, callback) {
-    var ref = this;
-    this.getPost(postid, {}, function(post, err, postMeta) {
+    //console.log('dispatcher.js::delPost - postid', postid)
+    var ref = this
+    this.getPost(postid, {}, function(err, post, postMeta) {
       //console.log('dispatcher.js::delPost - getPost', post)
+      if (err) {
+        console.error('dispatcher.js::delPost - err getPost', err)
+      }
+      if (!post) {
+        console.warn('dispatcher.js::delPost - postid', postid, 'not found')
+        return
+      }
       // this is the adn version of the post...
       if (post.user.id != token.userid) {
-        console.warn('permissions denied, post owner', post.userid, 'token owner', token.userid)
+        console.warn('dispatcher.js::delPost - permissions denied, post owner', post.userid, 'token owner', token.userid)
         callback(post, 'access denied to post', {
           code: token?403:401,
-        });
+        })
         return
       }
       ref.cache.delPost(postid, function(dbErr, delRes, dbMeta) {
@@ -352,7 +365,7 @@ module.exports = {
           changedRows: 0
         }
         */
-        //console.log('dispatcher.js::delPost - returning', post);
+        //console.log('dispatcher.js::delPost - returning', post)
         var params = {
           generalParams: {
             deleted: true
@@ -360,21 +373,21 @@ module.exports = {
         }
         // postToAPI: function(post, params, tokenObj, callback, meta) {
         //getPost: function(id, params, callback) {
-        //ref.getPost(postid, params, callback);
+        //ref.getPost(postid, params, callback)
         post.is_deleted = 1
-        callback(post, '', postMeta)
+        callback(false, post, postMeta)
         /*
         ref.postToApi(post, { }, function(apiPost, err) {
           module.exports.pumpStreams({
             id: postid,
             type: 'post',
             op:   'del',
-          }, apiPost);
-          callback(apiPost, err, dbMeta);
-        });
+          }, apiPost)
+          callback(apiPost, err, dbMeta)
+        })
         */
-      });
-    });
+      })
+    })
   },
   /**
    * Add/Update post in data store
@@ -383,18 +396,18 @@ module.exports = {
    */
   setPost: function(post, callback) {
     if (!post) {
-      console.log('dispatcher.js::setPost - post is not set!');
+      console.log('dispatcher.js::setPost - post is not set!')
       if (callback) {
-        callback(null, 'setPost - post is not set!');
+        callback(null, 'setPost - post is not set!')
       }
-      return;
+      return
     }
     if (!post.id) {
-      console.log('dispatcher.js::setPost - no id in post', post);
+      console.log('dispatcher.js::setPost - no id in post', post)
       if (callback) {
-        callback(null, 'setPost - no id in post');
+        callback(null, 'setPost - no id in post')
       }
-      return;
+      return
     }
 
     // we're assuming we're getting a contiguous amount of posts...
@@ -402,49 +415,49 @@ module.exports = {
     if (first_post_id==undefined) {
       // not a good way to do this,
       // some one can interact (delete?) an older post with a much lower id
-      console.log("Setting first post to ", post.id);
-      first_post_id=post.id;
+      console.log("Setting first post to ", post.id)
+      first_post_id=post.id
     }
 
-    post.date=new Date(post.created_at);
-    post.ts=post.date.getTime();
+    post.date=new Date(post.created_at)
+    post.ts=post.date.getTime()
 
     // update user first, to avoid proxy
     if (post.user && post.user.id) {
       // update User records
       /*
       if (post.user.description && post.user.description.entities) {
-        console.log('disptacher.js::setPost '+post.id+' has user entites');
+        console.log('disptacher.js::setPost '+post.id+' has user entites')
       } else {
-        console.log('disptacher.js::setPost '+post.id+' has NO user entites');
-        //console.dir(post.user);
+        console.log('disptacher.js::setPost '+post.id+' has NO user entites')
+        //console.dir(post.user)
       }
       */
       this.updateUser(post.user, post.ts, function(user, err) {
         if (err) {
-          console.log("User Update err: "+err);
+          console.log("User Update err: "+err)
         //} else {
-          //console.log("User Updated");
+          //console.log("User Updated")
         }
-      });
+      })
     }
     if (post.entities) {
       this.setEntities('post', post.id, post.entities, function(entities, err) {
         if (err) {
-          console.log("entities Update err: "+err);
+          console.log("entities Update err: "+err)
         //} else {
-          //console.log("entities Updated");
+          //console.log("entities Updated")
         }
-      });
+      })
     }
-    //console.log('dispatcher.js::setPost post id is '+post.id);
-    var dataPost=post;
-    //dataPost.id=post.id; // not needed
+    //console.log('dispatcher.js::setPost post id is '+post.id)
+    var dataPost=post
+    //dataPost.id=post.id // not needed
     if (post.user) {
-      dataPost.userid=post.user.id;
+      dataPost.userid=post.user.id
     } else {
       // usually on deletes, they don't include the user object
-      //console.log('No Users on post ', post);
+      //console.log('No Users on post ', post)
       /*
 { created_at: '2013-08-16T01:10:29Z',
   num_stars: 0,
@@ -465,7 +478,7 @@ module.exports = {
   ts: 1376615429000 }
       */
     }
-    dataPost.created_at=new Date(post.created_at); // fix incoming created_at iso date to Date
+    dataPost.created_at=new Date(post.created_at) // fix incoming created_at iso date to Date
 
     function finishSending(err, dataPost, meta) {
       module.exports.pumpStreams({
@@ -474,40 +487,40 @@ module.exports = {
         op:   'add', // really isn't an update
         actor: post.user.id
       }, dataPost)
-      callback(dataPost, err, meta);
+      callback(dataPost, err, meta)
     }
 
-    //console.log('dispatcher::setPost - user is', post.userid);
+    //console.log('dispatcher::setPost - user is', post.userid)
     if (post.source) {
-      var ref=this;
+      var ref=this
       this.cache.setSource(post.source, function(err, client) {
         // param order is correct
-        //console.log('addPost setSource returned ', client, err, dataPost);
+        //console.log('addPost setSource returned ', client, err, dataPost)
         if (err) {
-          console.log('can\'t setSource', err);
+          console.log('can\'t setSource', err)
         } else {
-          dataPost.client_id=client.client_id;
+          dataPost.client_id=client.client_id
         }
-        //console.log('dispatcher.js::setPost datapost id is '+dataPost.id);
-        ref.cache.setPost(dataPost, finishSending);
-      });
+        //console.log('dispatcher.js::setPost datapost id is '+dataPost.id)
+        ref.cache.setPost(dataPost, finishSending)
+      })
     } else {
-      //console.log('dispatcher.js::setPost datapost id is '+dataPost.id);
-      this.cache.setPost(dataPost, finishSending);
+      //console.log('dispatcher.js::setPost datapost id is '+dataPost.id)
+      this.cache.setPost(dataPost, finishSending)
     }
 
     if (post.annotations) {
-      this.setAnnotations('post', post.id, post.annotations);
+      this.setAnnotations('post', post.id, post.annotations)
     }
 
     if (last_post_id==undefined || post.id>last_post_id) {
-      //console.log("Setting last post to ", post.id);
-      last_post_id=post.id;
+      //console.log("Setting last post to ", post.id)
+      last_post_id=post.id
     }
     // can't clear this because we're still processing it
-    //dataPost=null;
+    //dataPost=null
     if (this.notsilent) {
-      process.stdout.write('P');
+      process.stdout.write('P')
     }
   },
   // set shit like you_starred, you_reposted, etc
@@ -517,18 +530,18 @@ module.exports = {
   // convert ADN format to DB format
   apiToPost: function(api, meta, callback) {
     if (!api.user) {
-      console.log('apiToPost - api user is missing', api.user,api);
+      console.log('apiToPost - api user is missing', api.user,api)
       if (callback) {
-        callback(null, 'no api user');
+        callback(null, 'no api user')
       }
-      return;
+      return
     }
     // copy api
-    var post=JSON.parse(JSON.stringify(api));
-    post.date=new Date(api.created_at);
-    post.ts=post.date.getTime();
-    post.user.created_at=new Date(api.user.created_at);
-    post.userid=api.user.id;
+    var post=JSON.parse(JSON.stringify(api))
+    post.date=new Date(api.created_at)
+    post.ts=post.date.getTime()
+    post.user.created_at=new Date(api.user.created_at)
+    post.userid=api.user.id
     // repost_of?
     // it's an object in api and an numericid in DB
     if (api.repost_of) {
@@ -537,20 +550,20 @@ module.exports = {
     }
     // source
     if (post.source) {
-      var ref=this;
+      var ref=this
       // find it (or create it for caching later)
       this.cache.setSource(post.source, function(err, client) {
         if (err) {
-          console.log('can\'t setSource ', err);
+          console.log('can\'t setSource ', err)
         } else {
-          post.client_id=client.client_id;
+          post.client_id=client.client_id
         }
-        callback(post, err, meta);
-      });
+        callback(post, err, meta)
+      })
     } else {
-      callback(post, null, meta);
+      callback(post, null, meta)
     }
-    //return post;
+    //return post
   },
   /**
    * convert DB format to API structure
@@ -561,68 +574,68 @@ module.exports = {
    * @param {object} meta - the meta data
    */
   postToAPI: function(post, params, tokenObj, callback, meta) {
-    //console.log('dispatcher.js::postToAPI('+post.id+') - start');
+    //console.log('dispatcher.js::postToAPI('+post.id+') - start', post, params, tokenObj, meta)
     if (!post) {
-      console.log('dispatcher.js::postToAPI - no post data passed in');
-      callback(null, 'no_post');
-      return;
+      console.log('dispatcher.js::postToAPI - no post data passed in')
+      callback(null, 'no_post')
+      return
     }
     if (!post.userid) {
-      console.log('dispatcher.js::postToAPI - no userid', post);
-      callback(null, 'no_userid');
-      return;
+      console.log('dispatcher.js::postToAPI - no userid', post)
+      callback(null, 'no_userid')
+      return
     }
-    var ref=this; // back it up
+    var ref=this // back it up
 
     // set up new final object for collection
 
-    var data={};
+    var data={}
     // , 'source', 'user'
     var postFields=['id', 'text', 'html', 'canonical_url', 'created_at',
       'machine_only', 'num_replies', 'num_reposts', 'num_stars', 'thread_id',
-      'entities', 'is_deleted'];
+      'entities', 'is_deleted']
     for(var i in postFields) {
-      var f=postFields[i];
-      data[f]=post[f];
+      var f=postFields[i]
+      data[f]=post[f]
     }
     // hack
     if (data.text===undefined && data.html===undefined) {
-      console.log('dispatcher.js::postToAPI('+post.id+') - no text or html');
-      data.text='';
-      data.html='';
+      console.log('dispatcher.js::postToAPI('+post.id+') - no text or html')
+      data.text=''
+      data.html=''
     }
-    if (data.html && !data.text) data.text=data.html;
-    if (!data.html && data.text) data.html=data.text;
+    if (data.html && !data.text) data.text=data.html
+    if (!data.html && data.text) data.html=data.text
 
     //if (typeof(data.created_at)!=='object') {
-      //console.log('dispatcher::postToAPI - created_at isnt a date', typeof(data.created_at), data.created_at);
+      //console.log('dispatcher::postToAPI - created_at isnt a date', typeof(data.created_at), data.created_at)
     if (!data.created_at) {
-      console.log('dispatcher::postToAPI - created_at isnt object', data.created_at);
-      data.created_at=new Date(data.created_at);
-      console.log('dispatcher::postToAPI - created_at converted to', data.created_at.toString());
+      console.log('dispatcher::postToAPI - created_at isnt object', data.created_at)
+      data.created_at=new Date(data.created_at)
+      console.log('dispatcher::postToAPI - created_at converted to', data.created_at.toString())
     }
 
     // convert TS to date object
-    //console.log('dispatcher::postToAPI - created_at check', data.created_at);
+    //console.log('dispatcher::postToAPI - created_at check', data.created_at)
     if (isNaN(data.created_at.getTime())) {
       //delete data.created_at
-      data.created_at='2000-01-01T00:00:00.000Z';
+      data.created_at='2000-01-01T00:00:00.000Z'
       data.is_deleted=true
     } else {
-      data.created_at=new Date(data.created_at);
+      data.created_at=new Date(data.created_at)
     }
 
-    //console.log(post.num_replies+' vs '+data.num_replies);
+    //console.log(post.num_replies+' vs '+data.num_replies)
     //'repost_of'
-    var postFieldOnlySetIfValue=['reply_to'];
+    var postFieldOnlySetIfValue=['reply_to']
     for(var i in postFieldOnlySetIfValue) {
-      var f=postFieldOnlySetIfValue[i];
+      var f=postFieldOnlySetIfValue[i]
       if (post[f]) {
-        data[f]=post[f];
+        data[f]=post[f]
       }
     }
-    //data.user=user;
-    //console.log('dispatcher.js::postToAPI - return check', data);
+    //data.user=user
+    //console.log('dispatcher.js::postToAPI - return check', data)
 
     var postDone={
       client: false,
@@ -635,97 +648,97 @@ module.exports = {
 
     if (params && params.generalParams) {
       if (params.generalParams.starred_by) {
-        //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - write me!');
-        postDone.starred_by=false;
+        //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - write me!')
+        postDone.starred_by=false
         this.cache.getPostStars(post.id, {}, function(err, interactions, meta) {
           if (!interactions || !interactions.length) {
-            data.starred_by=[];
-            setDone('starred_by');
-            return;
+            data.starred_by=[]
+            setDone('starred_by')
+            return
           }
-          var userids=[];
+          var userids=[]
           for(var i in interactions) {
             var action=interactions[i]
-            userids.push(action.userid);
+            userids.push(action.userid)
           }
-          //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - getting users', userids);
+          //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - getting users', userids)
           ref.cache.getUsers(userids, params, function(userErr, userObjs, meta) {
-            //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - got', userObjs.length);
+            //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - got', userObjs.length)
             var rUsers=[]
             for(var i in userObjs) {
               ref.userToAPI(userObjs[i], tokenObj, function(err, adnUserObj) {
                 //console.log('dispatcher.js::postToAPI - got', adnUserObj, 'for', users[i])
                 rUsers.push(adnUserObj)
-                //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - ', rUsers.length, 'vs', userids.length);
+                //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - ', rUsers.length, 'vs', userids.length)
                 if (rUsers.length===userids.length) {
-                  data.starred_by=rUsers;
-                  //console.log('marking starred_by done');
-                  setDone('starred_by');
+                  data.starred_by=rUsers
+                  //console.log('marking starred_by done')
+                  setDone('starred_by')
                 }
-              }, meta);
+              }, meta)
             }
-          });
-        });
+          })
+        })
       }
       if (params.generalParams.reposters) {
-        //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - write me!');
-        postDone.reposters=false;
+        //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - write me!')
+        postDone.reposters=false
         this.cache.getReposts(post.id, {}, tokenObj, function(err, posts, meta) {
           if (!posts || !posts.length) {
-            data.reposters=[];
-            setDone('reposters');
-            return;
+            data.reposters=[]
+            setDone('reposters')
+            return
           }
-          var userids=[];
+          var userids=[]
           for(var i in posts) {
             var post=posts[i]
             if (userids.indexOf(post.userid)==-1) {
-              userids.push(post.userid);
+              userids.push(post.userid)
             }
           }
-          //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - getting users', userids);
+          //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - getting users', userids)
           ref.cache.getUsers(userids, params, function(userErr, userObjs, meta) {
-            //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - got', userObjs.length);
+            //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - got', userObjs.length)
             var rUsers=[]
             for(var i in userObjs) {
               ref.userToAPI(userObjs[i], tokenObj, function(adnUserObj, err) {
                 //console.log('dispatcher.js::postToAPI - got', adnUserObj, 'for', adnUserObj.id)
                 rUsers.push(adnUserObj)
-                //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - ', rUsers.length, 'vs', userids.length);
+                //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - ', rUsers.length, 'vs', userids.length)
                 if (rUsers.length==userids.length) {
-                  //callback(rUsers, '');
-                  data.reposters=rUsers;
-                  //console.log('marking reposters done');
-                  setDone('reposters');
+                  //callback(rUsers, '')
+                  data.reposters=rUsers
+                  //console.log('marking reposters done')
+                  setDone('reposters')
                 }
-              }, meta);
+              }, meta)
             }
-          });
-        });
+          })
+        })
       }
     } else {
       //if (params != {}) {
-        //console.log('dispatcher.js::postToAPI('+post.id+') - params dont have generalParams');
+        //console.log('dispatcher.js::postToAPI('+post.id+') - params dont have generalParams')
       //}
     }
 
 
     function setDone(type) {
-      postDone[type]=true;
+      postDone[type]=true
       // if something is not done
-      //console.log('dispatcher.js::postToAPI('+post.id+') - checking if done');
+      //console.log('dispatcher.js::postToAPI('+post.id+') - checking if done')
       for(var i in postDone) {
         if (!postDone[i]) {
-          //console.log('dispatcher.js::postToAPI('+post.id+') -', i, 'is not done');
-          return;
+          //console.log('dispatcher.js::postToAPI('+post.id+') -', i, 'is not done')
+          return
         }
       }
-      //console.log('dispatcher.js::postToAPI('+post.id+') - done', data, meta);
-      //console.log('dispatcher.js::postToAPI('+post.id+') - done, text', data.text);
+      //console.log('dispatcher.js::postToAPI('+post.id+') - done', data, meta)
+      //console.log('dispatcher.js::postToAPI('+post.id+') - done, text', data.text)
 
-      //console.log('dispatcher.js::postToAPI('+post.id+') - params', params);
+      //console.log('dispatcher.js::postToAPI('+post.id+') - params', params)
       // everything is done
-      callback(data, null, meta);
+      callback(false, data, meta)
     }
 
     function loadClient(post, cb) {
@@ -736,11 +749,11 @@ module.exports = {
           name: 'Unknown',
           client_id: 'Unknown',
         }
-        cb(source); // was just ()
-        return;
+        cb(source) // was just ()
+        return
       }
       ref.getClient(post.client_id, function(client, clientErr, clientMeta) {
-        //console.log('dispatcher.js::postToAPI('+post.id+') - gotClient');
+        //console.log('dispatcher.js::postToAPI('+post.id+') - gotClient')
         var source={
           link: 'https://sapphire.moe/',
           name: 'Unknown',
@@ -751,18 +764,19 @@ module.exports = {
             link: client.link,
             name: client.name,
             client_id: client.client_id
-          };
+          }
         } else {
-          console.log('dispatcher.js::postToAPI('+post.id+') - client is', client, clientErr);
+          console.log('dispatcher.js::postToAPI('+post.id+') - client is', client, clientErr)
         }
-        cb(source, clientErr, clientMeta);
-      }); // getClient
+        cb(source, clientErr, clientMeta)
+      }) // getClient
     }
 
     function loadUser(userid, params, cb) {
-      //console.log('dispatcher.js::postToAPI('+post.id+') - getting user '+post.userid);
-      ref.getUser(userid, params, function(userErr, user, userMeta) {
-        //console.log('dispatcher.js::postToAPI('+post.id+') - got user '+post.userid, err);
+      //console.log('dispatcher.js::postToAPI('+post.id+') - getting user '+post.userid)
+      ref.getUser(userid, params, function(user, userErr, userMeta) {
+        if (userErr) console.log('dispatcher.js::postToAPI('+post.id+') userid(',userid,') - err', userErr)
+        //console.log('dispatcher.js::postToAPI('+post.id+') userid(',userid,') - got user', user)
         if (!user) {
           user={
             id: 0,
@@ -779,83 +793,83 @@ module.exports = {
             }
           }
         }
-        cb(user, userErr, userMeta);
-      }); // getUser
+        cb(user, userErr, userMeta)
+      }) // getUser
     }
 
     var loadRepostOf=function(post, tokenObj, cb) {
-      //console.log('dispatcher.js::postToAPI - return check', data);
-      //console.log('dispatcher.js::postToAPI - Done, calling callback');
+      //console.log('dispatcher.js::postToAPI - return check', data)
+      //console.log('dispatcher.js::postToAPI - Done, calling callback')
       // now fix up reposts
       if (post.repost_of) {
-        //console.log('converting repost_of from ', post.repost_of);
+        //console.log('converting repost_of from ', post.repost_of)
         // use thread_id because we need a direct path back to the original
         // and we can use repost_of to find the share tree
         ref.getPost(post.thread_id, { tokenobj: tokenObj }, function(repost, repostErr, repostMeta) {
-          //console.log('converting repost_of to', repostapi.id);
-          //data.repost_of=repost;
-          //callback(data, err, meta);
-          cb(repost, repostErr, repostMeta);
+          //console.log('converting repost_of to', repostapi.id)
+          //data.repost_of=repost
+          //callback(data, err, meta)
+          cb(repostErr,repost, repostMeta)
         })
       } else {
-        //callback(data, err, meta);
-        cb(null, null, null);
+        //callback(data, err, meta)
+        cb(false, false, false)
       }
     }
 
     var loadAnnotation=function(post, cb) {
       ref.getAnnotation('post', post.id, function(dbNotes, err, noteMeta) {
-        var apiNotes=[];
+        var apiNotes=[]
         for(var j in dbNotes) {
-          var note=dbNotes[j];
-          //console.log('got note', j, '#', note.type, '/', note.value, 'for', post.id);
+          var note=dbNotes[j]
+          //console.log('got note', j, '#', note.type, '/', note.value, 'for', post.id)
           apiNotes.push({
             type: note.type,
             value: note.value,
-          });
+          })
         }
-        cb(apiNotes, err, noteMeta);
-      });
+        cb(apiNotes, err, noteMeta)
+      })
     }
 
     function loadEntites(post, cb) {
       // use entity cache (DB read or CPU calculate)
       if (1) {
-        //console.log('dispatcher.js::postToAPI('+post.id+') - getEntity post. post.userid:', post.userid);
-        ref.getEntities('post', post.id, function(entities, entitiesErr, entitiesMeta) {
-          //console.log('dispatcher.js::postToAPI('+post.id+') - gotEntities');
+        //console.log('dispatcher.js::postToAPI('+post.id+') - getEntity post. post.userid:', post.userid)
+        ref.getEntities('post', post.id, function(entitiesErr, entities, entitiesMeta) {
+          //console.log('dispatcher.js::postToAPI('+post.id+') - gotEntities')
 
           data.entities={
             mentions: [],
             hashtags: [],
             links: [],
-          };
-          copyentities('mentions', entities.mentions, data, 1);
-          copyentities('hashtags', entities.hashtags, data, 1);
-          copyentities('links', entities.links, data, 1);
+          }
+          copyentities('mentions', entities.mentions, data, 1)
+          copyentities('hashtags', entities.hashtags, data, 1)
+          copyentities('links', entities.links, data, 1)
           // use html cache?
           if (1) {
-            //console.log('dispatcher.js::postToAPI('+post.id+') - calling final comp');
-            //finalcompsite(post, user, client, callback, err, meta);
-            cb();
+            //console.log('dispatcher.js::postToAPI('+post.id+') - calling final comp')
+            //finalcompsite(post, user, client, callback, err, meta)
+            cb()
           } else {
             // generate HTML
             // text, entities, postcontext, callback
             ref.textProcess(post.text, post.entities, true, function(textProcess, err) {
-              //console.dir(textProcess);
-              data.html=textProcess.html;
-              //finalcompsite(post, user, client, callback, err, meta);
-              cb();
-            });
+              //console.dir(textProcess)
+              data.html=textProcess.html
+              //finalcompsite(post, user, client, callback, err, meta)
+              cb()
+            })
           }
-        }); // getEntities
+        }) // getEntities
       } else {
         ref.textProcess(post.text, post.entities, true, function(textProcess, err) {
-          data.entities=textProcess.entities;
-          data.html=textProcess.html;
-          //finalcompsite(post, user, client, callback, err, meta);
-          cb();
-        });
+          data.entities=textProcess.entities
+          data.html=textProcess.html
+          //finalcompsite(post, user, client, callback, err, meta)
+          cb()
+        })
       }
     }
 
@@ -871,91 +885,91 @@ module.exports = {
       // ok if token is a string we need to resolve it
       // otherwise we're good to go with an object
       //console.log('dispatcher.js::postToAPI:::loadContext - tokenObj', tokenObj)
-      //console.log('dispatcher.js::postToAPI post', post.id, 'data', data.id, 'id', id);
+      //console.log('dispatcher.js::postToAPI post', post.id, 'data', data.id, 'id', id)
       if (tokenObj && tokenObj.userid) {
         // if this post is a report that we reposted
-        //if (post.repost_of && post.userid==token.userid) data.you_reposted=true;
+        //if (post.repost_of && post.userid==token.userid) data.you_reposted=true
         var starDone=false
         var repostRepostDone=false
         var repostPostDone=false
         var checkDone=function() {
-          //console.log('dispatcher.js::postToAPI:::loadContext - checkDone', starDone, repostRepostDone, repostPostDone);
+          //console.log('dispatcher.js::postToAPI:::loadContext - checkDone', starDone, repostRepostDone, repostPostDone)
           if (starDone && repostRepostDone && repostPostDone) {
-            cb();
+            cb()
           }
         }
         ref.cache.getUserStarPost(tokenObj.userid, data.id, function(err, res) {
-          //console.log('dispatcher.js::postToAPI -  getUserStarPost got', res);
-          starDone=true;
+          //console.log('dispatcher.js::postToAPI -  getUserStarPost got', res)
+          starDone=true
           //repostDone=true
-          data.you_starred=false; // needs to be defined (if token only?)
-          if (res && res.id) data.you_starred=true;
-          checkDone();
+          data.you_starred=false // needs to be defined (if token only?)
+          if (res && res.id) data.you_starred=true
+          checkDone()
         })
-        //console.log('is this post', data.id, 'by', tokenObj.userid);
+        //console.log('is this post', data.id, 'by', tokenObj.userid)
 
         // what if this isn't repost but we did retweet
         ref.cache.getUserRepostPost(tokenObj.userid, post.id, function(err, res) {
-          //console.log('dispatcher.js::postToAPI:::loadContext -', post.id, 'hasRepost', res.id);
-          data.you_reposted=false;
+          //console.log('dispatcher.js::postToAPI:::loadContext -', post.id, 'hasRepost', res.id)
+          data.you_reposted=false
           if (res && res.id) {
-            //console.log(post.id, 'not a repost but look up says ', tokenObj.userid, 'has reposted as', res.id);
-            data.you_reposted=true;
+            //console.log(post.id, 'not a repost but look up says ', tokenObj.userid, 'has reposted as', res.id)
+            data.you_reposted=true
           }
-          repostPostDone=true;
-          checkDone();
-        });
+          repostPostDone=true
+          checkDone()
+        })
 
         // well we only need if this is a repost
         if (post.repost_of) {
           // we'll need to look at it
           ref.cache.getUserRepostPost(tokenObj.userid, post.thread_id, function(err, res) {
-            //console.log('dispatcher.js::postToAPI:::loadContext -', post.id, 'isRepost', res.id);
-            repostRepostDone=true;
-            data.you_reposted=false;
+            //console.log('dispatcher.js::postToAPI:::loadContext -', post.id, 'isRepost', res.id)
+            repostRepostDone=true
+            data.you_reposted=false
             if (res && res.id) {
-              //console.log(tokenObj.userid, 'has reposted', post.repost_of, 'as', res.id);
-              data.you_reposted=true;
+              //console.log(tokenObj.userid, 'has reposted', post.repost_of, 'as', res.id)
+              data.you_reposted=true
             }
-            checkDone();
-          });
+            checkDone()
+          })
         } else {
-          repostRepostDone=true;
-          checkDone();
+          repostRepostDone=true
+          checkDone()
         }
 
         //
       } else {
-        cb();
+        cb()
       }
     }
 
     // post.client_id is string(32)
-    //console.log('dispatcher.js::postToAPI - gotUser. post.client_id:', post.client_id);
+    //console.log('dispatcher.js::postToAPI - gotUser. post.client_id:', post.client_id)
     loadClient(post, function(source, clientErr, clientMeta) {
-      data.source=source;
-      setDone('client');
-    });
-    //console.log('dispatcher.js::postToAPI - gotPost. post.userid:', post.userid);
+      data.source=source
+      setDone('client')
+    })
+    //console.log('dispatcher.js::postToAPI - gotPost. post.userid:', post.userid)
     loadUser(post.userid, params, function(user, userErr, userMeta) {
-      data.user=user;
-      setDone('user');
-    });
+      data.user=user
+      setDone('user')
+    })
     loadRepostOf(post, tokenObj, function(repost, repostErr, repostMeta) {
-      if (repost) data.repost_of=repost;
-      setDone('repostOf');
-    });
+      if (repost) data.repost_of=repost
+      setDone('repostOf')
+    })
     loadAnnotation(post, function(apiNotes, notesErr, notesMeta) {
-      data.annotations=apiNotes;
-      setDone('annotation');
-    });
+      data.annotations=apiNotes
+      setDone('annotation')
+    })
     // writes to data
     loadEntites(post, function() {
-      setDone('entities');
-    });
+      setDone('entities')
+    })
     loadContext(post, tokenObj, function(post, contextErr, contextMeta) {
-      setDone('context');
-    });
+      setDone('context')
+    })
 
     // these are stored in the db
     //   num_stars
@@ -970,90 +984,90 @@ module.exports = {
     // could dispatch all 3 of these in parallel
     // shouldAdd but can't no name/link data
 
-    //console.log('dispatcher.js::postToAPI - is ref this?', ref);
+    //console.log('dispatcher.js::postToAPI - is ref this?', ref)
 
   },
   // take a list of IDs and lookup posts
   idsToAPI: function(posts, params, callback, meta) {
-    //console.log('dispatcher.js::idsToAPI(', posts.length, 'posts,...,...,', meta, ') - start');
-    var ref=this;
+    //console.log('dispatcher.js::idsToAPI(', posts.length, 'posts,...,...,', meta, ') - start')
+    var ref=this
     // definitely need this system
-    var apiposts={};
-    var counts=0;
-    //var apiposts=[];
-    if (posts.length) {
+    var apiposts={}
+    var counts=0
+    //var apiposts=[]
+    if (posts && posts.length) {
       posts.map(function(current, idx, Arr) {
         // get the post in API foromat
-        //console.log('getting', current.id);
+        //console.log('getting', current.id)
         // params && params.tokenobj?params.tokenobj:null
         ref.getPost(current.id, params, function(post, err, postMeta) {
           if (post && post.text) {
-            //apiposts.push(post);
-            apiposts[post.id]=post;
+            //apiposts.push(post)
+            apiposts[post.id]=post
           } else {
             // reposts are an example of a post without text
-            console.log('dispatcher.js::idsToAPI - no post or missing text', post, err, meta, current.id);
+            console.log('dispatcher.js::idsToAPI - no post or missing text', post, err, meta, current.id)
             // with counts we don't need to do this
-            //posts.pop(); // lower needed
+            //posts.pop() // lower needed
           }
-          counts++;
+          counts++
           // join
-          //console.log(apiposts.length+'/'+entities.length);
-          //console.log(counts+'/'+posts.length);
+          //console.log(apiposts.length+'/'+entities.length)
+          //console.log(counts+'/'+posts.length)
           if (counts===posts.length) {
           //if (apiposts.length===posts.length) {
-            //console.log('dispatcher.js::idsToAPI - finishing');
+            //console.log('dispatcher.js::idsToAPI - finishing')
             var res=[]
             for(var i in posts) {
-              var id=posts[i].id;
+              var id=posts[i].id
               if (apiposts[id]) {
-                //console.log('final', id);
-                res.push(apiposts[id]);
+                //console.log('final', id)
+                res.push(apiposts[id])
               }
             }
-            callback(res, null, meta);
+            callback(res, null, meta)
             /*
             for(var i in apiposts) {
-              var id=apiposts[i].id;
-              console.log('final', id);
+              var id=apiposts[i].id
+              console.log('final', id)
             }
-            callback(apiposts, null, meta);
+            callback(apiposts, null, meta)
             */
           }
-        });
-      }, ref);
+        })
+      }, ref)
     } else {
       // no entities
       // this can be normal, such as an explore feed that's being polled for since_id
-      //console.log('dispatcher.js::idsToAPI - no posts');
-      callback([], 'idsToAPI no posts', meta);
+      //console.log('dispatcher.js::idsToAPI - no posts')
+      callback([], 'idsToAPI no posts', meta)
     }
   },
   addRepost: function(postid, tokenObj, callback) {
-    //console.log('dispatcher.js::addRepost - start', postid);
-    var ref=this;
+    //console.log('dispatcher.js::addRepost - start', postid)
+    var ref=this
     // if postid is a repost_of
     this.cache.getPost(postid, function(err, srcPost) {
       var originalPost=postid
-      if (srcPost.repost_of) {
+      if (srcPost && srcPost.repost_of) {
         originalPost=srcPost.thread_id
       }
       ref.cache.addRepost(postid, originalPost, tokenObj, function(err, dbPost, meta) {
         if (err) {
-          console.error('dispatcher.js::addRepost - err', err);
+          console.error('dispatcher.js::addRepost - err', err)
         }
-        //console.log('dispatcher.js::addRepost - dbPost', dbPost);
+        //console.log('dispatcher.js::addRepost - dbPost', dbPost)
         // postToAPI function(post, params, token, callback, meta) {
-        ref.postToAPI(dbPost, {}, tokenObj, callback, meta);
-      });
-    });
+        ref.postToAPI(dbPost, {}, tokenObj, callback, meta)
+      })
+    })
   },
   delRepost: function(postid, tokenObj, callback) {
-    var ref = this;
+    var ref = this
     this.cache.delRepost(postid, tokenObj, function(err, success, meta) {
       // postToAPI function(post, params, token, callback, meta) {
-      ref.getPost(postid, { generalParams: { deleted: true } }, callback);
-    });
+      ref.getPost(postid, { generalParams: { deleted: true } }, callback)
+    })
   },
   /**
    * get single post from data access
@@ -1066,150 +1080,152 @@ module.exports = {
   getPost: function(id, params, callback) {
     // probably should just exception and backtrace
     if (callback==undefined) {
-      console.log('dispatcher.js::getPost - callback undefined');
-      return;
+      console.log('dispatcher.js::getPost - callback undefined')
+      return
     }
     if (id==undefined) {
-      callback(null, 'dispatcher.js::getPost - id is undefined');
-      return;
+      callback(null, 'dispatcher.js::getPost - id is undefined')
+      return
     }
     if (params==undefined) {
-      console.log('dispatcher.js::getPost - WARNING params is undefined');
+      console.log('dispatcher.js::getPost - WARNING params is undefined')
     }
-    var ref=this;
-    //console.log('dispatcher.js::getPost - getting id',id);
+    var ref=this
+    //console.log('dispatcher.js::getPost - getting id',id)
     this.cache.getPost(id, function(err, post, meta) {
       if (post) {
-        //console.log('dispatcher.js::getPost - GotPost', post);
-        //console.log('dispatcher.js::getPost - GotPost',post.id);
-        //console.log('dispatcher.js::getPost - postToAPI params', params);
-        ref.postToAPI(post, params, params && params.tokenobj?params.tokenobj:null, callback, meta);
+        //console.log('dispatcher.js::getPost - GotPost', post)
+        //console.log('dispatcher.js::getPost - GotPost',post.id)
+        //console.log('dispatcher.js::getPost - postToAPI params', params)
+        ref.postToAPI(post, params, params && params.tokenobj?params.tokenobj:null, callback, meta)
       } else {
-        callback(null, 'dispatcher.js::getPost - post is not set!');
+        callback('dispatcher.js::getPost - post is not set!', false, false)
       }
-    });
+    })
   },
   // threadid or reply_to? reply_to for now
   getReplies: function(postid, params, token, callback) {
-    var ref=this;
+    var ref=this
     if (!postid || postid === 'undefined') {
-      callback([], 'empty postid', postid);
-      return;
+      callback([], 'empty postid', postid)
+      return
     }
     // userid can't be me without a token
     // userid could be a username though
     // FIXME: make sure postid is a number
     this.cache.getPost(postid, function(err, post) {
       if (!post || err) {
-        callback([], 'no posts for replies: '+err);
-        return;
+        callback([], 'no posts for replies: '+err)
+        return
       }
       // probably should chain these
       // because stupid if we don't have all the replies
       //console.log('apiroot', downloader.apiroot)
       if (downloader.apiroot != 'NotSet') {
-        downloader.downloadThread(post.thread_id, token);
+        downloader.downloadThread(post.thread_id, token)
       }
       ref.cache.getReplies(post.thread_id, params, token, function(err, posts, meta) {
-        //console.log('dispatcher.js::getReplies - returned meta ', meta);
+        if (err) console.error('getReplies', err)
+        //console.log('dispatcher.js::getReplies - returned posts:', posts, 'meta', meta)
         // data is an array of entities
-        var apiposts={}, postcounter=0;
-        //console.log('dispatcher.js:getReplies - mapping '+posts.length);
+        var apiposts={}, postcounter=0
+        //console.log('dispatcher.js:getReplies - mapping '+posts.length)
         if (posts && posts.length) {
           posts.map(function(current, idx, Arr) {
-            //console.log('dispatcher.js:getReplies - map postid: '+current.id);
+            //console.log('dispatcher.js:getReplies - map postid: '+current.id)
             // get the post in API foromat
-            ref.postToAPI(current, params, token, function(post, err, postmeta) {
+            ref.postToAPI(current, params, token, function(err, post, postmeta) {
+              if (err) console.error('dispatcher.js::getReplies - postToAPI err', err)
               // can error out
               if (post) {
-                apiposts[post.id]=post;
+                apiposts[post.id]=post
               }
               // always increase counter
-              postcounter++;
+              postcounter++
               // join
-              //console.log(apiposts.length+'/'+entities.length);
+              //console.log(apiposts.length+'/'+entities.length)
               if (postcounter==posts.length) {
-                //console.log('dispatcher.js::getReplies - finishing');
+                //console.log('dispatcher.js::getReplies - finishing')
                 // need to restore original order
-                var res=[];
+                var res=[]
                 for(var i in posts) {
                   if (posts[i]) {
-                    res.push(apiposts[posts[i].id]);
+                    res.push(apiposts[posts[i].id])
                   }
                 }
-                //console.log('dispatcher.js::getReplies - result ', res);
-                callback(res, null, meta);
+                //console.log('dispatcher.js::getReplies - result ', res)
+                callback(res, null, meta)
               }
-            });
-          }, ref);
+            })
+          }, ref)
         } else {
           // no posts which is fine
-          //console.log('dispatcher.js:getReplies - no replies ');
-          callback([], 'no posts for replies', meta);
+          //console.log('dispatcher.js:getReplies - no replies ')
+          callback([], 'no posts for replies', meta)
         }
-      });
-    });
+      })
+    })
   },
   getMentions: function(userid, params, token, callback) {
     // userid can't be me without a token
     if (userid=='me') {
       if (token && token.userid) {
-        userid=token.userid;
+        userid=token.userid
       } else {
-        console.log('dispatcher.js:getMentions - me but token', token);
-        callback([], "need token for 'me' user");
-        return;
+        console.log('dispatcher.js:getMentions - me but token', token)
+        callback([], "need token for 'me' user")
+        return
       }
     }
-    var ref=this;
+    var ref=this
     // is this blocking execution? yes, I think it is
     this.cache.getUser(userid, function(err, user) {
       if (err) {
-        console.log('dispatcher.js::getMentions - getUser err', err);
+        console.log('dispatcher.js::getMentions - getUser err', err)
       }
       if (user && user.following==0) {
         if (downloader.apiroot != 'NotSet') {
-          console.log('downloadMentions');
-          downloader.downloadMentions(userid, params, token);
-          console.log('downloadMentions complete');
+          console.log('downloadMentions')
+          downloader.downloadMentions(userid, params, token)
+          console.log('downloadMentions complete')
         }
       }
-    });
+    })
     // userid could be a username though
     this.cache.getMentions(userid, params, function(err, entities, meta) {
       // data is an array of entities
-      var apiposts={};
-      var count=0;
-      //console.log('dispatcher.js:getMentions - mapping', entities.length);
+      var apiposts={}
+      var count=0
+      //console.log('dispatcher.js:getMentions - mapping', entities.length)
       if (entities && entities.length) {
         //for(var i in entities) {
-          //console.log('i',entities[i].typeid);
+          //console.log('i',entities[i].typeid)
         //}
         entities.map(function(current, idx, Arr) {
           // get the post in API foromat
-          //console.log('getting post',current.typeid);
+          //console.log('getting post',current.typeid)
           ref.getPost(current.typeid, params, function(post, perr, pmeta) {
-            //console.log('got post',post.id);
-            apiposts[post.id]=post;
-            count++;
+            //console.log('got post',post.id)
+            apiposts[post.id]=post
+            count++
             // join
-            //console.log(count+'/'+entities.length,'post',post.id,'entity',current.id);
+            //console.log(count+'/'+entities.length,'post',post.id,'entity',current.id)
             if (count==entities.length) {
-              //console.log('dispatcher.js::getMentions - finishing', meta);
+              //console.log('dispatcher.js::getMentions - finishing', meta)
               // restore order
-              var nlist=[];
+              var nlist=[]
               for(var i in entities) {
-                nlist.push(apiposts[entities[i].typeid]);
+                nlist.push(apiposts[entities[i].typeid])
               }
-              callback(nlist, err, meta);
+              callback(nlist, err, meta)
             }
-          });
-        }, ref);
+          })
+        }, ref)
       } else {
         // no entities
-        callback([], 'no mentions/entities for '+userid, meta);
+        callback([], 'no mentions/entities for '+userid, meta)
       }
-    });
+    })
   },
   /**
    * get range of posts from data access
@@ -1217,58 +1233,58 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getGlobal: function(params, callback) {
-    var ref=this;
-    //console.log('dispatcher.js::getGlobal - start');
+    var ref=this
+    //console.log('dispatcher.js::getGlobal - start')
     this.cache.getGlobal(params, function(err, posts, meta) {
       // meta is garbage
       // more yes or no
-      //console.log('dispatcher.js::getGlobal - returned meta', meta);
+      //console.log('dispatcher.js::getGlobal - returned meta', meta)
       // data is an array of entities
-      var apiposts={}, postcounter=0;
-      //console.log('dispatcher.js:getGlobal - mapping', posts.length);
+      var apiposts={}, postcounter=0
+      //console.log('dispatcher.js:getGlobal - mapping', posts.length)
       if (posts.length) {
         posts.map(function(current, idx, Arr) {
           if (!current) {
-            console.log('dispatcher.js:getGlobal - no post', idx);
-            current={}; // needs to at least be an object
+            console.log('dispatcher.js:getGlobal - no post', idx)
+            current={} // needs to at least be an object
           }
-          //console.log('dispatcher.js:getGlobal - map postid: '+current.id);
-          //console.log('ref',ref,'this',this);
+          //console.log('dispatcher.js:getGlobal - map postid: '+current.id)
+          //console.log('ref',ref,'this',this)
           // get the post in API foromat
           ref.postToAPI(current, params, params.tokenobj, function(post, err, postmeta) {
             if (post && !post.user) {
-              console.log('dispatcher.js:getGlobal - no user from postToAPI',post.user);
+              console.log('dispatcher.js:getGlobal - no user from postToAPI',post.user)
             }
-            //console.log('dispatcher.js:getGlobal - post id check post postToAPI ',post.userid);
+            //console.log('dispatcher.js:getGlobal - post id check post postToAPI ',post.userid)
             // can error out
             if (post) {
-              apiposts[post.id]=post;
+              apiposts[post.id]=post
             }
             // always increase counter
-            postcounter++;
+            postcounter++
             // join
-            //console.log(postcounter+'/'+posts.length);
+            //console.log(postcounter+'/'+posts.length)
             if (postcounter==posts.length) {
-              //console.log('dispatcher.js::getGlobal - finishing');
+              //console.log('dispatcher.js::getGlobal - finishing')
               // need to restore original order
-              var res=[];
+              var res=[]
               for(var i in posts) {
                 if (posts[i]) {
-                  //console.log('id',posts[i].id,'id',apiposts[posts[i].id].id,'date',apiposts[posts[i].id].created_at);
-                  res.push(apiposts[posts[i].id]);
+                  //console.log('id',posts[i].id,'id',apiposts[posts[i].id].id,'date',apiposts[posts[i].id].created_at)
+                  res.push(apiposts[posts[i].id])
                 }
               }
-              //console.log('sending',res.length,'posts to dialect');
-              //console.log('dispatcher.js::getGlobal - meta', meta);
-              callback(res, null, meta);
+              //console.log('sending',res.length,'posts to dialect')
+              //console.log('dispatcher.js::getGlobal - meta', meta)
+              callback(res, null, meta)
             }
-          });
-        }, ref);
+          })
+        }, ref)
       } else {
         // no posts
-        callback([], 'no posts for global', meta);
+        callback([], 'no posts for global', meta)
       }
-    });
+    })
   },
   /**
    * get explore streams
@@ -1276,65 +1292,65 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getExplore: function(params, callback) {
-    var ref=this;
+    var ref=this
     this.cache.getExplore(params, function(err, endpoints, meta) {
-      //console.log('dispatcher.js::getExplore - returned meta', meta);
-      callback(endpoints, null, meta);
-    });
+      //console.log('dispatcher.js::getExplore - returned meta', meta)
+      callback(endpoints, null, meta)
+    })
   },
   getUserStream: function(user, params, tokenObj, callback) {
-    var ref=this;
-    //console.log('dispatcher.js::getUserStream - ', user);
+    var ref=this
+    //console.log('dispatcher.js::getUserStream - ', user)
     normalizeUserID(user, tokenObj, function(userid, err) {
-      //console.log('dispatcher.js::getUserStream - got', userid);
+      //console.log('dispatcher.js::getUserStream - got', userid)
       if (downloader.apiroot != 'NotSet') {
         ref.cache.getUser(userid, function(err, userdata, meta) {
           ref.cache.getFollowing(user, {}, function(err, followings) {
             if (!followings || !followings.length) {
               // Yer following no one
-              console.log('likely we need to sync followers for', user);
-              downloader.downloadFollowing(user, tokenObj);
-              return;
+              console.log('likely we need to sync followers for', user)
+              downloader.downloadFollowing(user, tokenObj)
+              return
             }
-            console.log('user counts check', userdata.following, 'vs', followings.length);
+            console.log('user counts check', userdata.following, 'vs', followings.length)
             if (userdata.following==0 || followings.length==0 || userdata.following>followings.length) {
-              console.log('likely we need to sync followers for', user);
-              downloader.downloadFollowing(user, tokenObj);
+              console.log('likely we need to sync followers for', user)
+              downloader.downloadFollowing(user, tokenObj)
             }
-          });
-        });
+          })
+        })
       }
       // ok actually build the stream
-      if (params.pageParams.count===undefined) params.pageParams.count=20;
-      if (params.pageParams.before_id===undefined) params.pageParams.before_id=-1; // -1 being the very end
-      var oldcount=params.count;
+      if (params.pageParams.count===undefined) params.pageParams.count=20
+      if (params.pageParams.before_id===undefined) params.pageParams.before_id=-1 // -1 being the very end
+      var oldcount=params.count
       // but we want to make sure it's in the right direction
       // if count is positive, then the direction is older than the 20 oldest post after before_id
-      //params.pageParams.count+=1; // add one at the end to check if there's more
+      //params.pageParams.count+=1 // add one at the end to check if there's more
       // before_id
-      //console.log('dispatcher.js::getUserStream - count', params.count);
+      //console.log('dispatcher.js::getUserStream - count', params.count)
       ref.cache.getUserPostStream(userid, params, tokenObj, function(err, posts, meta) {
         // data is an array of entities
-        var apiposts={}, postcounter=0;
-        //if (posts) console.log('dispatcher.js:getUserStream - mapping '+posts.length);
+        var apiposts={}, postcounter=0
+        //if (posts) console.log('dispatcher.js:getUserStream - mapping '+posts.length)
         if (posts && posts.length) {
-          //var min_id=posts[0].id+200,max_id=0;
+          //var min_id=posts[0].id+200,max_id=0
           posts.map(function(current, idx, Arr) {
-            //console.log('dispatcher.js:getUserPosts - map postid: '+current.id);
+            //console.log('dispatcher.js:getUserPosts - map postid: '+current.id)
             // get the post in API foromat
             ref.postToAPI(current, params, tokenObj, function(post, err, postmeta) {
-              //min_id=Math.min(min_id,post.id);
-              //max_id=Math.max(max_id,post.id);
-              apiposts[post.id]=post;
-              postcounter++;
+              //min_id=Math.min(min_id,post.id)
+              //max_id=Math.max(max_id,post.id)
+              apiposts[post.id]=post
+              postcounter++
               // join
-              //console.log(postcounter+'/'+posts.length);
+              //console.log(postcounter+'/'+posts.length)
               // -1 because we asked for an extra
               // but is that extra in the front or back?
               // was -1 but if we're ++ here
               // on 1/1 you can't do 1/1-1
               if (postcounter==posts.length) {
-                //console.log('dispatcher.js::getUserStream - finishing');
+                //console.log('dispatcher.js::getUserStream - finishing')
                 /*
                 var imeta={
                   code: 200,
@@ -1343,62 +1359,62 @@ module.exports = {
                   // we can't just compare here
                   // get 20: is it 20 posts? or is there 21?
                   more: meta.more
-                };
+                }
                 */
-                var res=[];
+                var res=[]
                 // well not all of them...
                 for(var i in posts) {
                   // well not all of them...
                   if (apiposts[posts[i].id]) {
-                    res.push(apiposts[posts[i].id]);
+                    res.push(apiposts[posts[i].id])
                   }
                 }
-                //console.log('dispatcher::getUserStream - meta', meta);
-                //console.log('imeta',imeta);
-                callback(res, null, meta);
+                //console.log('dispatcher::getUserStream - meta', meta)
+                //console.log('imeta',imeta)
+                callback(res, null, meta)
               }
-            });
-          }, ref);
+            })
+          }, ref)
         } else {
           // no posts
-          callback([], 'no posts for user stream', meta);
+          callback([], 'no posts for user stream', meta)
         }
-      });
-    });
+      })
+    })
   },
   getUnifiedStream: function(user, params, token, callback) {
-    console.log('dispatcher.js::getUnifiedStream', user);
-    var ref=this;
+    console.log('dispatcher.js::getUnifiedStream', user)
+    var ref=this
     this.cache.getUnifiedStream(user, params, function(err, posts, meta) {
       // data is an array of entities
-      var apiposts={}, postcounter=0;
-      //console.log('dispatcher.js:getUserPosts - mapping '+posts.length);
+      var apiposts={}, postcounter=0
+      //console.log('dispatcher.js:getUserPosts - mapping '+posts.length)
       if (posts && posts.length) {
         posts.map(function(current, idx, Arr) {
-          //console.log('dispatcher.js:getUserPosts - map postid: '+current.id);
+          //console.log('dispatcher.js:getUserPosts - map postid: '+current.id)
           // get the post in API foromat
           ref.postToAPI(current, params, token, function(post, err, postmeta) {
-            apiposts[post.id]=post;
-            postcounter++;
+            apiposts[post.id]=post
+            postcounter++
             // join
-            //console.log(apiposts.length+'/'+entities.length);
+            //console.log(apiposts.length+'/'+entities.length)
             if (postcounter==posts.length) {
-              //console.log('dispatcher.js::getUserPosts - finishing');
-              var res=[];
+              //console.log('dispatcher.js::getUserPosts - finishing')
+              var res=[]
               for(var i in posts) {
-                res.push(apiposts[posts[i].id]);
+                res.push(apiposts[posts[i].id])
               }
-              callback(res, null, meta);
+              callback(res, null, meta)
             }
-          });
-        }, ref);
+          })
+        }, ref)
       } else {
         // no posts
-        callback([], 'no posts for unified', meta);
+        callback([], 'no posts for unified', meta)
       }
-    });
-    //console.log('dispatcher.js::getUnifiedStream - write me');
-    //callback(null, null);
+    })
+    //console.log('dispatcher.js::getUnifiedStream - write me')
+    //callback(null, null)
   },
   /**
    * get range of posts for user id userid from data access
@@ -1407,13 +1423,13 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getUserPosts: function(user, params, callback) {
-    //console.log('dispatcher.js::getUserPosts - user:', user);
-    var ref=this;
+    //console.log('dispatcher.js::getUserPosts - user:', user)
+    var ref=this
     normalizeUserID(user, params.tokenobj, function(userid) {
-      //console.log('dispatcher.js::getUserPosts - userid:', userid);
+      //console.log('dispatcher.js::getUserPosts - userid:', userid)
       ref.cache.getUserPosts(userid, params, function(err, posts, meta) {
         // data is an array of entities
-        var apiposts={}, postcounter=0;
+        var apiposts={}, postcounter=0
         //console.log('dispatcher.js:getUserPosts - mapping '+posts.length);
         if (posts && posts.length) {
           posts.map(function(current, idx, Arr) {
@@ -1628,7 +1644,7 @@ module.exports = {
   },
   postSearch: function(query, params, tokenObj, callback) {
     var ref=this;
-    console.log('postSearch query', query)
+    //console.log('dispatcher.js::postSearch - query', query)
     this.cache.searchPosts(query, params, function(err, users, meta) {
       //console.log('dispatcher.js::userSearch - got', users.length, 'users')
       if (!users.length) {
@@ -2066,7 +2082,7 @@ module.exports = {
     }
   },
   deactiveChannel: function(channelid, params, token, callback) {
-    console.log('dispatcher::deactiveChannel', channelid, params, token);
+    //console.log('dispatcher::deactiveChannel', channelid, params, token);
     var ref=this;
     // only the owner can deactivate
     this.getChannel(channelid, params, function(channel, err, meta) {
@@ -2092,7 +2108,7 @@ module.exports = {
         for(var i in subs) {
           var userid = subs[i].userid
           ref.cache.setSubscription(channelid, userid, true, new Date(), function(err, subscription) {
-            console.log('dispatcher::deactiveChannel - remove used from channel', channelid)
+            //console.log('dispatcher::deactiveChannel - remove used from channel', channelid)
           })
         }
       })
@@ -2165,9 +2181,9 @@ module.exports = {
     //console.log('dispatcher::getUserChannels - userid', tokenobj.userid)
     //console.log('dispatcher::getUserChannels - params', params)
     this.cache.getUserChannels(tokenobj.userid, params, function(err, channels, meta) {
-      if (err) console.error('dispatcher.js::getUserChannels - getUserChannels', err)
+      if (err) console.error('dispatcher.js::getUserChannels - getUserChannels err', err)
       //console.log('dispatcher::getUserChannels - channels', channels.length)
-      if (!channels.length) {
+      if (!channels || !channels.length) {
         callback([], null);
         return;
       }
@@ -2180,7 +2196,7 @@ module.exports = {
         //console.log('asking for', channels[i].id)
         //channels[i].debug = true
         ref.channelToAPI(channels[i], params, params.tokenobj?params.tokenobj:{}, function(api, cErr, meta2) {
-          if (cErr) console.error('dispatcher.js::getUserChannels - channelToAPI', cErr)
+          if (cErr) console.error('dispatcher.js::getUserChannels - channelToAPI err', cErr)
           //console.log('dispatcher.js::getUserChannels - got API')
           apis.push(api);
           //console.log('dispatcher.js::getUserChannels - ', channels.length, '/', apis.length);
@@ -2431,7 +2447,7 @@ module.exports = {
           cb();
           return;
         }
-        ref.getEntities('message', message.id, function(entities, entitiesErr, entitiesMeta) {
+        ref.getEntities('message', message.id, function(entitiesErr, entities, entitiesMeta) {
           //console.log('dispatcher.js::postToAPI('+post.id+') - gotEntities');
           api.entities={
             mentions: [],
@@ -2539,7 +2555,7 @@ module.exports = {
     }
   },
   addMessage: function(channel_id, postdata, params, tokenobj, callback) {
-    console.log('dispatcher.js::addMessage - channel_id', channel_id);
+    //console.log('dispatcher.js::addMessage - channel_id', channel_id);
     var ref=this;
     // change channel permissions
     function continueAddMessage(channel_id) {
@@ -2572,7 +2588,7 @@ module.exports = {
 
     // actually create message record
     function continueAddMessage2(channel_id) {
-      console.log('continueAddMessage2', channel_id)
+      //console.log('dispatcher.js::addMessage - continueAddMessage2', channel_id)
       // why does annotations force channel_id 0?
       // so the message doesn't show up until
       // the annotations are written all the way through
@@ -2682,7 +2698,7 @@ module.exports = {
         continueAddMessage(nChannel_id);
       });
     } else {
-      console.log('dispatcher.js::addMessage - not pm channel', channel_id);
+      //console.log('dispatcher.js::addMessage - not pm channel', channel_id);
       continueAddMessage(channel_id);
     }
   },
@@ -3668,7 +3684,7 @@ module.exports = {
     // FIXME: current user last_updated
     var ref=this;
     if (data.annotations) {
-      console.log('dispatcher.js:updateUser - hasNotes, userid', data.id, 'notes', data.annotations, 'full', data)
+      //console.log('dispatcher.js:updateUser - hasNotes, userid', data.id, 'notes', data.annotations, 'full', data)
       // FIXME: only updated annotation if the timestamp is newer than we have
       this.setAnnotations('user', data.id, data.annotations);
     }
@@ -3906,69 +3922,73 @@ module.exports = {
         // use entity cache?
         if (1) {
           //console.log('dispatcher.js::userToAPI - getEntities '+user.id);
-          ref.getEntities('user', user.id, function(userEntities, userEntitiesErr, userEntitiesMeta) {
-            copyentities('mentions', userEntities.mentions, res.description);
-            copyentities('hashtags', userEntities.hashtags, res.description);
-            copyentities('links', userEntities.links, res.description);
+          ref.getEntities('user', user.id, function(userEntitiesErr, userEntities, userEntitiesMeta) {
+            if (userEntities) {
+              copyentities('mentions', userEntities.mentions, res.description)
+              copyentities('hashtags', userEntities.hashtags, res.description)
+              copyentities('links', userEntities.links, res.description)
+            } else {
+              console.error('no userEntities for user', user.id)
+            }
             // use html cache?
             if (1) {
               if (res.description) {
-                res.description.html=user.descriptionhtml;
+                res.description.html=user.descriptionhtml
               } else {
-                console.log('dispatcher.js::userToAPI - what happened to the description?!? ', user, res);
+                console.log('dispatcher.js::userToAPI - what happened to the description?!? ', user, res)
               }
-              if (user.debug) console.log('dispatcher.js::userToAPI('+user.id+') - calling back');
-              callback(res, userEntitiesErr);
+              if (user.debug) console.log('dispatcher.js::userToAPI('+user.id+') - calling back')
+              callback(res, userEntitiesErr)
             } else {
               // you can pass entities if you want...
               // text, entities, postcontext, callback
               ref.textProcess(user.description, users.entities, false, function(textProc, err) {
-                res.description.html=textProc.html;
-                callback(res, userEntitiesErr);
-              });
+                res.description.html=textProc.html
+                callback(res, userEntitiesErr)
+              })
             }
-          });
+          })
         } else {
-          //console.log('dispatcher.js::userToAPI - textProcess description '+user.id);
-          //console.log('dispatcher.js::userToAPI - calling back', res);
+          //console.log('dispatcher.js::userToAPI - textProcess description '+user.id)
+          //console.log('dispatcher.js::userToAPI - calling back', res)
           ref.textProcess(user.description, user.entities, false, function(textProc, err) {
-            res.description.html=textProc.html;
-            res.description.entities=textProc.entities;
-            callback(res, null);
-          });
+            res.description.html=textProc.html
+            res.description.entities=textProc.entities
+            callback(res, null)
+          })
         }
       } else {
-        //console.log('dispatcher.js::userToAPI - calling back', res);
-        callback(res, null);
+        //console.log('dispatcher.js::userToAPI - calling back', res)
+        callback(res, null)
       }
     }
 
     if (user.annotations) {
-      if (user.debug) console.log('dispatcher.js::userToAPI('+user.id+') - need user annotations');
-      need.annotation = true;
+      if (user.debug) console.log('dispatcher.js::userToAPI('+user.id+') - need user annotations')
+      need.annotation = true
       var loadAnnotation=function(user, cb) {
-        if (user.debug) console.log('dispatcher.js::userToAPI('+user.id+') - get user annotations');
+        if (user.debug) console.log('dispatcher.js::userToAPI('+user.id+') - get user annotations')
         ref.getAnnotation('user', user.id, function(dbNotes, err, noteMeta) {
-          if (user.debug) console.log('user', user.id, 'annotations', dbNotes.length);
-          var apiNotes=[];
+          if (user.debug) console.log('user', user.id, 'annotations', dbNotes.length)
+          var apiNotes=[]
           for(var j in dbNotes) {
-            var note=dbNotes[j];
-            //console.log('got note', j, '#', note.type, '/', note.value, 'for', user.id);
+            var note=dbNotes[j]
+            //console.log('got note', j, '#', note.type, '/', note.value, 'for', user.id)
             apiNotes.push({
               type: note.type,
               value: note.value,
-            });
+            })
           }
-          cb(apiNotes, err, noteMeta);
-        });
+          cb(apiNotes, err, noteMeta)
+        })
       }
 
       loadAnnotation(user, function(apiNotes, notesErr, notesMeta) {
-        if (notesErr) console.log('dispatcher.js::userToAPI - loadAnnotation', notesErr);
+        if (notesErr) console.log('dispatcher.js::userToAPI - loadAnnotation', notesErr)
         if (user.debug) console.log('final anno', apiNotes.length)
-        res.annotations=apiNotes;
+        res.annotations=apiNotes
         needComplete('annotation')
-      });
+      })
       //res.annotations = user.annotations
     }
 
@@ -4176,7 +4196,7 @@ module.exports = {
         //console.log('dispatcher.js::setFollows - no follows_user', data);
       }
       // set relationship status
-      console.log('dispatcher.js::setFollows - has data', data.user.id, data.follows_user.id, 'id', id, 'deleted', deleted, 'ts', ts);
+      //console.log('dispatcher.js::setFollows - has data', data.user.id, data.follows_user.id, 'id', id, 'deleted', deleted, 'ts', ts);
       // probably dont' need this first one but we're an internal API
       // maybe something will need it eventually
       normalizeUserID(data.user.id, {}, function(normalUserId) {
@@ -4588,7 +4608,7 @@ module.exports = {
     this.cache.getAnnotations(type, id, function(err, notes, meta) {
       //console.log('start notes', notes);
       //var fixedNotes=[];
-      if (!notes.length) {
+      if (!notes || !notes.length) {
         callback(notes, err, meta);
         return;
       }
@@ -4942,10 +4962,10 @@ module.exports = {
             finishcleanup(html, text, callback);
           }
         } else {
-          console.log('Searching for', username);
+          //console.log('dispatcher.js::textProcess - Searching for', username);
           ref.cache.getUserID(username, function(userErr, user, userMeta) {
             if (user) {
-              console.log('got', user.id);
+              //console.log('dispatcher.js::textProcess -got', user.id);
               // save in cache
               userlookup[user.username]=user.id;
               // fix up missing user ids
@@ -5052,13 +5072,13 @@ module.exports = {
     json=false;
   },
   pumpStreams: function(options, data) {
-    console.log('dispatcher::pumpStreams -', options)
+    //console.log('dispatcher::pumpStreams -', options)
     // op isn't used (add/del), type is only used in the meta
     function checkKey(key, op, type) {
-      console.log('dispatcher::pumpStreams - checking', key);
+      //console.log('dispatcher::pumpStreams - checking', key);
       // see if there's any connections we need to pump
       if (module.exports.pumps[key]) {
-        console.log('pumping', key, 'with', module.exports.pumps[key].length);
+        //console.log('pumping', key, 'with', module.exports.pumps[key].length);
         // FIXME: by queuing all connections that data needs to be set on
         for(var i in module.exports.pumps[key]) {
           var connId = module.exports.pumps[key][i];
