@@ -375,7 +375,7 @@ module.exports = {
         // postToAPI: function(post, params, tokenObj, callback, meta) {
         //getPost: function(id, params, callback) {
         //ref.getPost(postid, params, callback)
-        post.is_deleted = 1
+        post.is_deleted = true
         callback(false, post, postMeta)
         /*
         ref.postToApi(post, { }, function(apiPost, err) {
@@ -2346,7 +2346,7 @@ module.exports = {
   },
   messageToAPI: function(message, params, tokenObj, callback, meta) {
     if (!message) {
-      console.log('dispatcher::messageToAPI - empty message', message)
+      console.trace('dispatcher::messageToAPI - empty message', message)
       callback({}, 'empty message')
       return
     }
@@ -2920,14 +2920,18 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getChannelMessage: function(cid, mids, params, callback) {
-    //console.log('dispatcher.js::getChannelMessage - write me!');
+    //console.log('dispatcher.js::getChannelMessage - start');
     var ref = this;
-    this.cache.getMessage(mids, function(messages, err, meta) {
+    this.cache.getMessage(mids, function(err, messages, meta) {
+      if (err) console.error('dispatcher.js::getChannelMessage - err', err)
+      if (messages === undefined) {
+        console.trace('dispatcher.js::getMessage - messages is undefined');
+        messages = []
+      }
       // make messages an array if not
       if (!(messages instanceof Array)) {
         messages = [ messages ];
       }
-      //console.log('dispatcher.js::getMessage - messages', messages.length);
       //if (!messages.length) {
         //console.log('dispatcher.js::getMessage - messages', messages);
       //}
@@ -3152,12 +3156,13 @@ module.exports = {
   },
   getChannelsSubscriptions: function(ids, params, token, callback) {
     var ref = this;
-    //console.log('dispatcher.js::getChannelSubscriptions - start');
-    this.cache.getChannelSubscriptions(ids, params, function(subs, err, meta) {
+    //console.log('dispatcher.js::getChannelsSubscriptions - start', ids);
+    this.cache.getChannelSubscriptions(ids, params, function(err, subs, meta) {
+      if (err) console.error('dispatcher.js::getChannelSubscriptions - err', err)
       if (!subs.length) {
-        return callback([], '', meta);
+        return callback([], '', meta)
       }
-      callback(subs, '', meta);
+      callback(subs, '', meta)
     });
   },
   //
@@ -3836,6 +3841,7 @@ module.exports = {
       return;
     }
     this.cache.patchUser(tokenObj.userid, changes, function(err, user, meta) {
+      if (err) console.error('dispatcher.js::patchUser - err', err)
       if (callback) {
         ref.userToAPI(user, tokenObj, function(apiUser, apiErr, apiMeta) {
           callback(apiUser, apiErr, apiMeta);
