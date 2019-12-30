@@ -2,7 +2,7 @@ const path = require('path')
 const nconf = require('nconf')
 const assert = require('assert')
 const lokinet = require('loki-launcher/lokinet')
-
+const { URL } = require('url'); // node 8.x support
 const ADN_SCOPES = 'stream'
 
 // Look for a config file
