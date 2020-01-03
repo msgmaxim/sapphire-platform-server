@@ -1,4 +1,6 @@
 
+const userRoutes = require('./modules/users/users.routes')
+
 function sendresponse(json, resp) {
   var ts=new Date().getTime();
   var diff = ts-resp.start;
@@ -56,7 +58,7 @@ function ISODateString(d) {
 function formattoken(token) {
   // TODO: write me
   if (token.user) {
-    token.user=formatuser(token.user, token);
+    token.user=userRoutes.formatuser(token.user, token);
   }
   /*
     app: {
@@ -79,41 +81,13 @@ function formattoken(token) {
       "available": 8787479688,
       "used": 1212520312
     },
-    user: formatuser(user, token),
+    user: userRoutes.formatuser(user, token),
     "invite_link": "https://join.app.net/from/notareallink"
   */
   return token;
 }
 
-function formatuser(user, token) {
-  if (user) {
-    user.id=''+user.id;
-    user.username=''+user.username; // 530 was cast as an int
-    user.created_at=ISODateString(user.created_at);
-    if (!user.counts) {
-      // usually caused by call user instead of users callback
-      console.log('dialect.appdotnet_official.callback.js::formatuser - no user counts object')
-      user.counts={}
-    }
-    user.counts.following=parseInt(0+user.counts.following);
-    user.counts.posts=parseInt(0+user.counts.posts);
-    user.counts.followers=parseInt(0+user.counts.followers);
-    user.counts.stars=parseInt(0+user.counts.stars);
-    if (user.name) {
-      user.name=''+user.name;
-    }
-    if (token) {
-      // boolean (and what about the non-existent state?)
-      user.follows_you=user.follows_you?true:false;
-      user.you_blocked=user.you_blocked?true:false;
-      user.you_follow=user.you_follow?true:false;
-      user.you_muted=user.you_muted?true:false;
-      user.you_can_subscribe=user.you_can_subscribe?true:false;
-      user.you_can_follow=user.you_can_follow?true:true;
-    }
-  }
-  return user;
-}
+
 
 function formatpost(post, token) {
   // cast fields to make sure they're the correct type
@@ -142,6 +116,8 @@ function formatpost(post, token) {
 }
 
 module.exports = {
+  ISODateString: ISODateString,
+  sendObject: sendObject,
   'postsCallback' : function(resp, token) {
     return function(posts, err, meta) {
       //console.log('dialect.appdotnet_official.callback.js::postsCallback - in posts callback', posts.length, 'posts', posts);
@@ -151,14 +127,14 @@ module.exports = {
         posts[i]=formatpost(post, token);
         if (post.repost_of) {
           // this is an object...
-          post.repost_of.user=formatuser(post.repost_of.user, token);
+          post.repost_of.user=userRoutes.formatuser(post.repost_of.user, token);
           post.repost_of=formatpost(post.repost_of, token)
         }
         if (typeof(post.user)=='undefined') {
           console.log('dialect.appdotnet_official.callback.js::postsCallback - missing user for post '+i);
           posts[i].user={};
         } else {
-          posts[i].user=formatuser(post.user, token);
+          posts[i].user=userRoutes.formatuser(post.user, token);
         }
       }
       //console.log('dialect.appdotnet_official.callback.js::postsCallback - sending', posts.length, 'posts');
@@ -178,7 +154,7 @@ module.exports = {
       var users=[];
       // if any return fucking nothing (null) kill them (don't push them)
       for(var i in posts) {
-        users.push(formatuser(posts[i].user, token));
+        users.push(userRoutes.formatuser(posts[i].user, token));
       }
       //console.log('returning', users);
       // meta order: min_id, code, max_id, more
@@ -189,26 +165,6 @@ module.exports = {
       sendObject(res, resp);
     }
   },
-
-  'usersCallback' : function(resp, token) {
-    return function(unformattedUsers, err, meta) {
-      var users=[];
-      for(var i in unformattedUsers) {
-        // filter out nulls, it's convenient to filter here
-        if (formatuser(unformattedUsers[i])) {
-          users.push(formatuser(unformattedUsers[i], token));
-        }
-      }
-      // meta order: min_id, code, max_id, more
-      var res={
-        meta: meta,
-        data: users
-      };
-      //console.log('ADNO.CB::usersCallback - res', res);
-      sendObject(res, resp);
-    }
-  },
-
   'postCallback' : function(resp, token) {
     return function(err, post, meta) {
       // console.log('postCallack post', post, 'err', err, 'meta', meta)
@@ -217,38 +173,11 @@ module.exports = {
         data: formatpost(post, token)
       };
       if (post && post.user) {
-        res.data.user=formatuser(post.user, token);
+        res.data.user=userRoutes.formatuser(post.user, token);
       }
       if (meta) {
         res.meta=meta;
       }
-      sendObject(res, resp);
-    }
-  },
-
-  'userCallback' : function(resp, token) {
-    return function(user, err, meta) {
-      // meta order: min_id, code, max_id, more
-      if (!user) {
-        user={
-          id: 0,
-          username: 'notfound',
-          created_at: '2014-10-24T17:04:48Z',
-          avatar_image: {
-            url: 'http://cdn.discordapp.com/icons/235920083535265794/a0f48aa4e45d17d1183a563b20e15a54.png'
-          },
-          cover_image: {
-            url: 'http://cdn.discordapp.com/icons/235920083535265794/a0f48aa4e45d17d1183a563b20e15a54.png'
-          },
-          counts: {
-            following: 0,
-          }
-        };
-      }
-      var res={
-        meta: meta,
-        data: formatuser(user, token)
-      };
       sendObject(res, resp);
     }
   },
