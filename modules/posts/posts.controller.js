@@ -1,5 +1,5 @@
 // copyentities
-const entitiesController = require('../channels/entities.controller')
+const entitiesController = require('../users/entities.controller')
 
 module.exports = {
   /** posts */

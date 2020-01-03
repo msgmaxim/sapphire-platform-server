@@ -19,7 +19,7 @@ const funcs = []
 funcs.push(require('./modules/users/annotations.controller'))
 funcs.push(require('./modules/channels/channels.controller'))
 funcs.push(require('./modules/clients/clients.controller'))
-funcs.push(require('./modules/channels/entities.controller'))
+funcs.push(require('./modules/users/entities.controller'))
 funcs.push(require('./modules/files/files.controller'))
 funcs.push(require('./modules/follows/follows.controller'))
 funcs.push(require('./modules/channels/messages.controller'))

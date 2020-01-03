@@ -1,5 +1,5 @@
 // copyentities
-const entitiesController = require('../channels/entities.controller')
+const entitiesController = require('./entities.controller')
 
 module.exports={
   //
