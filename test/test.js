@@ -47,8 +47,9 @@ function findOrCreateUser(username) {
         console.error('findOrCreateUser::getUserID err', err)
         return rej(err)
       }
-      console.log('findOrCreateUser::getUserID result', user)
-      if (user !== null) {
+      // why did it shift form null to undefined?
+      //console.log('findOrCreateUser::getUserID result', user)
+      if (user !== null && user !== undefined) {
         //console.log('found user', user)
         return resolve(user.id)
       }
@@ -121,10 +122,10 @@ async function setupTesting() {
     // need the following in an `it` to make sure it only happens after the server is set up
     it('setting up token to use with testing', async() => {
       testUserId = await findOrCreateUser('test')
-      //console.log('testUserId', testUserId);
+      //console.log('testUserId', testUserId)
       if (testUserId === undefined) {
-        console.error('Couldnt create/find user to test with');
-        process.exit(1);
+        console.error('Couldnt create/find user to test with')
+        process.exit(1)
       }
       console.log('testUserId', testUserId)
       token = await findOrCreateToken(testUserId)
