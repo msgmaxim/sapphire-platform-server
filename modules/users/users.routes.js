@@ -9,32 +9,32 @@ let callbacks
 // won't work unless we mount users...
 function formatuser(user, token) {
   if (user) {
-    user.id = ''+user.id;
-    user.username = ''+user.username; // 530 was cast as an int
-    user.created_at = callbacks.ISODateString(user.created_at);
+    user.id = ''+user.id
+    user.username = ''+user.username // 530 was cast as an int
+    user.created_at = callbacks.ISODateString(user.created_at)
     if (!user.counts) {
       // usually caused by call user instead of users callback
       console.log('dialect.appdotnet_official.callback.js::formatuser - no user counts object')
       user.counts={}
     }
-    user.counts.following = parseInt(0+user.counts.following);
-    user.counts.posts = parseInt(0+user.counts.posts);
-    user.counts.followers = parseInt(0+user.counts.followers);
-    user.counts.stars = parseInt(0+user.counts.stars);
+    user.counts.following = parseInt(0 + user.counts.following)
+    user.counts.posts = parseInt(0 + user.counts.posts)
+    user.counts.followers = parseInt(0 + user.counts.followers)
+    user.counts.stars = parseInt(0 + user.counts.stars)
     if (user.name) {
-      user.name = ''+user.name;
+      user.name = ''+user.name
     }
     if (token) {
       // boolean (and what about the non-existent state?)
-      user.follows_you = user.follows_you?true:false;
-      user.you_blocked = user.you_blocked?true:false;
-      user.you_follow = user.you_follow?true:false;
-      user.you_muted = user.you_muted?true:false;
-      user.you_can_subscribe = user.you_can_subscribe?true:false;
-      user.you_can_follow = user.you_can_follow?true:true;
+      user.follows_you = user.follows_you?true:false
+      user.you_blocked = user.you_blocked?true:false
+      user.you_follow = user.you_follow?true:false
+      user.you_muted = user.you_muted?true:false
+      user.you_can_subscribe = user.you_can_subscribe?true:false
+      user.you_can_follow = user.you_can_follow?true:true
     }
   }
-  return user;
+  return user
 }
 
 module.exports = {
@@ -48,7 +48,7 @@ module.exports = {
       // req.token
       // req.token convert into userid/sourceid
       dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
-        //console.log('usertoken', usertoken);
+        //console.log('usertoken', usertoken)
         if (usertoken==null) {
           // could be they didn't log in through a server restart
           var res={
@@ -56,14 +56,14 @@ module.exports = {
               "code": 401,
               "error_message": "Call requires authentication: Authentication required to fetch token."
             }
-          };
-          resp.status(401).type('application/json').send(JSON.stringify(res));
+          }
+          resp.status(401).type('application/json').send(JSON.stringify(res))
         } else {
           // q or query?
-          dispatcher.userSearch(req.query.q, req.apiParams, usertoken, ref.usersCallback(resp, req.token));
+          dispatcher.userSearch(req.query.q, req.apiParams, usertoken, ref.usersCallback(resp, req.token))
         }
-      });
-    });
+      })
+    })
     // no token
     // retreive multiple users (Token: any)
     // /reference/resources/user/lookup/#retrieve-multiple-users
@@ -75,17 +75,17 @@ module.exports = {
           ids = ids.split(/,/)
         }
         if (typeof(ids) === 'string') {
-          ids = [ ids ];
+          ids = [ ids ]
         }
         //console.log('dialect.appdotnet_official.js:GETusers/ID - ids', ids)
-        dispatcher.getUsers(ids, req.apiParams, ref.usersCallback(resp));
-        return;
+        dispatcher.getUsers(ids, req.apiParams, ref.usersCallback(resp))
+        return
       }
       dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
-        //console.log('dialect.appdotnet_official.js:GETusers/ID - ', usertoken);
+        //console.log('dialect.appdotnet_official.js:GETusers/ID - ', usertoken)
         if (usertoken!=null) {
-          //console.log('dialect.appdotnet_official.js:GETusers/ID - found a token');
-          req.apiParams.tokenobj=usertoken;
+          //console.log('dialect.appdotnet_official.js:GETusers/ID - found a token')
+          req.apiParams.tokenobj=usertoken
         }
         if (!req.query.ids) {
           var res={
@@ -93,48 +93,48 @@ module.exports = {
               "code": 400,
               "error_message": "Call requires and id to lookup"
             }
-          };
-          resp.status(401).type('application/json').send(JSON.stringify(res));
-          return;
+          }
+          resp.status(401).type('application/json').send(JSON.stringify(res))
+          return
         }
-        dispatcher.getUsers(req.query.ids.split(/,/), req.apiParams, ref.usersCallback(resp));
-      });
-    });
+        dispatcher.getUsers(req.query.ids.split(/,/), req.apiParams, ref.usersCallback(resp))
+      })
+    })
     // no token
     app.get(prefix+'/users/:user_id', function(req, resp) {
-      //console.log('dialect.appdotnet_official.js:GETusersX - token', req.token);
+      //console.log('dialect.appdotnet_official.js:GETusersX - token', req.token)
       if (!req.token) {
-        dispatcher.getUser(req.params.user_id, req.apiParams, callbacks.dataCallback(resp));
-        return;
+        dispatcher.getUser(req.params.user_id, req.apiParams, callbacks.dataCallback(resp))
+        return
       }
       dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
-        //console.log('dialect.appdotnet_official.js:GETusers/ID - ', usertoken);
+        //console.log('dialect.appdotnet_official.js:GETusers/ID - ', usertoken)
         if (usertoken!=null) {
-          //console.log('dialect.appdotnet_official.js:GETusers/ID - found a token');
-          req.apiParams.tokenobj=usertoken;
+          //console.log('dialect.appdotnet_official.js:GETusers/ID - found a token')
+          req.apiParams.tokenobj=usertoken
         }
-        dispatcher.getUser(req.params.user_id, req.apiParams, ref.userCallback(resp));
-      });
-    });
+        dispatcher.getUser(req.params.user_id, req.apiParams, ref.userCallback(resp))
+      })
+    })
 
     // Token: User Scope: update_profile
     app.put(prefix+'/users/me', function updateUser(req, resp) {
       //console.log('dialect.appdotnet_official.js:PUTusersX - token', req.token)
       dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
         //console.log('dialect.appdotnet_official.js:PUTusersX - usertoken', usertoken)
-        if (usertoken===null) {
+        if (!usertoken) {
           var res={
             "meta": {
               "code": 401,
               "error_message": "Call requires authentication: Authentication required to fetch token."
             }
-          };
-          resp.status(401).type('application/json').send(JSON.stringify(res));
-          return;
+          }
+          resp.status(401).type('application/json').send(JSON.stringify(res))
+          return
         }
-        req.apiParams.tokenobj=usertoken;
-        //console.log('dialect.appdotnet_official.js:PUTusersXx - body', req.body);
-        //console.log('dialect.appdotnet_official.js:PUTusersX - creating channel of type', req.body.type);
+        req.apiParams.tokenobj=usertoken
+        //console.log('dialect.appdotnet_official.js:PUTusersXx - body', req.body)
+        //console.log('dialect.appdotnet_official.js:PUTusersX - creating channel of type', req.body.type)
         if (req.body.name === undefined || req.body.locale  === undefined ||
           req.body.timezone  === undefined || req.body.description === undefined ||
           req.body.description.text === undefined) {
@@ -143,14 +143,15 @@ module.exports = {
               "code": 400,
               "error_message": "Requires name, locale, timezone, and description to change (JSON encoded)"
             }
-          };
-          resp.status(400).type('application/json').send(JSON.stringify(res));
-          return;
+          }
+          resp.status(400).type('application/json').send(JSON.stringify(res))
+          return
         }
         //console.log('dialect.appdotnet_official.js:PUTusersXx - description.text', req.body.description.text)
         // user param to load everything
         //console.log('dialect.appdotnet_official.js:PUTusersXx - userid', usertoken.userid)
-        dispatcher.getUser(usertoken.userid, { generalParams: { annotations: true, include_html: true } }, function(userObj, err) {
+        const params = { generalParams: { annotations: true, include_html: true } }
+        dispatcher.getUser(usertoken.userid, params, function(err, userObj) {
           // These are required fields
           /*
           var userobj={
@@ -160,13 +161,13 @@ module.exports = {
             description: {
               text: req.body.description.text,
             },
-          };
+          }
           */
-          userObj.name = req.body.name;
-          userObj.locale = req.body.locale;
-          userObj.timezone = req.body.timezone;
+          userObj.name = req.body.name
+          userObj.locale = req.body.locale
+          userObj.timezone = req.body.timezone
           if (userObj.description === undefined) userObj.description = {}
-          userObj.description.text = req.body.description.text;
+          userObj.description.text = req.body.description.text
           // optional fields
           if (req.body.annotations) {
             // spec says we need to add/update (delete if set/blank)
@@ -175,19 +176,19 @@ module.exports = {
             for(var i in req.body.annotations) {
               var note = req.body.annotations[i]
               if (note.type && note.value === undefined) {
-                console.warn('dialect.appdotnet_official.js:PUTusersXx - need to delete', note.type);
+                console.warn('dialect.appdotnet_official.js:PUTusersXx - need to delete', note.type)
                 req.body.annotations.splice(i, 1)
               }
             }
-            userObj.annotations = req.body.annotations;
+            userObj.annotations = req.body.annotations
           }
-          //userObj.id = usertoken.userid;
-          //console.log('dialect.appdotnet_official.js:PUTusersXx - userobj', userObj);
-          dispatcher.updateUser(userObj, Date.now()/1000, callbacks.dataCallback(resp));
-        });
-        //dispatcher.addChannel(channel, req.apiParams, usertoken, callbacks.dataCallback(resp));
-      });
-    });
+          //userObj.id = usertoken.userid
+          //console.log('dialect.appdotnet_official.js:PUTusersXx - userobj', userObj)
+          dispatcher.updateUser(userObj, Date.now()/1000, callbacks.dataCallback(resp))
+        })
+        //dispatcher.addChannel(channel, req.apiParams, usertoken, callbacks.dataCallback(resp))
+      })
+    })
 
     app.post(prefix+'/users/me/avatar', upload.single('avatar'), function updateUserAvatar(req, resp) {
       if (!req.file) {
@@ -197,11 +198,11 @@ module.exports = {
             "code": 400,
             "error_message": "No file uploaded"
           }
-        };
-        resp.status(400).type('application/json').send(JSON.stringify(res));
-        return;
+        }
+        resp.status(400).type('application/json').send(JSON.stringify(res))
+        return
       }
-      console.log('POSTavatar - file upload got', req.file.buffer.length, 'bytes');
+      console.log('POSTavatar - file upload got', req.file.buffer.length, 'bytes')
       if (!req.file.buffer.length) {
         // no files uploaded
         var res={
@@ -209,31 +210,31 @@ module.exports = {
             "code": 400,
             "error_message": "No file uploaded"
           }
-        };
-        resp.status(400).type('application/json').send(JSON.stringify(res));
-        return;
+        }
+        resp.status(400).type('application/json').send(JSON.stringify(res))
+        return
       }
-      //console.log('looking for type - params:', req.params, 'body:', req.body);
+      //console.log('looking for type - params:', req.params, 'body:', req.body)
       // type is in req.body.type
-      //console.log('POSTfiles - req token', req.token);
+      //console.log('POSTfiles - req token', req.token)
       dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
         if (err) {
-          console.log('dialect.appdotnet_official.js:POSTavatar - token err', err);
+          console.log('dialect.appdotnet_official.js:POSTavatar - token err', err)
         }
         if (usertoken==null) {
-          console.log('dialect.appdotnet_official.js:POSTavatar - no token');
+          console.log('dialect.appdotnet_official.js:POSTavatar - no token')
           // could be they didn't log in through a server restart
           var res={
             "meta": {
               "code": 401,
               "error_message": "Call requires authentication: Authentication required to fetch token."
             }
-          };
-          return resp.status(401).type('application/json').send(JSON.stringify(res));
+          }
+          return resp.status(401).type('application/json').send(JSON.stringify(res))
         }
-        //console.log('dialect.appdotnet_official.js:POSTavatar - usertoken', usertoken);
-        //console.log('dialect.appdotnet_official.js:POSTavatar - uploading to pomf');
-        var uploadUrl = dispatcher.appConfig.provider_url;
+        //console.log('dialect.appdotnet_official.js:POSTavatar - usertoken', usertoken)
+        //console.log('dialect.appdotnet_official.js:POSTavatar - uploading to pomf')
+        var uploadUrl = dispatcher.appConfig.provider_url
         request.post({
           url: uploadUrl,
           formData: {
@@ -249,17 +250,17 @@ module.exports = {
           }
         }, function (err, uploadResp, body) {
           if (err) {
-            console.log('dialect.appdotnet_official.js:POSTavatar - pomf upload Error!', err);
+            console.log('dialect.appdotnet_official.js:POSTavatar - pomf upload Error!', err)
             var res={
               "meta": {
                 "code": 500,
                 "error_message": "Could not save file (Could not POST to POMF)"
               }
-            };
-            resp.status(res.meta.code).type('application/json').send(JSON.stringify(res));
-            return;
+            }
+            resp.status(res.meta.code).type('application/json').send(JSON.stringify(res))
+            return
           }
-          //console.log('URL: ' + body);
+          //console.log('URL: ' + body)
           /*
           {"success":true,"files":[
             {
@@ -276,19 +277,19 @@ module.exports = {
             description: 'No input file(s)'
           }
           */
-          var data = {};
+          var data = {}
           try {
-            data=JSON.parse(body);
+            data=JSON.parse(body)
           } catch(e) {
-            console.log('couldnt json parse body', body);
+            console.log('couldnt json parse body', body)
             var res={
               "meta": {
                 "code": 500,
                 "error_message": "Could not save file (POMF did not return JSON as requested)"
               }
-            };
-            resp.status(res.meta.code).type('application/json').send(JSON.stringify(res));
-            return;
+            }
+            resp.status(res.meta.code).type('application/json').send(JSON.stringify(res))
+            return
           }
           if (!data.success) {
             var res={
@@ -296,9 +297,9 @@ module.exports = {
                 "code": 500,
                 "error_message": "Could not save file (POMF did not return success)"
               }
-            };
-            resp.status(res.meta.code).type('application/json').send(JSON.stringify(res));
-            return;
+            }
+            resp.status(res.meta.code).type('application/json').send(JSON.stringify(res))
+            return
           }
           //, 'from', body
           if (!data.files.length) {
@@ -307,21 +308,21 @@ module.exports = {
                 "code": 500,
                 "error_message": "Could not save file (POMF did not return files)"
               }
-            };
-            resp.status(res.meta.code).type('application/json').send(JSON.stringify(res));
-            return;
+            }
+            resp.status(res.meta.code).type('application/json').send(JSON.stringify(res))
+            return
           }
           if (data.files.length > 1) {
-            console.warn('dialect.appdotnet_official.js:POSTavatar - Multiple files!', data);
+            console.warn('dialect.appdotnet_official.js:POSTavatar - Multiple files!', data)
           }
           //for(var i in data.files) {
-          var file=data.files[0];
-          //console.log('dialect.appdotnet_official.js:POSTavatar - setting', file.url);
-          dispatcher.updateUserAvatar(file.url, req.apiParams, usertoken, callbacks.userCallback(resp, req.token));
+          var file=data.files[0]
+          //console.log('dialect.appdotnet_official.js:POSTavatar - setting', file.url)
+          dispatcher.updateUserAvatar(file.url, req.apiParams, usertoken, callbacks.userCallback(resp, req.token))
           //}
-        });
-      });
-    });
+        })
+      })
+    })
 
     // partially update a user (Token: User Scope: update_profile)
     app.patch(prefix+'/users/me', function updateUser(req, resp) {
@@ -334,21 +335,21 @@ module.exports = {
               "code": 401,
               "error_message": "Call requires authentication: Authentication required to fetch token."
             }
-          };
-          resp.status(401).type('application/json').send(JSON.stringify(res));
-          return;
+          }
+          resp.status(401).type('application/json').send(JSON.stringify(res))
+          return
         }
-        req.apiParams.tokenobj=usertoken;
-        //console.log('dialect.appdotnet_official.js:PATCHusersX - bodyType['+req.body+']');
-        //console.log('dialect.appdotnet_official.js:PATCHusersX - body ', req.body);
+        req.apiParams.tokenobj=usertoken
+        //console.log('dialect.appdotnet_official.js:PATCHusersX - bodyType['+req.body+']')
+        //console.log('dialect.appdotnet_official.js:PATCHusersX - body ', req.body)
         //var bodyObj = JSON.parse(req.body)
         var bodyObj = req.body
         /*
         for(var i in req.body) {
-          console.log('dialect.appdotnet_official.js:PATCHusersX -', i, '=', req.body[i]);
+          console.log('dialect.appdotnet_official.js:PATCHusersX -', i, '=', req.body[i])
         }
         */
-        //console.log('dialect.appdotnet_official.js:PATCHusersX - test', req.body.annotations);
+        //console.log('dialect.appdotnet_official.js:PATCHusersX - test', req.body.annotations)
         var request={
           //name: req.body.name,
           //locale: req.body.locale,
@@ -369,36 +370,36 @@ module.exports = {
         }
         // optional fields
         if (req.body.annotations) {
-          request.annotations = req.body.annotations;
+          request.annotations = req.body.annotations
         }
-        //console.log('dialect.appdotnet_official.js:PATCHusersX - request', request);
-        //console.log('dialect.appdotnet_official.js:PATCHusersX - creating channel of type', req.body.type);
-        dispatcher.patchUser(request, req.apiParams, usertoken, callbacks.dataCallback(resp));
-      });
-    });
+        //console.log('dialect.appdotnet_official.js:PATCHusersX - request', request)
+        //console.log('dialect.appdotnet_official.js:PATCHusersX - creating channel of type', req.body.type)
+        dispatcher.patchUser(request, req.apiParams, usertoken, callbacks.dataCallback(resp))
+      })
+    })
 
   },
   formatuser: formatuser,
   usersCallback: function(resp, token) {
-    return function(unformattedUsers, err, meta) {
-      var users=[];
+    return function(err, unformattedUsers, meta) {
+      var users=[]
       for(var i in unformattedUsers) {
         // filter out nulls, it's convenient to filter here
         if (formatuser(unformattedUsers[i])) {
-          users.push(formatuser(unformattedUsers[i], token));
+          users.push(formatuser(unformattedUsers[i], token))
         }
       }
       // meta order: min_id, code, max_id, more
       var res={
         meta: meta,
         data: users
-      };
-      //console.log('ADNO.CB::usersCallback - res', res);
-      callbacks.sendObject(res, resp);
+      }
+      //console.log('ADNO.CB::usersCallback - res', res)
+      callbacks.sendObject(res, resp)
     }
   },
   userCallback: function(resp, token) {
-    return function(user, err, meta) {
+    return function(err, user, meta) {
       // meta order: min_id, code, max_id, more
       if (!user) {
         user={
@@ -414,13 +415,13 @@ module.exports = {
           counts: {
             following: 0,
           }
-        };
+        }
       }
       var res={
         meta: meta,
         data: formatuser(user, token)
-      };
-      callbacks.sendObject(res, resp);
+      }
+      callbacks.sendObject(res, resp)
     }
   },
 }

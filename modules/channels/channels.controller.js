@@ -43,17 +43,17 @@ module.exports={
       writers: api.writers.user_ids.join(','),
       editors: api.editors.user_ids.join(','),
     }
-    callback(channel, null, meta)
+    callback(false, channel, meta)
   },
   channelToAPI: function (channel, params, tokenObj, callback, meta) {
     if (typeof(channel)!='object') {
-      console.log('dispatcher.js::channelToAPI - channel passed in wasnt object')
-      callback([], 'bad data')
+      console.trace('dispatcher.js::channelToAPI - channel passed in wasnt object')
+      callback('bad data')
       return
     }
-    if (channel==null) {
-      console.log('dispatcher.js::channelToAPI - channel is null')
-      callback([], 'null data')
+    if (!channel) {
+      console.trace('dispatcher.js::channelToAPI - channel is falish')
+      callback('null data')
       return
     }
     //console.log('channel', channel)
@@ -143,13 +143,13 @@ module.exports={
       }
       //console.log('dispatcher.js::channelToAPI('+channel.id+') - done, text', data.text)
       // everything is done
-      callback(api, null, meta)
+      callback(false, api, meta)
     }
 
     function loadUser(userid, params, cb) {
       if (channel.debug) console.log('dispatcher.js::channelToAPI('+channel.id+') - getting user '+userid)
       //params.debug = true
-      ref.getUser(userid, params, function(user, userErr, userMeta) {
+      ref.getUser(userid, params, function(userErr, user, userMeta) {
         if (userErr) console.error('dispatcher.js::channelToAPI('+channel.id+') - ', userErr)
         if (channel.debug) console.log('dispatcher.js::channelToAPI('+channel.id+') - got user '+userid)
         if (!user) {
@@ -168,12 +168,12 @@ module.exports={
             }
           }
         }
-        cb(user, userErr, userMeta)
+        cb(userErr, user, userMeta)
       }) // getUser
     }
 
     function loadAnnotation(channel, cb) {
-      ref.getAnnotation('channel', channel.id, function(dbNotes, err, noteMeta) {
+      ref.getAnnotation('channel', channel.id, function(err, dbNotes, noteMeta) {
         var apiNotes=[]
         for(var j in dbNotes) {
           var note=dbNotes[j]
@@ -183,7 +183,7 @@ module.exports={
             value: note.value,
           })
         }
-        cb(apiNotes, err, noteMeta)
+        cb(err, apiNotes, noteMeta)
       })
     }
 
@@ -241,13 +241,13 @@ module.exports={
       }
     }
     //if (channel.debug) console.log('asking to load', channel.ownerid)
-    loadUser(channel.ownerid, params, function(user, userErr, userMeta) {
+    loadUser(channel.ownerid, params, function(userErr, user, userMeta) {
       api.owner=user
       //console.log('dispatcher.js::channelToAPI - params', params)
       setDone('user')
     })
     if (params.generalParams.annotations || params.generalParams.post_annotations) {
-      loadAnnotation(channel, function(apiNotes, noteErr, noteMeta) {
+      loadAnnotation(channel, function(noteErr, apiNotes, noteMeta) {
         api.annotations = apiNotes
         //callback(api, userErr || noteErr)
         setDone('annotations')
@@ -258,7 +258,7 @@ module.exports={
     }
     //getChannelMessages function(cid, params, callback) {
     var mParams={ pageParams: { count: 1 }, generalParams: {}, tokenobj: tokenObj }
-    this.getChannelMessages(channel.id, mParams, function(messages, messageErr, messageMeta) {
+    this.getChannelMessages(channel.id, mParams, function(messageErr, messages, messageMeta) {
       if (messageErr) {
         console.log('dispatcher::channelToAPI - messageErr', messageErr, 'channel', channel.id)
       }
@@ -281,7 +281,7 @@ module.exports={
   setChannel: function(json, ts, callback) {
     if (!json) {
       console.log('dispatcher.js::setChannel - no json passed in')
-      callback(null, 'no json passed in')
+      callback(false, 'no json passed in')
       return
     }
     // update user object
@@ -292,7 +292,7 @@ module.exports={
       ref.cache.setChannel(channel, ts, function(err, chnl) {
         // if newer update annotations
         if (callback) {
-          callback(chnl, err || convertErr)
+          callback(err || convertErr, chnl)
         }
       })
     })
@@ -318,7 +318,7 @@ module.exports={
       //console.log('dispatcher.js::updateChannel - got channel', typeof(channel), channel && Object.keys(channel), channel)
       // FIXME: use apiToChannel
       if (!token.userid || channel.ownerid != token.userid) {
-        callback({}, 'access denied to channel', {
+        callback('access denied to channel', {}, {
           code: token?403:401,
         })
         return
@@ -386,7 +386,7 @@ module.exports={
       // The owner will be auto-subscribed to this channel.
       //apiToChannel: function(api, meta, callback) {
       api.owner={}
-      ref.apiToChannel(api, {}, function(channel, err, meta) {
+      ref.apiToChannel(api, {}, function(err, channel, meta) {
         delete channel.id
         ref.cache.addChannel(token.userid, channel, function(createErr, channelRes, createMeta) {
           //console.log('dispatcher::addChannel', channelRes.id)
@@ -419,7 +419,7 @@ module.exports={
     //console.log('dispatcher::deactiveChannel', channelid, params, token)
     var ref=this
     // only the owner can deactivate
-    this.getChannel(channelid, params, function(channel, err, meta) {
+    this.getChannel(channelid, params, function(err, channel, meta) {
       //console.log('ownerid', channel.owner.id, 'token', token.userid, 'channel', channel)
       if (!token.userid || (channel && channel.owner && channel.owner.id != token.userid)) {
         callback({}, 'access denied to channel', {
@@ -434,7 +434,7 @@ module.exports={
       ref.cache.updateChannel(channelid, chnl, function(err2, success, meta2) {
         //channel.is_deleted = true
         channel.is_inactive = true
-        callback(channel, '', meta)
+        callback(false, channel, meta)
         //ref.channelToAPI(channel, params, token, callback, meta2)
       })
       // FIXME: get rid of the N+1 and delete all in one query
@@ -508,7 +508,7 @@ module.exports={
   getUserChannels: function(params, tokenobj, callback) {
     //console.log('dispatcher::getUserChannels - tokenobj', tokenobj)
     if (!tokenobj.userid) {
-      callback([], 'not user token')
+      callback('not user token')
       return
     }
     var ref=this
@@ -518,7 +518,7 @@ module.exports={
       if (err) console.error('dispatcher.js::getUserChannels - getUserChannels err', err)
       //console.log('dispatcher::getUserChannels - channels', channels.length)
       if (!channels || !channels.length) {
-        callback([], null)
+        callback(err, [])
         return
       }
       var apis=[]
@@ -529,14 +529,14 @@ module.exports={
         // channelToAPI: function (channel, params, tokenObj, callback, meta) {
         //console.log('asking for', channels[i].id)
         //channels[i].debug = true
-        ref.channelToAPI(channels[i], params, params.tokenobj?params.tokenobj:{}, function(api, cErr, meta2) {
+        ref.channelToAPI(channels[i], params, params.tokenobj?params.tokenobj:{}, function(cErr, api, meta2) {
           if (cErr) console.error('dispatcher.js::getUserChannels - channelToAPI err', cErr)
           //console.log('dispatcher.js::getUserChannels - got API')
           apis.push(api)
           //console.log('dispatcher.js::getUserChannels - ', channels.length, '/', apis.length)
           if (channels.length == apis.length) {
             //console.log('dispatcher.js::getUserChannels - returning array')
-            callback(apis, err || cErr)
+            callback(err || cErr, apis)
           }
         }, meta)
       }
@@ -551,7 +551,7 @@ module.exports={
   getChannel: function(ids, params, callback) {
     if (ids===undefined || ids === "undefined") {
       console.log('dispatcher.js::getChannel - id was undefined')
-      callback([], 'ids was undefined')
+      callback('ids was undefined')
       return
     }
     //console.log('dispatcher.js::getChannel - ids', ids)
@@ -559,7 +559,7 @@ module.exports={
     this.cache.getChannel(ids, params, function(err, channels, meta) {
       //console.log('dispatcher.js::getChannel - got array', channels)
       if (channels === undefined) {
-        callback([], err, meta)
+        callback(err, [], meta)
         return
       }
       //console.log('dispatcher.js::getChannel - got array', channels)
@@ -567,7 +567,7 @@ module.exports={
         //console.log('dispatcher.js::getChannel - got array', channels.length)
         if (!channels.length) {
           //console.log('dispatcher.js::getChannel multiple - no result for', ids)
-          callback([], err, meta)
+          callback(err, [], meta)
           return
         }
         var apis=[]
@@ -604,7 +604,7 @@ module.exports={
             apis.push({ id: channel.id, readers: { user_ids: [] }, writers: { user_ids: [] }, editors: { user_ids: [] } })
             if (channels.length == apis.length) {
               //console.log('dispatcher.js::getChannel - returning array')
-              callback(apis, err)
+              callback(err, apis)
             }
             continue
           }
@@ -615,7 +615,7 @@ module.exports={
             //console.log('dispatcher.js::getChannel - ', channels.length, '/', apis.length)
             if (channels.length == apis.length) {
               //console.log('dispatcher.js::getChannel - returning array')
-              callback(apis, err || cErr)
+              callback(err || cErr, apis)
             }
           })
         }
@@ -650,7 +650,7 @@ module.exports={
           apis.push({ id: channel.id, readers: { user_ids: [] }, writers: { user_ids: [] }, editors: { user_ids: [] } })
           if (channels.length == apis.length) {
             //console.log('dispatcher.js::getChannel - returning array')
-            callback(apis, err)
+            callback(err, apis)
           }
           continue
         }
@@ -664,7 +664,7 @@ module.exports={
           //console.log('dispatcher.js::getChannel - ', channels.length, '/', apis.length)
           if (channels.length == apis.length) {
             //console.log('dispatcher.js::getChannel - returning array')
-            callback(apis, err || cErr)
+            callback(err || cErr, apis)
           }
         })
       }

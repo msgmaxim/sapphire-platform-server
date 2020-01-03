@@ -65,7 +65,7 @@ module.exports = {
     }
     function loadUser(userid, params, cb) {
       //console.log('dispatcher.js::postToAPI('+message.id+') - getting user '+message.userid)
-      ref.getUser(userid, params, function(user, userErr, userMeta) {
+      ref.getUser(userid, params, function(userErr, user, userMeta) {
         //console.log('dispatcher.js::postToAPI('+message.id+') - got user '+message.userid, userErr)
         if (!user) {
           user={
@@ -83,11 +83,11 @@ module.exports = {
             }
           }
         }
-        cb(user, userErr, userMeta)
+        cb(userErr, user, userMeta)
       }) // getUser
     }
     function loadAnnotation(mid, cb) {
-      ref.getAnnotation('message', mid, function(dbNotes, err, noteMeta) {
+      ref.getAnnotation('message', mid, function(err, dbNotes, noteMeta) {
         var apiNotes=[]
         for(var j in dbNotes) {
           var note=dbNotes[j]
@@ -97,7 +97,7 @@ module.exports = {
             value: note.value,
           })
         }
-        cb(apiNotes, err, noteMeta)
+        cb(err, apiNotes, noteMeta)
       })
     }
 
@@ -211,7 +211,7 @@ module.exports = {
     this.cache.setMessage(message, function(err, msg) {
       // if current, extract annotations too
       if (callback) {
-        callback(msg, err)
+        callback(err, msg)
       }
     })
     if (this.notsilent) {
@@ -345,7 +345,7 @@ module.exports = {
                 // if current, extract annotations too
                 if (callback) {
                   //console.log('dispatcher.js::addMessage - has callback', api.id, api)
-                  callback(api, err, meta)
+                  callback(err, api, meta)
                 }
               })
             }, meta)
@@ -373,21 +373,21 @@ module.exports = {
     //console.log('dispatcher.js::deleteMessage - channel_id', channel_id)
     if (!message_id) {
       console.log('dispatcher.js::deleteMessage - no message')
-      callback([], 'no message passed in', {
+      callback('no message passed in', [], {
         code: 410,
       })
       return
     }
     if (!channel_id) {
       console.log('dispatcher.js::deleteMessage - no channel')
-      callback([], 'no channel passed in', {
+      callback('no channel passed in', [], {
         code: tokenobj?403:401,
       })
       return
     }
     if (!tokenObj || !tokenObj.userid) {
       console.log('dispatcher.js::deleteMessage - no token')
-      callback([], 'no token passed in', {
+      callback('no token passed in', [], {
         code: 401,
       })
       return
@@ -403,13 +403,13 @@ module.exports = {
         return
       }
       // is this your message
-      ref.getMessage(message_id, params, tokenObj, function(apiMsgs, apiErr, apiMeta) {
+      ref.getMessage(message_id, params, tokenObj, function(apiErr, apiMsgs, apiMeta) {
         if (apiErr) {
           console.error('dispatcher.js::deleteMessage - err', apiErr)
         }
         if (!apiMsgs || !apiMsgs.length || apiMsgs.length != 1) {
           console.log('dispatcher.js::deleteMessage -', message_id, 'not found')
-          callback({}, 'message not found', {
+          callback('message not found', {}, {
             code: 410,
           })
           return
@@ -417,21 +417,21 @@ module.exports = {
         var apiMsg = apiMsgs[0]
         if (!apiMsg) {
           console.log('dispatcher.js::deleteMessage -', message_id, 'not found')
-          callback({}, 'message not found', {
+          callback('message not found', {}, {
             code: 410,
           })
           return
         }
         if (!apiMsg.user) {
           console.log('dispatcher.js::deleteMessage - ', message_id, ' has no user', apiMsg)
-          callback({}, 'message not found', {
+          callback('message not found', {}, {
             code: 410,
           })
           return
         }
         if (apiMsg.user.id != tokenObj.userid) {
           console.log('dispatcher.js::deleteMessage - denying message access')
-          callback({}, 'access denied to message', {
+          callback('access denied to message', {}, {
             code: 403,
           })
           return
@@ -439,7 +439,7 @@ module.exports = {
         ref.cache.deleteMessage(message_id, channel_id, function(err, msg, meta) {
           //console.log('dispatcher.js::deleteMessage - api1', msg)
           apiMsg.is_deleted = true
-          callback(apiMsg, apiErr, apiMeta)
+          callback(apiErr, apiMsg, apiMeta)
           /*
           ref.cache.getMessage(message_id, function(message, err, meta) {
             ref.messageToAPI(message, params, tokenObj, function(api, err) {
@@ -471,11 +471,11 @@ module.exports = {
       for(var i in messages) {
         var message = messages[i]
         // messageToAPI: function(message, params, tokenObj, callback, meta) {
-        ref.messageToAPI(message, params, tokenObj, function(api, err) {
+        ref.messageToAPI(message, params, tokenObj, function(err, api) {
           apis.push(api)
           //console.log(apis.length, '/', messages.length)
           if (apis.length == messages.length) {
-            callback(apis, err, meta)
+            callback(err, apis, meta)
           }
         }, meta)
       }
@@ -499,13 +499,13 @@ module.exports = {
     this.cache.getChannel(cid, params, function(channelErr, channel, channelMeta) {
       //console.log('dispatcher.js:getChannelMessages - check', channel)
       if (!channel) {
-        callback([], 'no such channel', {
+        callback('no such channel', [], {
           code: 404,
         })
         return
       }
       if (!ref.checkChannelAccess(channel, params.tokenobj?params.tokenobj.userid:0)) {
-        callback([], 'access denied to channel', {
+        callback('access denied to channel', [], {
           code: params.tokenobj?403:401,
         })
         return
@@ -529,7 +529,7 @@ module.exports = {
       ref.cache.getChannelMessages(cid, params, function(err, messages, meta) {
         //console.log('dispatcher.js::getChannelMessages -', cid, 'has', messages.length)
         if (!messages.length) {
-          callback([], err)
+          callback(err, [])
           return
         }
         function finishMessages() {
@@ -549,7 +549,7 @@ module.exports = {
                 for(var i in messages) {
                   list.push(apis[messages[i].id])
                 }
-                callback(list, err || cErr)
+                callback(err || cErr, list)
               }
             })
           }
@@ -603,16 +603,16 @@ module.exports = {
         if (message && message.channel_id != cid) {
           apis.push(false)
           if (apis.length == messages.length) {
-            callback(apis, err, meta)
+            callback(err, apis, meta)
           }
           continue
         }
         // messageToAPI: function(message, params, tokenObj, callback, meta) {
-        ref.messageToAPI(message, params, params.tokenObj, function(api, err) {
+        ref.messageToAPI(message, params, params.tokenObj, function(err, api) {
           apis.push(api)
           //console.log(apis.length, '/', messages.length)
           if (apis.length == messages.length) {
-            callback(apis, err, meta)
+            callback(err, apis, meta)
           }
         }, meta)
       }

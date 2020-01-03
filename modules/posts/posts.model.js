@@ -214,7 +214,7 @@ module.exports = {
         var meta={
           code: 200
         }
-        console.log('camintejs::delPost - cleaning reposts of', postid)
+        //console.log('camintejs::delPost - cleaning reposts of', postid)
         // now we have to mark any reposts as deleted
         postModel.update({ where: { repost_of: postid } },
         { is_deleted: true }, function(repostErr, udpateRes) {

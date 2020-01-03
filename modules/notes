@@ -1,0 +1,40 @@
+model
+routes
+handlers
+core/helpers
+
+Issues:
+- entities are used in user
+- user callbacks are used in several places (posts, follows, etc)
+- move other callbacks out?
+- modules/routes don't work without the adn dialect
+- need to take all routes and make a module routes...
+- validToken helper
+- convert to promises (models then controllers)
+- more unit tests
+
+channels
+- channels
+- subscriptions
+- messages
+- entities
+- textprocess
+- streammarkers (or separate module?)
+clients
+- clients
+files
+- files
+follows
+- follows
+posts
+- posts
+- interactions/stars
+streams
+- appstreams
+- userstreams
+users
+- users (core?)
+- annotations
+- tokens
+- mutes
+- sessions

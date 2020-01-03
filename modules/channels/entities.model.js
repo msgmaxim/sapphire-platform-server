@@ -36,12 +36,12 @@ module.exports = {
     */
     if (type===null) {
       // don't let it write type nulls
-      console.log('dataaccess.caminte.js::extractEntities - extracted bad entity type',type)
-      callback(null,'badtype')
+      console.error('dataaccess.caminte.js::extractEntities - extracted bad entity type', type)
+      callback('badtype', false)
       return
     }
     // delete (type & idtype & id)
-    entityModel.find({where: { idtype: type, typeid: id, type: entitytype }},function(err, oldEntities) {
+    entityModel.find({where: { idtype: type, typeid: id, type: entitytype }}, function(err, oldEntities) {
       //console.dir(oldEntities)
 
       // why do we have empty entity records in the DB?
@@ -160,7 +160,7 @@ module.exports = {
           }
         }
       }
-      callback(null, res)
+      callback(false, res)
     })
   },
   // more like getHashtagEntities
@@ -172,9 +172,7 @@ module.exports = {
     }
     */
     // sorted by post created date...., well we have post id we can use
-    entityModel.find({ where: { type: 'hashtag', text: hashtag }, order: 'typeid DESC' }, function(err, entities) {
-      callback(err, entities)
-    })
+    entityModel.find({ where: { type: 'hashtag', text: hashtag }, order: 'typeid DESC' }, callback)
   },
   getMentions: function(user, params, callback) {
     if (user=='me') {

@@ -11,10 +11,10 @@ module.exports = {
    * get current context user token
    * @param {metaCallback} callback - function to call after completion
    */
-  getToken: function(userid, client_id, callback) {
+  getToken: function(userid, client_id, params, callback) {
     // we could lookup unique token by userid/client_id
     // dummy token
-    this.getUser(userid, null, function(user, err) {
+    this.getUser(userid, params, function(err, user) {
       var token={
         app: {
           client_id: client_id,
@@ -40,7 +40,7 @@ module.exports = {
         "invite_link": "https://join.app.net/from/notareallink"
       }
       //console.log('dispatcher::getToken - ', token)
-      callback(token, null)
+      callback(false, token)
     })
   },
   getUserClientByToken: function(token, callback) {

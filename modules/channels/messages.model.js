@@ -109,7 +109,7 @@ module.exports = {
     var ref=this
     messageModel.find(criteria, function(err, messages) {
       if (err) {
-        console.log('dataaccess.caminte.js::getMessage - err', err);
+        console.log('dataaccess.caminte.js::getMessage - err', err)
       }
       if (messages==null && err==null) {
         if (ref.next) {

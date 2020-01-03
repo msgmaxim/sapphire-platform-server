@@ -89,45 +89,45 @@ module.exports = {
     userModel.update({ where: { id: userid } }, changes, callback)
   },
   updateUserCounts: function(userid, callback) {
-    var ref=this;
+    var ref=this
     userModel.findById(userid, function(err, user) {
       if (!user) {
-        console.log('updateUserCounts no user', user, 'for id', userid);
+        console.log('updateUserCounts no user', user, 'for id', userid)
         if (callback) {
-          callback();
+          callback()
         }
-        return;
+        return
       }
       // this may only return up to 20, we'll need to set count=-1
 
       /*
       postModel.count({ where: { userid: userid } }, function(err, postCount) {
-        if (err) console.error('updateUserCounts - posts:', err);
-        user.posts = postCount;
-        user.save();
-      });
+        if (err) console.error('updateUserCounts - posts:', err)
+        user.posts = postCount
+        user.save()
+      })
       followModel.count({ where: { userid: userid } }, function(err, followingCount) {
-        if (err) console.error('updateUserCounts - following:', err);
-        user.following = followingCount;
-        user.save();
-      });
+        if (err) console.error('updateUserCounts - following:', err)
+        user.following = followingCount
+        user.save()
+      })
       followModel.count({ where: { followsid: userid } }, function(err, followerCount) {
-        if (err) console.error('updateUserCounts - follower:', err);
-        user.followers = followerCount;
-        user.save();
-      });
+        if (err) console.error('updateUserCounts - follower:', err)
+        user.followers = followerCount
+        user.save()
+      })
       // FIXME: deleted stars? unstars?
       interactionModel.count({ where: { userid: userid, type: 'star' } }, function(err, starCount) {
-        if (err) console.error('updateUserCounts - star:', err);
-        user.stars=starCount;
-        user.save();
-      });
+        if (err) console.error('updateUserCounts - star:', err)
+        user.stars=starCount
+        user.save()
+      })
       */
 
-    });
+    })
     // tight up later
     if (callback) {
-      callback();
+      callback()
     }
   },
   delUser: function(userid, callback) {
@@ -140,6 +140,7 @@ module.exports = {
     }
   },
   getUserID: function(username, callback) {
+    //console.log('dataaccess.caminte.js::getUserID(', username, ') - start')
     if (!username) {
       console.log('dataaccess.caminte.js::getUserID() - username was not set')
       callback('dataaccess.caminte.js::getUserID() - username was not set', false)
@@ -148,7 +149,6 @@ module.exports = {
     if (username[0]==='@') {
       username = username.substr(1)
     }
-    //console.log('dataaccess.caminte.js::getUserID(', username, ') - start')
     var ref=this
     var username=username.toLowerCase()
     userModel.findOne({ where: { username: username }}, function(err, user) {

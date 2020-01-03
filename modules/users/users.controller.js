@@ -14,12 +14,12 @@ module.exports={
   updateUser: function(data, ts, callback) {
     if (!data) {
       console.log('dispatcher.js:updateUser - data is missing', data)
-      callback(null, 'data is missing')
+      callback('data is missing')
       return
     }
     if (!data.id) {
       console.log('dispatcher.js:updateUser - id is missing', data)
-      callback(null, 'id is missing')
+      callback('id is missing')
       return
     }
     // FIXME: current user last_updated
@@ -30,14 +30,14 @@ module.exports={
       this.setAnnotations('user', data.id, data.annotations)
     }
     // fix api/stream record in db format
-    this.apiToUser(data, function(userData) {
+    this.apiToUser(data, function(err, userData) {
       //console.log('made '+data.created_at+' become '+userData.created_at)
       // can we tell the difference between an add or update?
       //console.log('dispatcher.js::updateUser - final', userData)
       ref.cache.setUser(userData, ts, function(err, user, meta) {
         // TODO: define signal if ts is old
         if (callback) {
-          callback(user, err, meta)
+          callback(err, user, meta)
         }
       })
     })
@@ -112,8 +112,8 @@ module.exports={
     this.cache.patchUser(tokenObj.userid, changes, function(err, user, meta) {
       if (err) console.error('dispatcher.js::patchUser - err', err)
       if (callback) {
-        ref.userToAPI(user, tokenObj, function(apiUser, apiErr, apiMeta) {
-          callback(apiUser, apiErr, apiMeta)
+        ref.userToAPI(user, tokenObj, function(apiErr, apiUser, apiMeta) {
+          callback(apiErr, apiUser, apiMeta)
         }, meta)
       }
     })
@@ -129,7 +129,7 @@ module.exports={
       avatar_image: avatar_url
     }
     var ref=this
-    this.cache.patchUser(tokenObj.userid, changes, function(changes, err, meta) {
+    this.cache.patchUser(tokenObj.userid, changes, function(err, changes, meta) {
       // hrm memory driver does return the complete object...
       //console.log('dispatcher.js::updateUserAvatar - changes', changes)
       if (callback) {
@@ -142,7 +142,7 @@ module.exports={
   apiToUser: function(user, callback) {
     // collapse API to db structure
     // copy what we can without linking to the orignal, so we don't destroy
-    var userData=JSON.parse(JSON.stringify(user))
+    var userData = JSON.parse(JSON.stringify(user))
     if (user.username === undefined) {
       console.log('dispatcher::apiToUser - user', user.id, 'doesnt have a username', user)
       user.username = ''
@@ -176,7 +176,7 @@ module.exports={
       //console.log('user '+data.id+' has description', data.description.entities)
       if (user.description.entities) {
         //console.log('user '+data.id+' has entities')
-        this.setEntities('user', user.id, user.description.entities, function(entities, err) {
+        this.setEntities('user', user.id, user.description.entities, function(err, entities) {
           if (err) {
             console.log("entities Update err: "+err)
           //} else {
@@ -189,18 +189,18 @@ module.exports={
       // since userData is a reference to data, we can't stomp on it until we're done
       userData.description=user.description.text
     }
-    callback(userData, null)
+    callback(false, userData)
     //return userData
   },
   // from internal database format
   userToAPI: function(user, token, callback, meta) {
     //console.log('dispatcher.js::userToAPI - '+user.id, callback, meta)
     if (!user) {
-      callback(null, 'dispatcher.js::userToAPI - no user passed in')
+      callback('dispatcher.js::userToAPI - no user passed in')
       return
     }
     if (!callback) {
-      callback(null, 'dispatcher.js::userToAPI - no callback passed in')
+      callback('dispatcher.js::userToAPI - no callback passed in')
       return
     }
     //console.log('dispatcher.js::userToAPI - setting up res')
@@ -305,13 +305,13 @@ module.exports={
                 console.log('dispatcher.js::userToAPI - what happened to the description?!? ', user, res)
               }
               if (user.debug) console.log('dispatcher.js::userToAPI('+user.id+') - calling back')
-              callback(res, userEntitiesErr)
+              callback(userEntitiesErr, res)
             } else {
               // you can pass entities if you want...
               // text, entities, postcontext, callback
               ref.textProcess(user.description, users.entities, false, function(textProc, err) {
                 res.description.html=textProc.html
-                callback(res, userEntitiesErr)
+                callback(userEntitiesErr, res)
               })
             }
           })
@@ -321,12 +321,12 @@ module.exports={
           ref.textProcess(user.description, user.entities, false, function(textProc, err) {
             res.description.html=textProc.html
             res.description.entities=textProc.entities
-            callback(res, null)
+            callback(false, res)
           })
         }
       } else {
         //console.log('dispatcher.js::userToAPI - calling back', res)
-        callback(res, null)
+        callback(false, res)
       }
     }
 
@@ -335,7 +335,7 @@ module.exports={
       need.annotation = true
       var loadAnnotation=function(user, cb) {
         if (user.debug) console.log('dispatcher.js::userToAPI('+user.id+') - get user annotations')
-        ref.getAnnotation('user', user.id, function(dbNotes, err, noteMeta) {
+        ref.getAnnotation('user', user.id, function(err, dbNotes, noteMeta) {
           if (user.debug) console.log('user', user.id, 'annotations', dbNotes.length)
           var apiNotes = []
           for(var j in dbNotes) {
@@ -346,12 +346,12 @@ module.exports={
               value: note.value,
             })
           }
-          cb(apiNotes, err, noteMeta)
+          cb(err, apiNotes, noteMeta)
         })
       }
 
-      loadAnnotation(user, function(apiNotes, notesErr, notesMeta) {
-        if (notesErr) console.log('dispatcher.js::userToAPI - loadAnnotation', notesErr)
+      loadAnnotation(user, function(notesErr, apiNotes, notesMeta) {
+        if (notesErr) console.log('dispatcher.js::userToAPI - loadAnnotation err', notesErr)
         if (user.debug) console.log('final anno', apiNotes.length)
         res.annotations=apiNotes
         needComplete('annotation')
@@ -381,16 +381,16 @@ module.exports={
   getUser: function(user, params, callback) {
     //console.log('dispatcher.js::getUser - '+user, params)
     if (!callback) {
-      console.error('dispatcher.js::getUser - no callback passed in')
+      console.trace('dispatcher.js::getUser - no callback passed in')
       callback(null, 'dispatcher.js::getUser - no callback passed in')
       return
     }
     if (!user) {
-      callback(null, 'dispatcher.js::getUser - no getUser passed in')
+      callback(null, 'dispatcher.js::getUser - no user passed in')
       return
     }
-    if (params===null) {
-      console.log('dispatcher.js::getUser - params are null')
+    if (params===null || params === undefined) {
+      console.trace('dispatcher.js::getUser - params are null/undefined')
       params={
         generalParams: {},
         tokenobj: {}
@@ -398,7 +398,7 @@ module.exports={
     }
     //console.log('dispatcher.js::getUser - params', params)
     var ref=this
-    this.normalizeUserID(user, params.tokenobj, function(userid, err) {
+    this.normalizeUserID(user, params.tokenobj, function(err, userid) {
       if (err) {
         console.log('dispatcher.js::getUser - cant normalize user', user, err)
       }
@@ -505,7 +505,7 @@ module.exports={
     //console.log('dispatcher.js::getUsers - users', users)
     for(var i in users) {
       //console.log('dispatcher.js::getUsers - user', users[i])
-      this.normalizeUserID(users[i], params.tokenobj, function(userid, err) {
+      this.normalizeUserID(users[i], params.tokenobj, function(err, userid) {
         ref.cache.getUser(userid, function(userErr, userobj, userMeta) {
           //console.log('dispatcher.js::getUsers - gotUser', userErr)
 
@@ -516,11 +516,11 @@ module.exports={
             //console.log('dispatcher.js::getUser - not such user?', userid, 'or no generalParams?', params)
           }
 
-          ref.userToAPI(userobj, params.tokenobj, function(adnUserObj, err) {
+          ref.userToAPI(userobj, params.tokenobj, function(err, adnUserObj) {
             //console.log('dispatcher.js::getUsers - got', adnUserObj, 'for', users[i])
             rUsers.push(adnUserObj)
             if (rUsers.length==users.length) {
-              callback(rUsers, '')
+              callback(false, rUsers)
             }
           }, userMeta)
         })
@@ -532,17 +532,17 @@ module.exports={
     this.cache.searchUsers(query, params, function(err, users, meta) {
       //console.log('dispatcher.js::userSearch - got', users.length, 'users')
       if (!users.length) {
-        callback([], null, meta)
+        callback(false, [], meta)
         return
       }
       var rUsers=[]
       for(var i in users) {
-        ref.userToAPI(users[i], tokenObj, function(adnUserObj, err) {
+        ref.userToAPI(users[i], tokenObj, function(err, adnUserObj) {
           //console.log('dispatcher.js::userSearch - got', adnUserObj, 'for', users[i])
           rUsers.push(adnUserObj)
           if (rUsers.length==users.length) {
             //console.log('dispatcher.js::userSearch - final', rUsers)
-            callback(rUsers, null, meta)
+            callback(false, rUsers, meta)
           }
         }, meta)
       }

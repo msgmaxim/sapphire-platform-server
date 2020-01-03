@@ -24,8 +24,8 @@ module.exports = {
       // probably dont' need this first one but we're an internal API
       // maybe something will need it eventually
       var ref = this
-      this.normalizeUserID(data.user.id, {}, function(normalUserId) {
-        ref.normalizeUserID(data.follows_user.id, {}, function(normalFollowId) {
+      this.normalizeUserID(data.user.id, {}, function(err, normalUserId) {
+        ref.normalizeUserID(data.follows_user.id, {}, function(err, normalFollowId) {
           ref.cache.setFollow(normalUserId, normalFollowId, id, deleted, ts)
         })
       })
@@ -37,18 +37,16 @@ module.exports = {
       process.stdout.write(deleted?'f':'F')
     }
     if (callback) {
-      this.getUser(data.follows_user.id, null, function(user, err) {
-        callback(user, err)
-      })
+      callback()
     }
   },
   getFollowings: function(user, params, tokenObj, callback) {
     //console.log('dispatcher.js::getFollowing - for', userid)
     var ref=this
-    this.normalizeUserID(user, tokenObj, function(userid) {
+    this.normalizeUserID(user, tokenObj, function(err, userid) {
       ref.cache.getFollowing(userid, params, function(err, follows, meta) {
         if (err || !follows || !follows.length) {
-          callback([], err)
+          callback(err, [])
           return
         }
         var users=[]
@@ -59,7 +57,7 @@ module.exports = {
           min_id=Math.min(min_id, follows[i].id)
           max_id=Math.max(max_id, follows[i].id)
           var scope=function(i) {
-            ref.getUser(follows[i].followsid, { tokenobj: tokenObj }, function(user, err) {
+            ref.getUser(follows[i].followsid, { tokenobj: tokenObj }, function(err, user) {
               if (err) {
                 console.error('dispatcher.js::getFollowers - err', err)
               }
@@ -98,7 +96,7 @@ module.exports = {
                   max_id: max_id,
                   more: users.length==params.count
                 }
-                callback(users, err, imeta)
+                callback(err, users, imeta)
               }
             })
           }(i)
@@ -109,17 +107,17 @@ module.exports = {
   getFollowers: function(user, params, tokenObj, callback) {
     //console.log('dispatcher.js::getFollowers - for', userid)
     var ref=this
-    this.normalizeUserID(user, tokenObj, function(userid) {
+    this.normalizeUserID(user, tokenObj, function(err, userid) {
       ref.cache.getFollows(userid, params, function(err, follows, meta) {
         if (err || !follows || !follows.length) {
           if (err) console.error('dispatcher::getFollowers', err)
-          callback([], err)
+          callback(err, [])
           return
         }
         var users=[]
         //console.log('dispatcher.js::getFollowers', follows.length)
         for(var i in follows) {
-          ref.getUser(follows[i].userid, { tokenobj: tokenObj }, function(user, err) {
+          ref.getUser(follows[i].userid, { tokenobj: tokenObj }, function(err, user) {
             if (err) {
               console.error('dispatcher.js::getFollowers - err', err)
             }
@@ -144,7 +142,7 @@ module.exports = {
             //console.log('dispatcher.js::getFollowers - users', users.length, 'follows', follows.length)
             if (users.length==follows.length) {
               // supposed to return meta too
-              callback(users, err, meta)
+              callback(err, users, meta)
             }
           })
         }

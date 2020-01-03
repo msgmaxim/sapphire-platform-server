@@ -144,6 +144,7 @@ module.exports = {
       setDone('thread')
     })
   },
+  // deletePost
   // FIXME change API to access params
   delPost: function(postid, token, callback) {
     //console.log('dispatcher.js::delPost - postid', postid)
@@ -160,7 +161,7 @@ module.exports = {
       // this is the adn version of the post...
       if (post.user.id != token.userid) {
         console.warn('dispatcher.js::delPost - permissions denied, post owner', post.userid, 'token owner', token.userid)
-        callback(post, 'access denied to post', {
+        callback('access denied to post', post, {
           code: token?403:401,
         })
         return
@@ -588,7 +589,7 @@ module.exports = {
 
     function loadUser(userid, params, cb) {
       //console.log('dispatcher.js::postToAPI('+post.id+') - getting user '+post.userid)
-      ref.getUser(userid, params, function(user, userErr, userMeta) {
+      ref.getUser(userid, params, function(userErr, user, userMeta) {
         if (userErr) console.log('dispatcher.js::postToAPI('+post.id+') userid(',userid,') - err', userErr)
         //console.log('dispatcher.js::postToAPI('+post.id+') userid(',userid,') - got user', user)
         if (!user) {
@@ -619,11 +620,11 @@ module.exports = {
         //console.log('converting repost_of from ', post.repost_of)
         // use thread_id because we need a direct path back to the original
         // and we can use repost_of to find the share tree
-        ref.getPost(post.thread_id, { tokenobj: tokenObj }, function(repost, repostErr, repostMeta) {
+        ref.getPost(post.thread_id, { tokenobj: tokenObj }, function(repostErr, repost, repostMeta) {
           //console.log('converting repost_of to', repostapi.id)
           //data.repost_of=repost
           //callback(data, err, meta)
-          cb(repostErr,repost, repostMeta)
+          cb(repostErr, repost, repostMeta)
         })
       } else {
         //callback(data, err, meta)
@@ -632,7 +633,7 @@ module.exports = {
     }
 
     var loadAnnotation=function(post, cb) {
-      ref.getAnnotation('post', post.id, function(dbNotes, err, noteMeta) {
+      ref.getAnnotation('post', post.id, function(err, dbNotes, noteMeta) {
         var apiNotes=[]
         for(var j in dbNotes) {
           var note=dbNotes[j]
@@ -642,7 +643,7 @@ module.exports = {
             value: note.value,
           })
         }
-        cb(apiNotes, err, noteMeta)
+        cb(err, apiNotes, noteMeta)
       })
     }
 
@@ -839,7 +840,7 @@ module.exports = {
                 res.push(apiposts[id])
               }
             }
-            callback(res, null, meta)
+            callback(false, res, meta)
             /*
             for(var i in apiposts) {
               var id=apiposts[i].id
@@ -854,7 +855,7 @@ module.exports = {
       // no entities
       // this can be normal, such as an explore feed that's being polled for since_id
       //console.log('dispatcher.js::idsToAPI - no posts')
-      callback([], 'idsToAPI no posts', meta)
+      callback('idsToAPI no posts', [], meta)
     }
   },
   addRepost: function(postid, tokenObj, callback) {
@@ -921,7 +922,7 @@ module.exports = {
   getReplies: function(postid, params, token, callback) {
     var ref=this
     if (!postid || postid === 'undefined') {
-      callback([], 'empty postid', postid)
+      callback('empty postid', [], postid)
       return
     }
     // userid can't be me without a token
@@ -929,7 +930,7 @@ module.exports = {
     // FIXME: make sure postid is a number
     this.cache.getPost(postid, function(err, post) {
       if (!post || err) {
-        callback([], 'no posts for replies: '+err)
+        callback('no posts for replies: '+err, [])
         return
       }
       // probably should chain these
@@ -968,14 +969,14 @@ module.exports = {
                   }
                 }
                 //console.log('dispatcher.js::getReplies - result ', res)
-                callback(res, null, meta)
+                callback(false, res, meta)
               }
             })
           }, ref)
         } else {
           // no posts which is fine
           //console.log('dispatcher.js:getReplies - no replies ')
-          callback([], 'no posts for replies', meta)
+          callback('no posts for replies', [], meta)
         }
       })
     })
@@ -987,7 +988,7 @@ module.exports = {
         userid=token.userid
       } else {
         console.log('dispatcher.js:getMentions - me but token', token)
-        callback([], "need token for 'me' user")
+        callback("need token for 'me' user", [])
         return
       }
     }
@@ -1031,13 +1032,13 @@ module.exports = {
               for(var i in entities) {
                 nlist.push(apiposts[entities[i].typeid])
               }
-              callback(nlist, err, meta)
+              callback(err, nlist, meta)
             }
           })
         }, ref)
       } else {
         // no entities
-        callback([], 'no mentions/entities for '+userid, meta)
+        callback('no mentions/entities for '+userid, [], meta)
       }
     })
   },
@@ -1090,13 +1091,13 @@ module.exports = {
               }
               //console.log('sending',res.length,'posts to dialect')
               //console.log('dispatcher.js::getGlobal - meta', meta)
-              callback(res, null, meta)
+              callback(false, res, meta)
             }
           })
         }, ref)
       } else {
         // no posts
-        callback([], 'no posts for global', meta)
+        callback('no posts for global', [], meta)
       }
     })
   },
@@ -1109,13 +1110,13 @@ module.exports = {
     var ref=this
     this.cache.getExplore(params, function(err, endpoints, meta) {
       //console.log('dispatcher.js::getExplore - returned meta', meta)
-      callback(endpoints, null, meta)
+      callback(null, endpoints, meta)
     })
   },
   getUserStream: function(user, params, tokenObj, callback) {
     var ref=this
     //console.log('dispatcher.js::getUserStream - ', user)
-    this.normalizeUserID(user, tokenObj, function(userid, err) {
+    this.normalizeUserID(user, tokenObj, function(err, userid) {
       //console.log('dispatcher.js::getUserStream - got', userid)
       if (ref.downloader.apiroot != 'NotSet') {
         ref.cache.getUser(userid, function(err, userdata, meta) {
@@ -1152,7 +1153,7 @@ module.exports = {
           posts.map(function(current, idx, Arr) {
             //console.log('dispatcher.js:getUserPosts - map postid: '+current.id)
             // get the post in API foromat
-            ref.postToAPI(current, params, tokenObj, function(post, err, postmeta) {
+            ref.postToAPI(current, params, tokenObj, function(err, post, postmeta) {
               //min_id=Math.min(min_id,post.id)
               //max_id=Math.max(max_id,post.id)
               apiposts[post.id]=post
@@ -1185,19 +1186,19 @@ module.exports = {
                 }
                 //console.log('dispatcher::getUserStream - meta', meta)
                 //console.log('imeta',imeta)
-                callback(res, null, meta)
+                callback(false, res, meta)
               }
             })
           }, ref)
         } else {
           // no posts
-          callback([], 'no posts for user stream', meta)
+          callback('no posts for user stream', [], meta)
         }
       })
     })
   },
   getUnifiedStream: function(user, params, token, callback) {
-    console.log('dispatcher.js::getUnifiedStream', user)
+    //console.log('dispatcher.js::getUnifiedStream', user)
     var ref=this
     this.cache.getUnifiedStream(user, params, function(err, posts, meta) {
       // data is an array of entities
@@ -1207,7 +1208,7 @@ module.exports = {
         posts.map(function(current, idx, Arr) {
           //console.log('dispatcher.js:getUserPosts - map postid: '+current.id)
           // get the post in API foromat
-          ref.postToAPI(current, params, token, function(post, err, postmeta) {
+          ref.postToAPI(current, params, token, function(err, post, postmeta) {
             apiposts[post.id]=post
             postcounter++
             // join
@@ -1218,13 +1219,13 @@ module.exports = {
               for(var i in posts) {
                 res.push(apiposts[posts[i].id])
               }
-              callback(res, null, meta)
+              callback(false, res, meta)
             }
           })
         }, ref)
       } else {
         // no posts
-        callback([], 'no posts for unified', meta)
+        callback('no posts for unified', [], meta)
       }
     })
     //console.log('dispatcher.js::getUnifiedStream - write me')
@@ -1239,7 +1240,7 @@ module.exports = {
   getUserPosts: function(user, params, callback) {
     //console.log('dispatcher.js::getUserPosts - user:', user)
     var ref=this
-    this.normalizeUserID(user, params.tokenobj, function(userid) {
+    this.normalizeUserID(user, params.tokenobj, function(err, userid) {
       //console.log('dispatcher.js::getUserPosts - userid:', userid)
       ref.cache.getUserPosts(userid, params, function(err, posts, meta) {
         // data is an array of entities
@@ -1263,7 +1264,7 @@ module.exports = {
                   res.push(apiposts[posts[i].id])
                 }
                 //console.log('dispatcher.js::getUserPosts - callingback', res.length, 'posts')
-                callback(res, null, meta)
+                callback(false, res, meta)
                 /*
                 var res={}
                 var done=0
@@ -1300,7 +1301,7 @@ module.exports = {
           }, ref)
         } else {
           // no posts
-          callback([], 'no posts for user posts', meta)
+          callback('no posts for user posts', [], meta)
         }
       })
     })
@@ -1322,7 +1323,7 @@ module.exports = {
         return
       } else {
         console.log('dispatcher.js::getUserStars - userid is me but invalud token', params.tokenobj)
-        callback([], 'no or invalid token')
+        callback('no or invalid token', [])
         return
       }
     }
@@ -1343,7 +1344,7 @@ module.exports = {
           // record.posts({conds})
           // get the post in API foromat
           //console.log('dispatcher::getUserStars - tokenobj', params.tokenobj)
-          ref.getPost(current.typeid, params, function(post, err, meta) {
+          ref.getPost(current.typeid, params, function(err, post, meta) {
             //console.dir(post)
             if (post && post.user && post.text) { // some are deleted, others are errors
               apiposts.push(post)
@@ -1356,7 +1357,7 @@ module.exports = {
             // interactions.length looks good
             if (apiposts.length==params.count || apiposts.length==interactions.length) {
               //console.log('dispatcher.js::getUserStars - finishing', apiposts.length)
-              callback(apiposts)
+              callback(false, apiposts)
               return // kill map, somehow?
             }
           })
@@ -1364,7 +1365,7 @@ module.exports = {
       } else {
         // no interactions
         //console.log('dispatcher.js::getUserStars - finishing but no stars for', userid, params)
-        callback([], err, meta)
+        callback(err, [], meta)
       }
     })
   },
@@ -1385,19 +1386,19 @@ module.exports = {
         // this seems to preserve order
         entities.map(function(current, idx, Arr) {
           // get the post in API foromat
-          ref.getPost(current.typeid, params && params.tokenobj?{ tokenobj: params.tokenobj }:null, function(post, err, meta) {
+          ref.getPost(current.typeid, params && params.tokenobj?{ tokenobj: params.tokenobj }:null, function(err, post, meta) {
             apiposts.push(post)
             // join
             //console.log(apiposts.length+'/'+entities.length)
             if (apiposts.length==entities.length) {
               //console.log('dispatcher.js::getHashtag - finishing')
-              callback(apiposts)
+              callback(false, apiposts)
             }
           })
         }, ref)
       } else {
         // no entities
-        callback([], 'no entities for '+hashtag, meta)
+        callback('no entities for '+hashtag, [], meta)
       }
     })
   },
@@ -1462,18 +1463,18 @@ module.exports = {
     this.cache.searchPosts(query, params, function(err, users, meta) {
       //console.log('dispatcher.js::userSearch - got', users.length, 'users')
       if (!users.length) {
-        callback([], null, meta)
+        callback(false, [], meta)
         return
       }
       var rPosts=[]
       for(var i in users) {
         // postToAPI function(post, params, tokenObj, callback, meta) {
-        ref.postToAPI(users[i], params, tokenObj, function(adnPostObj, err) {
+        ref.postToAPI(users[i], params, tokenObj, function(err, adnPostObj) {
           //console.log('dispatcher.js::userSearch - got', adnUserObj, 'for', users[i])
           rPosts.push(adnPostObj)
           if (rPosts.length==users.length) {
             //console.log('dispatcher.js::userSearch - final', rUsers)
-            callback(rPosts, null, meta)
+            callback(false, rPosts, meta)
           }
         }, meta)
       }

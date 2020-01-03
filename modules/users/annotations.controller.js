@@ -8,7 +8,7 @@ module.exports = {
       //if (debug) console.log(type, id, 'start notes', notes)
       //var fixedNotes=[]
       if (!notes || !notes.length) {
-        callback(notes, err, meta)
+        callback(err, notes, meta)
         return
       }
 
@@ -25,7 +25,7 @@ module.exports = {
           //console.log('dispatcher.js::getAnnotation(', type, id, ') - checkdone replaces', replaces, 'notes', notes.length)
           if (replaces===notes.length) {
             //console.log('dispatcher.js::getAnnotation(', type, id, ') - final notes', notes)
-            callback(notes, err, meta)
+            callback(err, notes, meta)
           }
         }
       }
