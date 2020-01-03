@@ -66,7 +66,7 @@ memoryUpdate = function (model, filter, data, callback) {
   if (filter.id) {
     // should find one and only one
     this.exists(model, filter.id, function (err, exists) {
-      if (err) console.error('memoryUpdate exists err', err);
+      if (err) console.error('memoryUpdate exists err', err)
       if (exists) {
         mem.save(model, Object.assign(mem.cache[model][filter.id], cleanData), callback)
       } else {
@@ -77,7 +77,7 @@ memoryUpdate = function (model, filter, data, callback) {
     //console.log('memoryUpdate - not implemented, search by?', filter, data)
     this.all(model, filter, function(err, nodes) {
       //console.log('memoryUpdate - records', nodes)
-      if (err) console.error('memoryUpdate all err', err);
+      if (err) console.error('memoryUpdate all err', err)
       var count = nodes.length
       if (!count) {
         return callback(false, cleanData)
@@ -833,10 +833,10 @@ let functions = {
   createOrFindUserToken: function(userid, client_id, scopes, callback) {
     //console.log('createOrFindUserToken', userid, client_id, scopes)
     if (userid === undefined) {
-      return callback(false, 'no userid');
+      return callback(false, 'no userid')
     }
     if (client_id === undefined) {
-      return callback(false, 'no client_id');
+      return callback(false, 'no client_id')
     }
     if (scopes===undefined) scopes=''
     localUserTokenModel.findOne({ where: { userid: userid, client_id: client_id }}, function(err, usertoken) {
@@ -903,20 +903,20 @@ let functions = {
       }
       localUserTokenModel.findOne({ where: { userid: user.id }, limit: 1 }, function(err, usertoken) {
         if (err) {
-          console.log('dataaccess.camintejs.js::getAPIUserToken - err', err, 'usertoken', usertoken)
+          console.log('dataaccess.camintejs.js::getAPITokenByUsername - err', err, 'usertoken', usertoken)
         }
-        //console.log('dataaccess.camintejs.js::getAPIUserToken - found:', usertoken)
+        //console.log('dataaccess.camintejs.js::getAPITokenByUsername - found:', usertoken)
         callback(usertoken, err)
       })
     })
   },
   getAPIUserToken: function(token, callback) {
-    //console.log('dataaccess.camintejs.js::getAPIUserToken - Token:', token)
+    // console.log('dataaccess.camintejs.js::getAPIUserToken - Token:', token)
     if (token==undefined) {
       //console.log('dataaccess.camintejs.js::getAPIUserToken - Token not defined')
       // we shouldn't need to return here
       // why doesn't mysql handle this right? bad driver
-      callback(null, 'token undefined')
+      callback(false, 'token undefined')
       return
     }
     //console.log('dataaccess.camintejs.js::getAPIUserToken - token:', token)
@@ -954,7 +954,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       if (err) {
         console.log('dataaccess.camintejs.js::getAPIUserToken - err', err, 'usertoken', usertoken)
       }
-      //console.log('dataaccess.camintejs.js::getAPIUserToken - found:', usertoken)
+      // console.log('dataaccess.camintejs.js::getAPIUserToken - found:', usertoken)
       callback(err, usertoken)
     })
   },
@@ -1181,7 +1181,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
           })
         break
         default:
-          console.log('dataaccess.caminte.js::getExploreFeed(', feed, ') - write me!')
+          console.log('dataaccess.caminte.js::getExploreFeed(', feed, ') - No such feed (write it?)')
           callback(posts, null, { "code": 200 })
         break
       }
