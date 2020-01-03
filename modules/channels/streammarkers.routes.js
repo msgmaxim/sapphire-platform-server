@@ -1,0 +1,26 @@
+module.exports = {
+  mount: function(prefix, app) {
+    const dispatcher = app.dispatcher
+    const callbacks = app.callbacks
+
+    // token: required
+    app.post(prefix+'/posts/marker', function(req, resp) {
+      dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
+        //console.log('usertoken', usertoken);
+        if (usertoken==null) {
+          // could be they didn't log in through a server restart
+          var res={
+            "meta": {
+              "code": 401,
+              "error_message": "Call requires authentication: Authentication required to fetch token."
+            }
+          };
+          resp.status(401).type('application/json').send(JSON.stringify(res));
+          return;
+        }
+        //console.log('dialect.*.js::POSTpostsMarker', req.body);
+        dispatcher.setStreamMarker(req.body.name, req.body.id, req.body.percentage, usertoken, req.apiParams, callbacks.dataCallback(resp));
+      });
+    })
+  }
+}
