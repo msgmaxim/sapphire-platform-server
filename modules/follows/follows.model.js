@@ -93,7 +93,8 @@ module.exports = {
   },
   getAllFollowing: function(userid, callback) {
     if (userid==undefined) {
-      callback('dataaccess.caminte.js::getFollowing - userid is undefined', false)
+      console.trace('dataaccess.caminte.js::getFollowing - userid is undefined')
+      callback('dataaccess.caminte.js::getFollowing - userid is undefined')
       return
     }
     followModel.find({ where: { userid: userid, active: 1 } }, function(err, followings) {
@@ -112,7 +113,8 @@ module.exports = {
   // who is this user following
   getFollowing: function(userid, params, callback) {
     if (userid==undefined) {
-      callback('dataaccess.caminte.js::getFollowing - userid is undefined', false)
+      console.trace('dataaccess.caminte.js::getFollowing - userid is undefined')
+      callback('dataaccess.caminte.js::getFollowing - userid is undefined')
       return
     }
     // applyParams?
@@ -132,11 +134,13 @@ module.exports = {
   follows: function(src, trg, callback) {
     //console.log('dataaccess.caminte.js::follows - src/trg', src, trg)
     if (src==undefined) {
-      callback('dataaccess.caminte.js::follows - undefined src', false)
+      console.trace('dataaccess.caminte.js::follows - undefined src')
+      callback('dataaccess.caminte.js::follows - undefined src')
       return
     }
     if (trg==undefined) {
-      callback('dataaccess.caminte.js::follows - undefined trg', false)
+      console.trace('dataaccess.caminte.js::follows - undefined trg')
+      callback('dataaccess.caminte.js::follows - undefined trg')
       return
     }
     followModel.findOne({ where: { userid: src, followsid: trg } }, function(err, followings) {
@@ -146,7 +150,8 @@ module.exports = {
   // who follows this user
   getFollows: function(userid, params, callback) {
     if (userid==undefined) {
-      callback('dataaccess.caminte.js::getFollows - userid is undefined', false)
+      console.trace('dataaccess.caminte.js::getFollows - userid is undefined')
+      callback('dataaccess.caminte.js::getFollows - userid is undefined')
       return
     }
     //, limit: params.count, order: "last_updated DESC"
