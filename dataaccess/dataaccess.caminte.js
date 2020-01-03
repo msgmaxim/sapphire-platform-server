@@ -4,22 +4,22 @@
  */
 
 const funcs = []
-funcs.push(require('./models/users'))
-funcs.push(require('./models/mutes'))
-funcs.push(require('./models/clients'))
-funcs.push(require('./models/posts'))
-funcs.push(require('./models/channels'))
-funcs.push(require('./models/messages'))
-funcs.push(require('./models/annotations'))
-funcs.push(require('./models/entities'))
-funcs.push(require('./models/interactions'))
-funcs.push(require('./models/follows'))
-funcs.push(require('./models/files'))
-funcs.push(require('./models/userstreams'))
-funcs.push(require('./models/appstreams'))
-funcs.push(require('./models/sessions'))
-funcs.push(require('./models/subscriptions'))
-funcs.push(require('./models/streammarkers'))
+funcs.push(require('../modules/users/users.model'))
+funcs.push(require('../modules/users/mutes.model'))
+funcs.push(require('../modules/clients/clients.model'))
+funcs.push(require('../modules/posts/posts.model'))
+funcs.push(require('../modules/channels/channels.model'))
+funcs.push(require('../modules/channels/messages.model'))
+funcs.push(require('../modules/users/annotations.model'))
+funcs.push(require('../modules/channels/entities.model'))
+funcs.push(require('../modules/posts/interactions.model'))
+funcs.push(require('../modules/follows/follows.model'))
+funcs.push(require('../modules/files/files.model'))
+funcs.push(require('../modules/streams/userstreams.model'))
+funcs.push(require('../modules/streams/appstreams.model'))
+funcs.push(require('../modules/users/sessions.model'))
+funcs.push(require('../modules/channels/subscriptions.model'))
+funcs.push(require('../modules/channels/streammarkers.model'))
 
 /**
  * http://www.camintejs.com / https://github.com/biggora/caminte
