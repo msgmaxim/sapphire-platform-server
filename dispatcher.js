@@ -45,13 +45,13 @@ function normalizeUserID(input, tokenobj, callback) {
   if (input=='me') {
     if (tokenobj && tokenobj.userid) {
       //console.log('dispatcher.js::normalizeUserID - me became', tokenobj.userid)
-      callback(tokenobj.userid, '')
-      return
+      callback(false, tokenobj.userid)
     } else {
-      callback(0, 'no or invalid token')
-      return
+      callback('no or invalid token')
     }
+    return
   }
+
   var ref=module.exports
   if (input[0]=='@') {
     //console.log('dispatcher::normalizeUserID @', input.substr(1))
@@ -60,15 +60,16 @@ function normalizeUserID(input, tokenobj, callback) {
         console.log('dispatcher.js::normalizeUserID err', err)
       }
       if (userobj) {
-        callback(userobj.id, '')
+        callback(false, userobj.id)
       } else {
-        callback(0, 'no such user')
+        callback('no such user')
       }
     })
-  } else {
-    // numeric
-    callback(input, '')
+    return
   }
+
+  // numeric
+  callback(false, input)
 }
 
 // what calls this?? I think global did
@@ -91,13 +92,13 @@ function postsToADN(posts, params, token) {
           for(var i in posts) {
             res.push(apiposts[posts[i].id])
           }
-          callback(res, null, meta)
+          callback(false, res, meta)
         }
       })
     }, ref)
   } else {
     // no posts
-    callback([], 'no posts for postsToADN', meta)
+    callback('no posts for postsToADN', [], meta)
   }
 }
 
@@ -105,8 +106,8 @@ var humanFormat=require('human-format')
 
 /** minutely status report */
 setInterval(function () {
-  var ts=new Date().getTime()
-  var mem=process.memoryUsage()
+  var ts = Date().now()
+  var mem = process.memoryUsage()
   /*
   regarding: the dispatcher stdout writes (isThisDoingAnything)
   it's pretty compact, only one or two lines per minute
@@ -117,8 +118,8 @@ setInterval(function () {
   // break so the line stands out from the instant updates
   process.stdout.write("\n")
   console.log("dispatcher @"+ts+" Memory+["+humanFormat(mem.heapUsed-lmem.heapUsed)+"] Heap["+humanFormat(mem.heapUsed)+"] uptime: "+process.uptime())
-  lmem=mem
-  ts=null
+  lmem = mem
+  ts = null
 }, 60*1000)
 
 // cache is available at this.cache
