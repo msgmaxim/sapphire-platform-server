@@ -1099,6 +1099,7 @@ module.exports = {
       callback(null, 'dataaccess.caminte.js::getUserID() - username was not set');
       return;
     }
+    // probably should move this into dispatcher?
     if (username[0]==='@') {
       username=username.substr(1);
     }
@@ -1158,6 +1159,7 @@ module.exports = {
       callback(user, err);
     });
   },
+  // we only support integers unlike getUser
   getUsers: function(userids, params, callback) {
     if (!userids.length) {
       console.log('dataaccess.caminte::getUsers - no userids passed in');
