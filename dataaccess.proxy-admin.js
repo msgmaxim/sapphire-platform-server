@@ -203,10 +203,12 @@ module.exports = {
   },
   getUsers: function(userids, params, callback) {
     if (userids==undefined) {
+      console.log('dataccess.proxy-admin.js:getUsers - userids is undefined')
       callback(null, 'dataccess.proxy-admin.js:getUsers - userids is undefined');
       return;
     }
     if (!userids) {
+      console.log('dataccess.proxy-admin.js:getUsers - userids isn\'t set')
       callback(null, 'dataccess.proxy-admin.js:getUsers - userids isn\'t set');
       return;
     }
