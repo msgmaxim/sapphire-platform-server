@@ -4,7 +4,8 @@ const FormData = require('form-data')
 module.exports = {
   runTests: function(platformApi, nconf) {
     const provider_url = nconf.get('pomf:provider_url') || 'https://pomf.cat/'
-    if (!provider_url.match(/localhost|127.0.0.1/i)) {
+    if (!provider_url.match(/localhost|127.0.0.1|192.168/i)) {
+      console.log('skipping files test because non-local provider', provider_url)
       return
     }
     let fileRes
@@ -64,11 +65,12 @@ module.exports = {
       //console.log('setting fileRes', fileRes)
       // check upload
       let url = res.response.data.url
-      if (provider_url.match(/localhost|127.0.0.1/i)) {
+      if (provider_url.match(/localhost|127.0.0.1|192.168/i)) {
         url = res.response.data.url.replace('/', '')
         const downloadRes = await platformApi.serverRequest(url, {
           //noJson: true
         })
+        assert.equal(200, downloadRes.statusCode)
         // we don't need to assert this, we're not unit testing the pomf
         if (downloadRes.statusCode !== 200) {
           console.log('POMF download result code', downloadRes)
