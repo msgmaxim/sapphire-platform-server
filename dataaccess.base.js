@@ -680,6 +680,14 @@ module.exports = {
       callback(null, null);
     }
   },
+  getChannelSubscriptionCount: function(channelids, callback) {
+    if (this.next) {
+      this.next.getChannelSubscriptionCount(channelids, callback);
+    } else {
+      console.log('dataaccess.base.js::getChannelSubscriptionCount - write me!');
+      callback(null, null);
+    }
+  },
   getChannelSubscriptions: function(channelid, params, callback) {
     if (this.next) {
       this.next.getChannelSubscriptions(channelid, params, callback);

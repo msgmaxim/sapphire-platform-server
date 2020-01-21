@@ -1773,6 +1773,7 @@ module.exports = {
       user: false,
       annotations: false,
       messages: false,
+      subscount: false,
     }
 
     function setDone(type) {
@@ -1921,6 +1922,11 @@ module.exports = {
       }
       api.recent_message = messages[0];
       setDone('messages');
+    });
+
+    this.cache.getChannelSubscriptionCount(channel.id, function(err, count) {
+      api.counts.subscribers = count;
+      setDone('subscount');
     });
   },
   /**
