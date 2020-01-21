@@ -81,8 +81,8 @@ cache.next=db;
 dispatcher.cache=cache;
 dispatcher.notsilent=!(nconf.get('uplink:silent') || false);
 dispatcher.appConfig = {
-  provider: nconf.get('pomf:provider') || 'pomf.cat',
-  provider_url: nconf.get('pomf:provider_url') || 'https://pomf.cat/',
+  provider: nconf.get('pomf:provider') || '',
+  provider_url: nconf.get('pomf:provider_url') || '',
 }
 
 console.log('configuring app as', dispatcher.appConfig)
