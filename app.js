@@ -7,8 +7,9 @@ var internalServer = require('./router.admin');
  * Launch the server!
  */
 var webport = nconf.get('web:port') || 7070;
-console.log('launching webserver on', webport);
-publicRouter.listen(webport);
+var weblisten = nconf.get('web:listen') || '0.0.0.0';
+console.log('launching public webserver on', weblisten+':'+webport);
+publicRouter.listen(webport, weblisten);
 
 var admin_modkey=nconf.get('admin:modKey');
 if (admin_modkey) {
