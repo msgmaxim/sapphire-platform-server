@@ -12,7 +12,7 @@ var ratelimiter = require('./ratelimiter.js');
 var request=require('request');
 var multer  = require('multer');
 var storage = multer.memoryStorage()
-var upload = multer({ storage: storage, limits: {fileSize: 100*1024*1024} });
+var upload = multer({ storage: storage, limits: {fileSize: 10*1024*1024} });
 
 // post structure, good enough to fool alpha
 var notimplemented=[{
@@ -378,6 +378,7 @@ module.exports=function(app, prefix) {
     if (req.file) {
       console.log('POSTfiles - file upload got', req.file.buffer.length, 'bytes');
     } else {
+      console.log('POSTfiles - file upload got no content file');
       // no files uploaded
       var res={
         "meta": {
@@ -397,6 +398,7 @@ module.exports=function(app, prefix) {
         }
       };
       resp.status(400).type('application/json').send(JSON.stringify(res));
+      console.log('POSTfiles - file upload got file with 0 bytes');
       return
     }
     //console.log('looking for type - params:', req.params, 'body:', req.body);
@@ -1062,6 +1064,16 @@ module.exports=function(app, prefix) {
       if (req.body.annotations) {
         request.annotations = req.body.annotations;
       }
+      if (Object.keys(request).length === 0) {
+        var res={
+          "meta": {
+            "code": 400,
+            "error_message": "Requires at least one field to change"
+          }
+        };
+        resp.status(400).type('application/json').send(JSON.stringify(res));
+        return;
+      }
       console.log('dialect.appdotnet_official.js:PATCHusersX - request', request);
       //console.log('dialect.appdotnet_official.js:PATCHusersX - creating channel of type', req.body.type);
       dispatcher.patchUser(request, req.apiParams, usertoken, callbacks.dataCallback(resp));
@@ -1251,7 +1263,7 @@ module.exports=function(app, prefix) {
       }
       dispatcher.channelSearch(critera, req.apiParams, usertoken,
           function(channels, err, meta) {
-        //console.log('dialect.appdotnet_official.js:channelsSearch - sending');
+        //console.log('dialect.appdotnet_official.js:channelsSearch - sending', channels);
         var func=callbacks.dataCallback(resp, req.token);
         //console.log('getUserStream', posts);
         func(channels, err, meta);
@@ -1422,6 +1434,27 @@ module.exports=function(app, prefix) {
     });
   });
 
+  app.get(prefix+'/channels/:channel_id/subscribers/ids', function(req, resp) {
+    dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+      var userid='';
+      if (usertoken==null) {
+        var res={
+          "meta": {
+            "code": 401,
+            "error_message": "Call requires authentication: Authentication required to fetch token."
+          }
+        };
+        resp.status(401).type('application/json').send(JSON.stringify(res));
+        return;
+      }
+      req.apiParams.tokenobj=usertoken;
+      //console.log('dialect.appdotnet_official.js:GETchannelsXsubscribers - valid token');
+      dispatcher.getChannelsSubscriptionIds([req.params.channel_id], req.apiParams, usertoken, function(subs, err, meta) {
+        callbacks.dataCallback(resp)(subs[req.params.channel_id], err, meta);
+      });
+    });
+  });
+
   app.get(prefix+'/channels/subscribers/ids', function(req, resp) {
     dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
       var userid='';
@@ -1437,7 +1470,7 @@ module.exports=function(app, prefix) {
       }
       var ids = req.query.ids.split(','); // make an array incase it's not
       //console.log('dialect.appdotnet_official.js:GETchannelsXsubscribers - valid token');
-      dispatcher.getChannelsSubscriptions(ids, req.apiParams, usertoken, callbacks.dataCallback(resp));
+      dispatcher.getChannelsSubscriptionIds(ids, req.apiParams, usertoken, callbacks.dataCallback(resp));
     });
   });
 
@@ -1531,7 +1564,8 @@ module.exports=function(app, prefix) {
       }
       //console.log('dialect.appdotnet_official.js:DELETEmessages - found a token', usertoken);
       req.apiParams.tokenobj=usertoken;
-      //console.log('dialect.appdotnet_official.js:DELETEmessages - channel_id', req.params.channel_id);
+      console.log('dialect.appdotnet_official.js:DELETEmessages - message_id', req.params.message_id);
+      console.log('dialect.appdotnet_official.js:DELETEmessages - channel_id', req.params.channel_id);
       dispatcher.deleteMessage(req.params.message_id, req.params.channel_id, req.apiParams, usertoken, callbacks.dataCallback(resp));
     });
   });
