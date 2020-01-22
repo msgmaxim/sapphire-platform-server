@@ -66,14 +66,18 @@ module.exports = {
       // check upload
       let url = res.response.data.url
       if (provider_url.match(/localhost|127.0.0.1|192.168/i)) {
-        url = res.response.data.url.replace('/', '')
-        const downloadRes = await platformApi.serverRequest(url, {
-          //noJson: true
-        })
-        assert.equal(200, downloadRes.statusCode)
-        // we don't need to assert this, we're not unit testing the pomf
-        if (downloadRes.statusCode !== 200) {
-          console.log('POMF download result code', downloadRes)
+        url = res.response.data.url.replace('^/', '')
+        if (url.match(/:\/\//)) {
+          console.log('absolute download test is not yet written, skipping')
+        } else {
+          const downloadRes = await platformApi.serverRequest(url, {
+            //noJson: true
+          })
+          assert.equal(200, downloadRes.statusCode)
+          // we don't need to assert this, we're not unit testing the pomf
+          if (downloadRes.statusCode !== 200) {
+            console.log('POMF download result code', downloadRes)
+          }
         }
       }
     })
