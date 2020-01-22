@@ -3551,14 +3551,35 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
   },
   getChannelSubscriptionCount: function(channelids, callback) {
     if (channelids==undefined) {
-      console.log('dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined');
-      callback(null, 'dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined');
+      console.log('dataaccess.caminte.js::getChannelSubscriptionCount - channel id is undefined');
+      callback(null, 'dataaccess.caminte.js::getChannelSubscriptionCount - channel id is undefined');
       return;
     }
     // FIXMe: how slow is this on innodb
     subscriptionModel.count({ where: { 'channelid': { in: channelids }, 'active': true } }, callback);
   },
   getChannelSubscriptions: function(channelids, params, callback) {
+    if (channelids==undefined) {
+      console.log('dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined');
+      callback(null, 'dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined');
+      return;
+    }
+    //console.log('dataaccess.caminte.js::getChannelSubscriptions - channelids', channelids);
+    /*
+    var query=subscriptionModel.find().where('channelid', { in: channelids }).where('active', true);
+    //console.log('dataaccess.caminte.js::getChannelSubscriptions - query', query);
+    applyParams(query, params, callback);
+    */
+    subscriptionModel.find({ where: { channelid: { in: channelids }, active: true } }, callback);
+    /*
+    if (this.next) {
+      this.next.getChannelSubscriptions(channelid, params, callback);
+      return;
+    }
+    callback(null, null);
+    */
+  },
+  getChannelSubscriptionsPaged: function(channelids, params, callback) {
     if (channelids==undefined) {
       console.log('dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined');
       callback(null, 'dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined');
