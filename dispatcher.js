@@ -2095,7 +2095,7 @@ module.exports = {
         //ref.channelToAPI(channel, params, token, callback, meta2);
       })
       // FIXME: get rid of the N+1 and delete all in one query
-      ref.cache.getChannelSubscriptions([channelid], { }, function(subs, err, meta) {
+      ref.cache.getChannelSubscriptions([channelid], { }, function(err, subs, meta) {
         for(var i in subs) {
           var userid = subs[i].userid
           ref.cache.setSubscription(channelid, userid, true, new Date(), function(subscription, err) {
@@ -3121,7 +3121,7 @@ module.exports = {
   getChannelSubscriptions: function(channelid, params, callback) {
     var ref = this;
     //console.log('dispatcher.js::getChannelSubscriptions - start');
-    this.cache.getChannelSubscriptions([channelid], params, function(subs, err, meta) {
+    this.cache.getChannelSubscriptionsPaged([channelid], params, function(subs, err, meta) {
       if (!subs.length) {
         return callback([], '', meta);
       }
@@ -3140,14 +3140,21 @@ module.exports = {
       }
     });
   },
-  getChannelsSubscriptions: function(ids, params, token, callback) {
+  getChannelsSubscriptionIds: function(ids, params, token, callback) {
     var ref = this;
     //console.log('dispatcher.js::getChannelSubscriptions - start');
-    this.cache.getChannelSubscriptions(ids, params, function(subs, err, meta) {
+    this.cache.getChannelSubscriptions(ids, params, function(err, subs, meta) {
       if (!subs.length) {
         return callback([], '', meta);
       }
-      callback(subs, '', meta);
+      var result = {}
+      for(var i in subs) {
+        if (result[subs[i].channelid] === undefined) {
+          result[subs[i].channelid] = [subs[i].id];
+        } else
+          result[subs[i].channelid].push(subs[i].id);
+      }
+      callback(result, '', meta);
     });
   },
   //
