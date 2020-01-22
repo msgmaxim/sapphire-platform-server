@@ -696,6 +696,14 @@ module.exports = {
       callback(null, null);
     }
   },
+  getChannelSubscriptionsPaged: function(channelid, params, callback) {
+    if (this.next) {
+      this.next.getChannelSubscriptionsPaged(channelid, params, callback);
+    } else {
+      console.log('dataaccess.base.js::getChannelSubscriptionsPaged - write me!');
+      callback(null, null);
+    }
+  },
   /** files */
   addFile: function(file, token, callback) {
     if (this.next) {
