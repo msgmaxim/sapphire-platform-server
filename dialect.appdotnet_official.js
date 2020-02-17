@@ -763,6 +763,7 @@ module.exports=function(app, prefix) {
   // /reference/resources/user/lookup/#retrieve-multiple-users
   // ids are usually numeric but also can be @username
   app.get(prefix+'/users', function(req, resp) {
+    // we should never enumerate users... it's not in the spec at all...
     if (!req.token) {
       var ids = req.query.ids
       if (ids && ids.match(/,/)) {
