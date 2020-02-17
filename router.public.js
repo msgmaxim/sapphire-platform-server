@@ -17,8 +17,9 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
   extended: true
 }));
-app.all('/*', middlewares.corsMiddleware);
+app.all('/' + '*', middlewares.corsMiddleware);
 app.use(middlewares.adnMiddleware);
+// app.use(middlewares.debugMiddleware);
 
 /**
  * support both styles of calling API
