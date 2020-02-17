@@ -1801,24 +1801,28 @@ module.exports = {
     function loadUser(userid, params, cb) {
       if (channel.debug) console.log('dispatcher.js::channelToAPI('+channel.id+') - getting user '+userid);
       //params.debug = true
+      const dummyUser = {
+        id: 0,
+        username: 'likelydeleted',
+        created_at: '2014-10-24T17:04:48Z',
+        avatar_image: {
+          url: ''
+        },
+        cover_image: {
+          url: ''
+        },
+        counts: {
+          following: 0,
+        }
+      }
+      if (!userid) {
+        return cb(dummyUser, false, false);
+      }
       ref.getUser(userid, params, function(user, userErr, userMeta) {
         if (userErr) console.error('dispatcher.js::channelToAPI('+channel.id+') - ', userErr)
         if (channel.debug) console.log('dispatcher.js::channelToAPI('+channel.id+') - got user '+userid);
         if (!user) {
-          user={
-            id: 0,
-            username: 'likelydeleted',
-            created_at: '2014-10-24T17:04:48Z',
-            avatar_image: {
-              url: ''
-            },
-            cover_image: {
-              url: ''
-            },
-            counts: {
-              following: 0,
-            }
-          }
+          user = dummyUser;
         }
         cb(user, userErr, userMeta);
       }); // getUser
@@ -1849,7 +1853,7 @@ module.exports = {
       if (tokenObj.subscribedOpt===undefined && tokenObj.unsubscribedOpt===undefined) {
         //console.log('dispatcher.js::channelToAPI - are you subscribed?', tokenObj.userid);
         channelDone.subscribed = false
-        ref.cache.getSubscription(api.id, tokenObj.userid, function(subed, err) {
+        ref.cache.getSubscription(api.id, tokenObj.userid ? tokenObj.userid : 0, function(subed, err) {
           //console.log('dispatcher.js::channelToAPI - are you subscribed?', subed);
           api.you_subscribed=false;
           if (subed) {
@@ -2215,7 +2219,8 @@ module.exports = {
     var ref=this;
     this.cache.getChannel(ids, params, function(channels, err, meta) {
       //console.log('dispatcher.js::getChannel - got array', channels);
-      if (channels === undefined) {
+      if (err) console.error('dispatcher.js::getChannel err -', err);
+      if (!channels) {
         callback([], err, meta);
         return;
       }
@@ -2278,6 +2283,18 @@ module.exports = {
         }
         return;
       }
+
+      // single channel object in channels
+      var allowed = ref.checkChannelAccess(channels, params.tokenobj?params.tokenobj.userid:0);
+      // block if not allowed
+      if (!allowed) {
+        console.warn(params.tokenobj?params.tokenobj.userid:0, 'not allowed to access channel', channels.id)
+        ref.channelToAPI({
+          id: channels.id
+        }, params, params.tokenobj?params.tokenobj:{}, callback, meta);
+        return;
+      }
+
       //console.log('dispatcher.js::getChannel single - channel', channels);
       //console.log('dispatcher.js::getChannel - non array');
       // channelToAPI: function (channel, params, tokenObj, callback, meta) {
