@@ -125,8 +125,12 @@ module.exports = {
     var ref=this;
     console.log('dataaccess.proxy-admin.js:getUserID - proxying user @'+username);
     proxycalls++;
+    var qs = '';
+    if (module.exports.token) {
+      qs = '?access_token=' + module.exports.token;
+    }
     request.get({
-      url: ref.apiroot+'/users/@'+username
+      url: ref.apiroot+'/users/@'+username + qs
     }, function(e, r, body) {
       if (!e && r.statusCode == 200) {
         var res=JSON.parse(body);
@@ -169,8 +173,12 @@ module.exports = {
     var ref=this;
     console.log('dataaccess.proxy-admin.js:getUser - proxying user '+userid);
     proxycalls++;
+    var qs = '';
+    if (module.exports.token) {
+      qs = '?access_token=' + module.exports.token;
+    }
     request.get({
-      url: ref.apiroot+'/users/'+userid
+      url: ref.apiroot+'/users/'+userid+qs
     }, function(e, r, body) {
       if (!e && r.statusCode == 200) {
         var res = JSON.parse(body);
@@ -1373,6 +1381,7 @@ module.exports = {
               this.next.getMessage(id, callback);
             }
           } else {
+            // FIXME: convert back to db object...
             callback(msg, err, res.meta);
           }
         });
@@ -1402,6 +1411,7 @@ module.exports = {
           var msg=res.data[i];
           ref.dispatcher.setMessage(msg);
         }
+        // FIXME: convert back to db object...
         callback(res.data, null, res.meta);
       } else {
         console.log('dataccess.proxy-admin.js:getChannelMessages - request failure');
