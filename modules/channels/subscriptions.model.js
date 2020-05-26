@@ -187,7 +187,7 @@ module.exports = {
     */
   },
   // paged version for public usage
-  getChannelSubscriptionsPaged: function(channelid, params, callback) {
+  getChannelSubscriptionsPaged: function(channelids, params, callback) {
     if (channelids==undefined) {
       console.log('dataaccess.caminte.js::getChannelSubscriptionsPaged - channel id is undefined');
       callback(null, 'dataaccess.caminte.js::getChannelSubscriptionsPaged - channel id is undefined');
