@@ -178,7 +178,7 @@ module.exports = {
   getChannelSubscriptions: function(channelid, params, callback) {
     var ref = this
     //console.log('dispatcher.js::getChannelSubscriptions - start')
-    this.cache.getChannelSubscriptions([channelid], params, function(err, subs, meta) {
+    this.cache.getChannelSubscriptionsPaged([channelid], params, function(err, subs, meta) {
       if (!subs.length) {
         return callback([], '', meta)
       }
@@ -197,15 +197,22 @@ module.exports = {
       }
     })
   },
-  getChannelsSubscriptions: function(ids, params, token, callback) {
+  getChannelsSubscriptionIds: function(ids, params, token, callback) {
     var ref = this
     //console.log('dispatcher.js::getChannelsSubscriptions - start', ids)
     this.cache.getChannelSubscriptions(ids, params, function(err, subs, meta) {
-      if (err) console.error('dispatcher.js::getChannelSubscriptions - err', err)
+      if (err) console.error('dispatcher.js::getChannelsSubscriptions - err', err)
       if (!subs.length) {
         return callback([], '', meta)
       }
-      callback(subs, '', meta)
+      var result = {}
+      for(var i in subs) {
+        if (result[subs[i].channelid] === undefined) {
+          result[subs[i].channelid] = [subs[i].id]
+        } else
+          result[subs[i].channelid].push(subs[i].id)
+      }
+      callback(result, '', meta)
     })
   },
 }

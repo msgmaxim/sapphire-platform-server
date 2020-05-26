@@ -156,7 +156,7 @@ module.exports = {
         }
         dispatcher.channelSearch(critera, req.apiParams, usertoken,
             function(channels, err, meta) {
-          //console.log('dialect.appdotnet_official.js:channelsSearch - sending')
+          //console.log('dialect.appdotnet_official.js:channelsSearch - sending', channels)
           var func=callbacks.dataCallback(resp, req.token)
           //console.log('getUserStream', posts)
           func(err, channels, meta)

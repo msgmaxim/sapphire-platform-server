@@ -14,16 +14,21 @@ module.exports = {
   // needs to happen after cache is set
   init: function(redisClientOptions) {
     // FIXME: support
-    this.redisClient = redis.createClient(redisClientOptions);
-    this.redisListenClient = redis.createClient(redisClientOptions);
-    var ref = this;
-    ref.redisListenClient.subscribe("AppDotNetWS"); // WS to altapi
-    ref.redisListenClient.subscribe("AppDotNetAPI"); // altapi to altpi communication
-    ref.redisListenClient.on("message", ref.handleEvent);
-    // set up initial listeners (wait for the camintejs connect)
-    setTimeout(function() {
-      ref.loadSubscriptions();
-    }, 1000);
+    try {
+      this.redisClient = redis.createClient(redisClientOptions);
+      this.redisListenClient = redis.createClient(redisClientOptions);
+      var ref = this;
+      ref.redisListenClient.subscribe("AppDotNetWS"); // WS to altapi
+      ref.redisListenClient.subscribe("AppDotNetAPI"); // altapi to altpi communication
+      ref.redisListenClient.on("message", ref.handleEvent);
+      // set up initial listeners (wait for the camintejs connect)
+      setTimeout(function() {
+        ref.loadSubscriptions();
+      }, 1000);
+    } catch(e) {
+      console.error('StreamEngine err', e);
+      return false;
+    }
     /*
     setInterval(function() {
       // just incase another thread updates
@@ -33,6 +38,7 @@ module.exports = {
       ref.loadSubscriptions();
     }, 30*1000)
     */
+    return true;
   },
   checkConnections: function() {
     var ref = this;

@@ -69,6 +69,7 @@ module.exports = {
     // /reference/resources/user/lookup/#retrieve-multiple-users
     // ids are usually numeric but also can be @username
     app.get(prefix+'/users', function(req, resp) {
+      // we should never enumerate users... it's not in the spec at all...
       if (!req.token) {
         var ids = req.query.ids
         if (ids && ids.match(/,/)) {
@@ -371,6 +372,16 @@ module.exports = {
         // optional fields
         if (req.body.annotations) {
           request.annotations = req.body.annotations
+        }
+        if (Object.keys(request).length === 0) {
+          var res={
+            "meta": {
+              "code": 400,
+              "error_message": "Requires at least one field to change"
+            }
+          };
+          resp.status(400).type('application/json').send(JSON.stringify(res));
+          return;
         }
         //console.log('dialect.appdotnet_official.js:PATCHusersX - request', request)
         //console.log('dialect.appdotnet_official.js:PATCHusersX - creating channel of type', req.body.type)

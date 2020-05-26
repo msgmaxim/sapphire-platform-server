@@ -7,14 +7,14 @@ var internalServer = require('./router.admin');
  * Launch the server!
  */
 var webport = nconf.get('web:port') || 7070;
-console.log('launching webserver on', webport);
-publicRouter.listen(webport);
+var weblisten = nconf.get('web:listen') || '0.0.0.0';
+console.log('launching public webserver on', weblisten+':'+webport);
+publicRouter.listen(webport, weblisten);
 
-var admin_modkey=nconf.get('admin:modKey');
-var admin_port=nconf.get('admin:port') || 3000;
-var admin_listen=nconf.get('admin:listen') || '127.0.0.1';
-
+var admin_modkey = nconf.get('admin:modKey');
 if (admin_modkey) {
+  var admin_port = nconf.get('admin:port') || 3000;
+  var admin_listen = nconf.get('admin:listen') || '127.0.0.1';
   console.log('Mounting admin at / on '+admin_listen+':'+admin_port);
   internalServer.listen(admin_port, admin_listen);
 } else {

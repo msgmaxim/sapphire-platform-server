@@ -296,7 +296,6 @@ let functions = {
    * @param {?string} error null if no errors, otherwise string
    * @param {object} meta meta object
    */
-
 }
 
 funcs.forEach((func) => {

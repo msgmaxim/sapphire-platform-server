@@ -8,6 +8,12 @@ we're responsible for filteirng models to make sure we only return what matches 
 const callbacks = require('./dialect.appdotnet_official.callbacks.js')
 const ratelimiter = require('./ratelimiter.js')
 
+// for pomf support
+var request=require('request');
+var multer  = require('multer');
+var storage = multer.memoryStorage()
+var upload = multer({ storage: storage, limits: {fileSize: 10*1024*1024} });
+
 // post structure, good enough to fool alpha
 const notimplemented=[{
   id: 0,

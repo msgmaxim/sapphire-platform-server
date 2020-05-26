@@ -146,6 +146,7 @@ module.exports = {
       callback('dataaccess.caminte.js::getUserID() - username was not set', false)
       return
     }
+    // probably should move this into dispatcher?
     if (username[0]==='@') {
       username = username.substr(1)
     }
@@ -162,7 +163,7 @@ module.exports = {
       callback(err, user)
     })
   },
-  // callback is user, err, meta
+  // we only support integers unlike getUser
   getUser: function(userid, callback) {
     if (userid == undefined) {
       console.trace('dataaccess.caminte.js:getUser - userid is undefined')

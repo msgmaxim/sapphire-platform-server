@@ -2,7 +2,7 @@
 const request=require('request')
 const multer  = require('multer')
 const storage = multer.memoryStorage()
-const upload = multer({ storage: storage, limits: {fileSize: 100*1024*1024} })
+const upload = multer({ storage: storage, limits: {fileSize: 100 * 1024 * 1024} })
 
 module.exports = {
   mount: function(prefix, app) {
@@ -20,6 +20,7 @@ module.exports = {
         console.log('POSTfiles - file upload got', req.file.buffer.length, 'bytes');
       } else {
         // no files uploaded
+        console.log('POSTfiles - file upload got no content file');
         var res={
           "meta": {
             "code": 400,
@@ -31,6 +32,7 @@ module.exports = {
       }
       if (!req.file.buffer.length) {
         // no files uploaded
+        console.log('POSTfiles - file upload got file with 0 bytes');
         var res={
           "meta": {
             "code": 400,

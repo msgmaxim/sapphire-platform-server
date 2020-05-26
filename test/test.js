@@ -11,8 +11,9 @@ const ADN_SCOPES = 'stream'
 // Look for a config file
 const config_path = path.join(__dirname, '/../config.json')
 // and a model file
-const config_model_path = path.join(__dirname, '/config.models.json')
-nconf.argv().env('__').file({file: config_path}).file('model', {file: config_model_path})
+//const config_model_path = path.join(__dirname, '/config.models.json')
+nconf.argv().env('__').file({file: config_path})
+//.file('model', {file: config_model_path})
 
 const cache = require('../dataaccess/dataaccess.proxy-admin')
 cache.start(nconf)
@@ -24,7 +25,7 @@ cache.dispatcher = {
 }
 
 let webport = nconf.get('web:port') || 7070
-const base_url = 'http://localhost:' + webport + '/'
+const base_url = 'http://' + (nconf.get('web:listen') || '127.0.0.1') + ':' + webport + '/'
 const platform_admin_url = 'http://' + (nconf.get('admin:listen') || '127.0.0.1') + ':' + (nconf.get('admin:port') || 3000)
 console.log('platform url', base_url)
 console.log('admin    url', platform_admin_url)
@@ -118,6 +119,7 @@ async function setupTesting() {
   describe('ensureServer', async () => {
     it('make sure we have something to test', async () => {
       await ensureServer()
+      //console.log('platform ready')
     })
     // need the following in an `it` to make sure it only happens after the server is set up
     it('setting up token to use with testing', async() => {
@@ -172,13 +174,4 @@ function runIntegrationTests() {
       })
 }
 
-before(function(done) {
-  // makes it at least wait until ensureServer is done before calling done
-  async function startServers() {
-    await ensureServer()
-    console.log('platform ready')
-    done()
-  }
-  startServers()
-})
 runIntegrationTests()
