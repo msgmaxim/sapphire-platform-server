@@ -1,5 +1,6 @@
 const assert = require('assert')
 const FormData = require('form-data')
+const fetch = require('node-fetch')
 
 module.exports = {
   runTests: function(platformApi, nconf) {
@@ -68,7 +69,13 @@ module.exports = {
       if (provider_url.match(/localhost|127.0.0.1|192.168/i)) {
         url = res.response.data.url.replace('^/', '')
         if (url.match(/:\/\//)) {
-          console.log('absolute download test is not yet written, skipping')
+          // console.log('absolute download test is not yet written, skipping', url)
+          const result = await fetch(url)
+          assert.equal(200, result.status)
+          const text = await result.text()
+          if (result.status !== 200) {
+            console.log('POMF download result code', result)
+          }
         } else {
           const downloadRes = await platformApi.serverRequest(url, {
             //noJson: true
