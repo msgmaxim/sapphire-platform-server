@@ -15,7 +15,7 @@ var pageParams=['since_id','before_id','count','last_read','last_read_inclusive'
 var channelParams=['channel_types'];
 var fileParams=['file_types'];
 
-var upstream_client_id=nconf.get('uplink:client_id') || 'NotSet';
+let upstream_client_id;
 
 /**
  * Set up middleware to check for prettyPrint
@@ -81,6 +81,13 @@ function adnMiddleware(req, res, next) {
   }
 
   // debug incoming requests
+  if (upstream_client_id === undefined) {
+    if (nconf && nconf.get) {
+      upstream_client_id=nconf.get('uplink:client_id') || 'NotSet';
+    } else {
+      console.log('middleware.js - nconf is not configured')
+    }
+  }
   if (dispatcher.notsilent && upstream_client_id!='NotSet') {
     process.stdout.write("\n");
   }
@@ -240,9 +247,9 @@ function corsMiddleware(req, res, next){
   res.set('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Authorization'); // add the list of headers your site allows.
   if (req.method === 'OPTIONS') {
     var ts=new Date().getTime();
-    var diff = ts-res.start
+    var diff = ts - res.start;
     if (diff > 100) {
-      console.log('app.js - OPTIONS requests served in', (diff)+'ms', req.path);
+      console.log('app.js - OPTIONS requests served in', diff+'ms', req.path);
     }
     return res.sendStatus(200);
   }
@@ -250,7 +257,7 @@ function corsMiddleware(req, res, next){
 }
 
 function debugMiddleware(req, res, next) {
-  console.debug('DBGrequest', req.path)
+  console.debug('DBGrequest', req.method, req.path)
   if (req.method == 'POST') {
     //console.debug('DBGbody', req)
     var body = '';
@@ -272,8 +279,33 @@ function debugMiddleware(req, res, next) {
   next();
 }
 
+// snode hack work around
+// preserve original body
+function snodeOnionMiddleware(req, res, next) {
+  // scope the damage of this...
+  // so it doesn't affect file uploads
+  if (req.method === 'POST' && req.path === '/loki/v1/lsrpc') {
+    let resolver;
+    req.lokiReady = new Promise(res => {
+      resolver = res
+    });
+    let body = '';
+    req.on('data', function (data) {
+      body += data.toString();
+    });
+    req.on('end', function() {
+      // preserve original body
+      req.originalBody = body;
+      // console.log('perserved', body);
+      resolver(); // resolve promise
+    });
+  }
+  next();
+}
+
 module.exports = {
   adnMiddleware: adnMiddleware,
   corsMiddleware: corsMiddleware,
-  debugMiddleware: debugMiddleware
+  debugMiddleware: debugMiddleware,
+  snodeOnionMiddleware: snodeOnionMiddleware
 };
