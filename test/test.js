@@ -2,7 +2,7 @@ const path = require('path')
 const nconf = require('nconf')
 const assert = require('assert')
 const lokinet = require('loki-launcher/lokinet')
-const { URL } = require('url'); // node 8.x support
+const { URL } = require('url') // node 8.x support
 const ADN_SCOPES = 'stream'
 
 // Look for a config file
@@ -108,7 +108,13 @@ const ensureServer = () => {
   })
 }
 
-let testUserId
+const testConfig = {
+  platformApi,
+  testUsername: 'test',
+  //testUserid set in setupTesting()
+}
+
+//const nodeFetch = require('node-fetch')
 
 async function setupTesting() {
 
@@ -118,13 +124,78 @@ async function setupTesting() {
       console.log('platform ready')
     })
     // need the following in an `it` to make sure it only happens after the server is set up
-    it('setting up token to use with testing', async() => {
-      testUserId = await findOrCreateUser('test')
-      console.log('testUserId', testUserId)
-      token = await findOrCreateToken(testUserId)
+    it('setting up token to use with testing', async () => {
+      testConfig.testUserid = await findOrCreateUser('test')
+      // console.log('testUserId', testConfig.testUserid)
+      token = await findOrCreateToken(testConfig.testUserid)
       // assert we have a token...
       console.log('got token', token, 'for user @test')
       platformApi.token = token
+      // we could knock on a loki/v1 URL for loki specific stuff
+      // like mod/dewhitelisting...
+      // but then I worry about security implications of such a knock
+      // console.log('baseUrl', platformApi.base_url)
+      // only on file-server rn
+      //const res = await platformApi.serverRequest('loki/v1/config')
+      const res = await platformApi.serverRequest('loki/v1/user_info')
+      console.log('loki test', res.statusCode)
+      if (res.statusCode === 403) {
+        // we're in whitelist mode...
+
+        // get mod token
+        // use it...
+        // can't get_moderations because we don't have a valid token
+        /*
+        const modRes = await platformApi.serverRequest(`loki/v1/channel/1/get_moderators`)
+        if (!modRes.response.moderators) {
+          console.warn('cant read moderators for channel 1', res)
+          return
+        }
+        const modKeys = modRes.response.moderators
+        console.log('modKeys', modKeys)
+        */
+
+        // so lets assume tokens for userid are whitelisted...
+        await new Promise(resolve => {
+          cache.getUser(1, function(user, err) {
+            if (err) console.error('getUser for user 1 err', err)
+            if (!user) {
+              console.log('No user 1')
+              process.exit(1)
+            }
+            // override test users with default
+            testConfig.testUsername = user.username
+            testConfig.testUserid = user.id
+            // console.log('testUserId', testConfig.testUserid)
+            cache.getAPITokenByUsername(user.username, async function(usertoken, err, meta) {
+              if (err) consoel.error('getAPIUserToken for user 1 err', err)
+              if (!usertoken) {
+                console.log('No token for user 1')
+                process.exit(1)
+              }
+              // console.log('token', usertoken.token)
+              var modToken = usertoken.token
+              var oldToken = platformApi.token
+              platformApi.token = usertoken.token
+              // whitelist @test
+              const result = await platformApi.serverRequest('loki/v1/moderation/whitelist/@test', {
+                method: 'POST',
+              })
+              console.log('whitelist result', result)
+              // no we need to run tests as user 1
+              //platformApi.token = oldToken
+              resolve()
+            })
+          })
+        })
+      } else if (res.statusCode === 404) {
+        // normal, non-loki
+      } else if (res.statusCode === 200) {
+        // loki but either already whitelisted or not in whitelist mode?
+      } else {
+        console.log('statusCode', res.statusCode)
+      }
+      console.log('using @' + testConfig.testUsername + '(' + testConfig.testUserid + ')')
     })
   })
 
@@ -132,11 +203,8 @@ async function setupTesting() {
 
 setupTesting()
 
-const testConfig = {
-  platformApi,
-  testUsername: '@test',
-  testUserid: testUserId,
-}
+// for rdev
+// web__port=7082 admin__modKey=CHANGEME pomf__provider_url=http://localhost:7082/upload admin__port=3005
 
 function runIntegrationTests() {
   describe('#token', async () => {
@@ -161,7 +229,7 @@ function runIntegrationTests() {
           require('./test.interactions').runTests(platformApi)
         })
       describe('#channels', async () => {
-        require('./test.channels').runTests(platformApi)
+        require('./test.channels').runTests(platformApi, testConfig)
       })
 }
 
