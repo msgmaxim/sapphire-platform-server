@@ -8,7 +8,6 @@ test-8:
     - docker
   before_script:
     - npm install
-    - npm install -g mocha
     - cp config.sample.json config.json
   script:
     - mocha --exit
@@ -20,7 +19,6 @@ test-10:
     - docker
   before_script:
     - npm install
-    - npm install -g mocha
     - cp config.sample.json config.json
   script:
     - mocha --exit
@@ -32,7 +30,6 @@ test-12:
     - docker
   before_script:
     - npm install
-    - npm install -g mocha
     - cp config.sample.json config.json
   script:
     - mocha --exit
