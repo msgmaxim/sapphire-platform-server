@@ -117,17 +117,27 @@ module.exports = {
       this.next.delUser(userid, callback);
     }
   },
-  getUserID: function(username, callback) {
+  getUserID: async function(username, callback) {
     if (!username) {
       callback(null, 'dataaccess.proxy-admin.js::getUserID() - username was not set');
       return;
     }
     var ref=this;
-    console.log('dataaccess.proxy-admin.js:getUserID - proxying user @'+username);
+    console.log('dataaccess.proxy-admin.js:getUserID - proxying user @'+username, 'haveToken', !!module.exports.token);
     proxycalls++;
     var qs = '';
     if (module.exports.token) {
       qs = '?access_token=' + module.exports.token;
+    } else {
+      // no token, loki requires one now, so we need to escalate up to the admin API
+      const newUserRes = await serverRequest('users/@' + username, {
+        method: 'GET',
+      });
+      var res = newUserRes.response
+      ref.dispatcher.updateUser(res.data,new Date().getTime(), function(user,err) {
+        callback(user,err,res.meta);
+      });
+      return
     }
     request.get({
       url: ref.apiroot+'/users/@'+username + qs
@@ -161,7 +171,7 @@ module.exports = {
     });
   },
   // callback is user,err,meta
-  getUser: function(userid, callback) {
+  getUser: async function(userid, callback) {
     if (userid==undefined) {
       callback(null, 'dataaccess.proxy-admin.js:getUser - userid is undefined');
       return;
@@ -171,12 +181,23 @@ module.exports = {
       return;
     }
     var ref=this;
-    console.log('dataaccess.proxy-admin.js:getUser - proxying user '+userid);
+    console.log('dataaccess.proxy-admin.js:getUser - proxying user '+userid, 'hasToken', !!module.exports.token);
     proxycalls++;
     var qs = '';
     if (module.exports.token) {
       qs = '?access_token=' + module.exports.token;
+    } else {
+      // no token, loki requires one now, so we need to escalate up to the admin API
+      const getUserRes = await serverRequest('users/' + userid, {
+        method: 'GET',
+      });
+      var res = getUserRes.response
+      ref.dispatcher.updateUser(res.data,new Date().getTime(), function(user,err) {
+        callback(user,err,res.meta);
+      });
+      return
     }
+
     request.get({
       url: ref.apiroot+'/users/'+userid+qs
     }, function(e, r, body) {
