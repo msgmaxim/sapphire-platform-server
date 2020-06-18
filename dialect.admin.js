@@ -56,13 +56,23 @@ module.exports=function(app, prefix) {
     console.log('admin::findOne model', model, 'id', id);
     switch(model) {
       case 'users':
-        cache.getUser(id, function(user, err, meta) {
-          const resObj={
-            meta: meta,
-            data: user,
-          }
-          return sendresponse(resObj, res);
-        });
+        if (id[0] == '@') {
+          cache.getUserID(id.substring(1), function(user, err, meta) {
+            const resObj={
+              meta: meta,
+              data: user,
+            }
+            return sendresponse(resObj, res);
+          });
+        } else {
+          cache.getUser(id, function(user, err, meta) {
+            const resObj={
+              meta: meta,
+              data: user,
+            }
+            return sendresponse(resObj, res);
+          });
+        }
       break;
       case 'tokens':
         // look up by token string
