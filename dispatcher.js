@@ -2103,7 +2103,7 @@ module.exports = {
         for(var i in subs) {
           var userid = subs[i].userid
           ref.cache.setSubscription(channelid, userid, true, new Date(), function(subscription, err) {
-            console.log('dispatcher::deactiveChannel - remove used from channel', channelid)
+            console.log('dispatcher::deactiveChannel - remove a user from channel', channelid)
           })
         }
       })
@@ -2970,6 +2970,7 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   setChannelSubscription: function(data, deleted, ts, callback) {
+    //console.log('dispatcher::setChannelSubscription - data', data, 'del', del)
     // update user object
     if (data.user) {
       this.updateUser(data.user, ts);
@@ -2983,18 +2984,22 @@ module.exports = {
     }
   },
   addChannelSubscription: function(tokenobj, channel_id, params, callback) {
+    //console.log('dispatcher::addChannelSubscription - channel', channel_id)
     //If a user has muted this Channel, this call will automatically unmute the Channel
     var ref=this;
     //addSubscription: function (channel_id, userid, callback) {
     this.cache.addSubscription(channel_id, tokenobj.userid, function(subscription, err) {
+      // console.log('dispatcher.js::addChannelSubscription -', subscription);
       params.subscribedOpt = true;
       ref.getChannel(channel_id, params, callback);
     });
   },
   delChannelSubscription: function(tokenobj, channel_id, params, callback) {
+    //console.log('dispatcher::delChannelSubscription - channel', channel_id)
     var ref=this;
     //channel_id, userid, del, ts, callback
     this.cache.setSubscription(channel_id, tokenobj.userid, true, new Date(), function(subscription, err) {
+      // console.log('dispatcher.js::delChannelSubscription -', subscription);
       //delSubscription: function (channel_id, userid, callback) {
       //this.cache.delSubscription(channel_id, tokenobj.userid, function(subscription, err) {
       params.unsubscribedOpt = true;
@@ -3008,7 +3013,7 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getUserSubscriptions: function(userid, params, callback) {
-    //console.log('dispatcher.js::getUserSubscriptions - ', userid)
+    //console.log('dispatcher.js::getUserSubscriptions -', userid)
     // include_recent messages
     // channel_types filter
     var ref=this;
@@ -3137,14 +3142,22 @@ module.exports = {
    */
   getChannelSubscriptions: function(channelid, params, callback) {
     var ref = this;
-    //console.log('dispatcher.js::getChannelSubscriptions - start');
+    //console.log('dispatcher.js::getChannelSubscriptions - start', channelid);
     this.cache.getChannelSubscriptionsPaged([channelid], params, function(subs, err, meta) {
+      //console.log('dispatcher.js::getChannelSubscriptions - ', channelid, 'has', subs.length, 'subs');
       if (!subs.length) {
         return callback([], '', meta);
       }
+      var userIDs = subs.map(sub => sub.userid);
+      //console.log('dispatcher.js::getChannelSubscriptions - userIDs', userIDs);
+      ref.getUsers(userIDs, params, function(users, uErr, uMeta) {
+        if (uErr) console.error('dispatcher.js::getChannelSubscriptions - err', uErr);
+        callback(users, uErr, uMeta);
+      });
+      /*
       var list = [];
       for(var i in subs) {
-        var sub = subs[i].userid;
+        var sub = parseInt(subs[i].userid);
         // FIXME: remove N+1
         //console.log('dispatcher.js::getChannelSubscriptions - user', sub);
         ref.getUser(sub, params, function(user, uErr, uMeta) {
@@ -3155,21 +3168,25 @@ module.exports = {
           }
         })
       }
+      */
     });
   },
   getChannelsSubscriptionIds: function(ids, params, token, callback) {
     var ref = this;
-    //console.log('dispatcher.js::getChannelSubscriptions - start');
+    //console.log('dispatcher.js::getChannelsSubscriptionIds - start', ids);
     this.cache.getChannelSubscriptions(ids, params, function(err, subs, meta) {
+      //console.log('dispatcher.js::getChannelsSubscriptionIds - ', ids, 'has', subs.length, 'subs');
       if (!subs.length) {
         return callback([], '', meta);
       }
       var result = {}
       for(var i in subs) {
-        if (result[subs[i].channelid] === undefined) {
-          result[subs[i].channelid] = [subs[i].id];
+        var chanId = parseInt(subs[i].channelid)
+        // console.log('channel', chanId, 'has', subs[i].userid)
+        if (result[chanId] === undefined) {
+          result[chanId] = [subs[i].userid];
         } else
-          result[subs[i].channelid].push(subs[i].id);
+          result[chanId].push(subs[i].userid);
       }
       callback(result, '', meta);
     });
