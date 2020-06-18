@@ -1,5 +1,5 @@
 FROM node:12
-RUN npm i -g pm2 mocha
+RUN npm i -g pm2
 
 WORKDIR /usr/src/app
 
@@ -12,6 +12,8 @@ COPY ohe/ ohe/
 COPY templates/ templates/
 COPY test/ test/
 
+# this should install mocha because not --production or --only=prod
+# may need --dev ?
 RUN npm i
 
 # run unit tests
