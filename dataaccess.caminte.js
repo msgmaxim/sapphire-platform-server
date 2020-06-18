@@ -1026,7 +1026,7 @@ module.exports = {
         */
         //password: password,
         created_at: Date.now(),
-        active: true,
+        active: 1,
       }, function(err, user) {
         if (err) {
           console.log('dataaccess.caminte.js::addUser - create err', err);
@@ -2052,7 +2052,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
         callback(post, err, meta);
         return;
       }
-      post.is_deleted=true;
+      post.is_deleted=1;
       post.save(function(err2) {
         var meta={
           code: 200
@@ -2060,7 +2060,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
         console.log('camintejs::delPost - cleaning reposts of', postid);
         // now we have to mark any reposts as deleted
         postModel.update({ where: { repost_of: postid } },
-        { is_deleted: true }, function(repostErr, udpateRes) {
+        { is_deleted: 1 }, function(repostErr, udpateRes) {
           //console.log('camintejs::delPost - postModel.update returned', updateRes);
           ref.updatePostCounts(postid, function() {
             callback(post, err2, meta);
@@ -3049,7 +3049,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
         channelid: ochnl.id,
         userid: userid,
         created_at: now,
-        active: true,
+        active: 1,
         last_updated: now,
       }, function(err, nsub) {
         if (err) {
@@ -3290,7 +3290,9 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     //console.log('dataaccess.camtine.js::addMessage - message', message);
     // who's going to create a deleted message
     //message.is_deleted = message.is_deleted ? true : false; // cast to bool
-    message.is_deleted = false;
+    // memory drive will need this to match our search criteria
+    // 0 is what we use in getChannelMessages
+    message.is_deleted = 0;
     messageModel.create(message, function(err, omsg) {
       if (err) {
         console.error('dataaccess.camtine.js::addMessage - err', err);
@@ -3310,7 +3312,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       }
       return;
     }
-    messageModel.update({ where: { id: message_id } }, { is_deleted: true }, function(err, omsg) {
+    messageModel.update({ where: { id: message_id } }, { is_deleted: 1 }, function(err, omsg) {
       if (err) {
         console.log('dataaccess.camtine.js::deleteMessage - err', err);
       } else {
@@ -3342,7 +3344,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     }
 
     // I don't think you can use 0 for a boolean in memory mode
-    var criteria={ where: { id: id, is_deleted: false } };
+    var criteria={ where: { id: id, is_deleted: 0 } };
     if (id instanceof Array) {
       // this wasn't necessary
       var newList = [];
@@ -3398,16 +3400,20 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       query=query.where('is_deleted', 0)
     }
     //console.log('dataaccess.caminte.js::getChannelMessages - query', query)
-    //console.log('dataaccess.camintejs::getChannelMessages - channelid', channelid, 'token', params.tokenobj)
+    //console.log('dataaccess.camintejs::getChannelMessages - channelid', channelid, 'token', JSON.parse(JSON.stringify(params.tokenobj)))
     if (params.tokenobj && params.tokenobj.userid) {
       var mutedUserIDs = []
       // FIXME: make sure userids are integers for memory driver
+      //console.log('dataaccess.caminte.js::getChannelMessages - checking mutes')
       muteModel.find({ where: { 'userid': { in: params.tokenobj.userid } } }, function(err, mutes) {
         for(var i in mutes) {
           mutedUserIDs.push(mutes[i].muteeid)
         }
+        //console.log('dataaccess.caminte.js::getChannelMessages - checking mutes', mutedUserIDs.length);
         // FIXME: make sure userids are integers for memory driver
-        query=query.where('userid', { nin: mutedUserIDs })
+        if (mutedUserIDs.length) {
+          query=query.where('userid', { nin: mutedUserIDs })
+        }
         //console.log('getChannelMessages - params', params);
         applyParams(query, params, callback);
       })
@@ -3426,8 +3432,8 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
   addSubscription: function (channel_id, userid, callback) {
     //console.log('dataaccess.camintejs::addSubscription - channel_id', channel_id, 'userid', userid);
     subscriptionModel.findOne({ where : {
-      channelid: channel_id,
-      userid: userid,
+      channelid: parseInt(channel_id),
+      userid: parseInt(userid),
     } }, function(err, subscription) {
       if (err) {
         console.log('dataaccess.camintejs::addSubscription - err', err);
@@ -3437,15 +3443,17 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       // || !subscription.created_at
       if (!subscription) {
         subscription = new subscriptionModel
-        subscription.created_at=new Date();
-        subscription.channelid=channel_id;
-        subscription.userid=userid;
+        subscription.created_at = new Date();
+        subscription.channelid  = parseInt(channel_id);
+        subscription.userid     = parseInt(userid);
       }
       if (subscription.created_at == null) {
-        subscription.created_at=new Date();
+        subscription.created_at = new Date();
       }
-      subscription.active=true;
-      subscription.last_updated=new Date();
+      // memory driver doesn't seem to like true/false
+      subscription.active = 1;
+      subscription.last_updated = new Date();
+      console.log('dataaccess.camintejs::addSubscription', JSON.parse(JSON.stringify(subscription)));
       subscription.save(function() {
         if (callback) {
           //console.log('dataaccess.camintejs::addSubscription result', subscription);
@@ -3456,11 +3464,12 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
   },
   setSubscription: function (channel_id, userid, del, ts, callback) {
     //console.log('dataaccess.camintejs::setSubscription - channel_id', channel_id, 'userid', userid);
+    //console.log('del', del)
     subscriptionModel.updateOrCreate({
-      channelid: channel_id,
-      userid: userid
+      channelid: parseInt(channel_id),
+      userid: parseInt(userid)
     }, {
-      active: !del?true:false,
+      active: !del?1:0,
       last_updated: ts
     }, function(err, subscription) {
       console.log('dataaccess.camintejs::setSubscription result', subscription);
@@ -3470,6 +3479,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     });
   },
   getSubscription: function(channel_id, user_id, callback) {
+    //console.log('dataaccess.caminte.js::getSubscription', channel_id, user_id)
     user_id=parseInt(user_id); // ensure it's a number at this point
     if (isNaN(user_id)) {
       console.log('dataaccess.caminte.js::getSubscription - userid is NaN');
@@ -3477,6 +3487,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       return;
     }
     subscriptionModel.findOne({ where: { active: 1, userid: user_id, channelid: channel_id } }, function(err, subscription) {
+      // console.log('dataaccess.caminte.js::getSubscription - ', JSON.parse(JSON.stringify(subscription)))
       callback(subscription, err);
     })
   },
@@ -3516,12 +3527,12 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     // we actually not sort by id but by the "most recent post first"
 
     //applyParams(query, params, callback)
-    var query=subscriptionModel.find().where('userid', userid).where('active', true);
+    var query=subscriptionModel.find().where('userid', userid).where('active', 1);
     applyParams(query, params, callback);
 
     /*function(subs, err, meta) {
     //setparams(postModel.find().where('id', { nin: ourRepostIds }).where('userid',{ in: userids }), params, maxid, callback);
-    //subscriptionModel.find({ where: { userid: userid, active: true } }, function(err, subs) {
+    //subscriptionModel.find({ where: { userid: userid, active: 1 } }, function(err, subs) {
       callback(subs, err, meta); */
       /*
       // FIXME: lookup should be in dispatcher for caching reasons
@@ -3550,27 +3561,38 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     //});
   },
   getChannelSubscriptionCount: function(channelids, callback) {
+    //console.log('dataaccess.caminte.js::getChannelSubscriptionCount', channelids)
     if (channelids==undefined) {
       console.log('dataaccess.caminte.js::getChannelSubscriptionCount - channel id is undefined');
       callback(null, 'dataaccess.caminte.js::getChannelSubscriptionCount - channel id is undefined');
       return;
     }
-    // FIXMe: how slow is this on innodb
-    subscriptionModel.count({ where: { 'channelid': { in: channelids }, 'active': true } }, callback);
+    // FIXME: how slow is this on innodb
+    // seems to be ints...
+    //console.log('getChannelSubscriptionCount - ints or strings?', channelids)
+    subscriptionModel.count({ where: { channelid: { in: channelids }, active: 1 } }, callback);
   },
   getChannelSubscriptions: function(channelids, params, callback) {
+    //console.log('dataaccess.caminte.js::getChannelSubscriptions', channelids)
     if (channelids==undefined) {
       console.log('dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined');
       callback(null, 'dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined');
       return;
     }
+
+    // make memory driver happy
+    for(var i in channelids) {
+      channelids[i] = parseInt(channelids[i]);
+    }
+    //console.log('dataaccess.caminte.js::getChannelSubscriptions - int ids:', channelids)
+
     //console.log('dataaccess.caminte.js::getChannelSubscriptions - channelids', channelids);
     /*
-    var query=subscriptionModel.find().where('channelid', { in: channelids }).where('active', true);
+    var query=subscriptionModel.find().where('channelid', { in: channelids }).where('active', 1);
     //console.log('dataaccess.caminte.js::getChannelSubscriptions - query', query);
     applyParams(query, params, callback);
     */
-    subscriptionModel.find({ where: { channelid: { in: channelids }, active: true } }, callback);
+    subscriptionModel.find({ where: { channelid: { in: channelids }, active: 1 } }, callback);
     /*
     if (this.next) {
       this.next.getChannelSubscriptions(channelid, params, callback);
@@ -3580,13 +3602,21 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     */
   },
   getChannelSubscriptionsPaged: function(channelids, params, callback) {
+    //console.log('dataaccess.caminte.js::getChannelSubscriptionsPaged', channelids)
     if (channelids==undefined) {
       console.log('dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined');
       callback(null, 'dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined');
       return;
     }
+
+    // make memory driver happy
+    for(var i in channelids) {
+      channelids[i] = parseInt(channelids[i]);
+    }
+    //console.log('dataaccess.caminte.js::getChannelSubscriptionsPaged - int ids:', channelids)
+
     //console.log('dataaccess.caminte.js::getChannelSubscriptions - channelids', channelids);
-    var query=subscriptionModel.find().where('channelid', { in: channelids }).where('active', true);
+    var query=subscriptionModel.find().where('channelid', { in: channelids }).where('active', 1);
     //console.log('dataaccess.caminte.js::getChannelSubscriptions - query', query);
     applyParams(query, params, callback);
     /*
