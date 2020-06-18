@@ -49,8 +49,15 @@ create channel res {
 */
 
 module.exports = {
-  runTests: function(platformApi) {
-    let channelRes
+  runTests: function(platformApi, testConfig) {
+    // just set a default incase adding is disabled
+    let channelRes = {
+      response: {
+        data: {
+          id: 1
+        }
+      }
+    }
     let messageRes
     it('create channel', async () => {
       channelRes = await platformApi.serverRequest('channels', {
@@ -64,6 +71,15 @@ module.exports = {
     })
 
     it('get channel', async () => {
+      if (channelRes.response.data.id === undefined) {
+        channelRes = {
+          response: {
+            data: {
+              id: 1
+            }
+          }
+        }
+      }
       const getChannelRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id)
       assert.equal(200, getChannelRes.statusCode)
     })
@@ -89,7 +105,7 @@ module.exports = {
     it('search channel owner', async () => {
       const searchChannelRes = await platformApi.serverRequest('channels/search', {
         params: {
-          creator_id: '@test',
+          creator_id: '@' + testConfig.testUsername,
         }
       })
       assert.equal(200, searchChannelRes.statusCode)
@@ -97,40 +113,82 @@ module.exports = {
     it('get multiple channel', async () => {
       const multiChannelRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id, {
         params: {
-          ids: '@test'
+          ids: '@' + testConfig.testUsername
         }
       })
       assert.equal(200, multiChannelRes.statusCode)
     })
     // subscriptions
     it('sub to channel', async () => {
+      // console.log('subbing using token', platformApi.token)
       const channelSubRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/subscribe', {
         method: 'POST',
       })
       assert.equal(200, channelSubRes.statusCode)
     })
-    it('get channel subscribes', async () => {
+    // /reference/resources/channel/subscriptions/#retrieve-users-subscribed-to-a-channel
+    // channels/X/subscribers
+    // dispatcher: getChannelSubscriptions
+    // dataaccess: getChannelSubscriptionsPaged
+    // docs says returns a channel Obj but logic and pnut says it should return users
+    // return users
+    it('get channel subscribers', async () => {
       const channelSubRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/subscribers')
       assert.equal(200, channelSubRes.statusCode)
+      // console.log('channelSubRes data', channelSubRes.response.data)
+      // anything but zero
+      assert.ok(channelSubRes.response.data.length)
+      // make sure it has our user in data
+      assert.ok(channelSubRes.response.data.some(u => u.id === testConfig.testUserid))
+      assert.ok(channelSubRes.response.data.some(u => u.username === testConfig.testUsername))
     })
+    // /reference/resources/channel/subscriptions/#retrieve-user-ids-subscribed-to-a-channel
+    // channels/X/subscribers/ids
+    // dispatcher: getChannelsSubscriptionIds
+    // dataaccess: getChannelSubscriptions
+    // returns an array of user IDs
+    // (should be string formatted IDs)
     it('get single channel subscribe id', async () => {
       const channelSingleSubIdRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/subscribers/ids')
+      //console.log('channelSingleSubIdRes', channelSingleSubIdRes)
       assert.equal(200, channelSingleSubIdRes.statusCode)
+      //console.log('channelSingleSubIdRes data', channelSingleSubIdRes.response.data)
+      // we have at least one
+      assert.ok(channelSingleSubIdRes.response.data.length)
+      // make sure it contains our user
+      assert.ok(channelSingleSubIdRes.response.data.indexOf(testConfig.testUserid) !== -1)
     })
+    // /reference/resources/channel/subscriptions/#retrieve-user-ids-subscribed-to-a-channel
+    // channels/subscribers/ids
+    // dispatcher: getChannelsSubscriptionIds
+    // dataaccess: getChannelSubscriptions
+    // returns an Object keyed by channel IDs with values being an array of user IDs
+    // (all user/channel IDs should be string formatted)
     it('get multi channel subscribe id', async () => {
       const channelMultipleSubIdRes = await platformApi.serverRequest('channels/subscribers/ids', {
         params: {
           ids: channelRes.response.data.id
         }
       })
+      // console.log('channelMultipleSubIdRes', channelMultipleSubIdRes)
       assert.equal(200, channelMultipleSubIdRes.statusCode)
+      // get user list for this channel
+      //console.log('channelMultipleSubIdRes data', channelMultipleSubIdRes.response.data)
+      assert.ok(channelMultipleSubIdRes.response.data[channelRes.response.data.id])
+      assert.ok(channelMultipleSubIdRes.response.data[channelRes.response.data.id].indexOf(testConfig.testUserid) !== -1)
     })
+    // /reference/resources/channel/subscriptions/#unsubscribe-from-a-channel
+    // channels/X/subscribe
+    // dispatcher: delChannelSubscription
+    // dataaccess: setSubscription
+    // returns channel object
     it('unsub to channel', async () => {
       const channelSubRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/subscribe', {
         method: 'DELETE',
       })
       assert.equal(200, channelSubRes.statusCode)
     })
+    // FIXME: check subscriptions again to make sure it's zero...
 /*
   data: {
     channel_id: '17',
