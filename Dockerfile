@@ -17,7 +17,7 @@ COPY test/ test/
 RUN npm i
 
 # run unit tests
-RUN mocha --exit
+RUN npm test
 
 EXPOSE 7070 3000
 ENTRYPOINT ["pm2-runtime", "app.js"]
