@@ -11,9 +11,6 @@ var app = express();
 // temporary hack middleware for debugging
 //app.all('/*', middlewares.debugMiddleware);
 
-// need this for onion requests...
-app.use(middlewares.snodeOnionMiddleware);
-
 /** need this for POST parsing */
 // heard this writes to /tmp and doesn't scale.. need to confirm if current versions have this problem
 app.use(bodyParser.json());
