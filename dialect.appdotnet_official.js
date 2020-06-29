@@ -5,14 +5,13 @@ this file is responsible for the dialect for the associate mountpoint
 
 we're responsible for filteirng models to make sure we only return what matches the dialect's spec
 */
-const callbacks = require('./dialect.appdotnet_official.callbacks.js')
-const ratelimiter = require('./ratelimiter.js')
+const callbacks   = require('./dialect.appdotnet_official.callbacks.js');
+const ratelimiter = require('./ratelimiter.js');
 
 // for pomf support
-var request=require('request');
+var request = require('request');
 var multer  = require('multer');
 var storage = multer.memoryStorage()
-var upload = multer({ storage: storage, limits: {fileSize: 10*1024*1024} });
 
 // post structure, good enough to fool alpha
 const notimplemented=[{
@@ -41,10 +40,13 @@ const notimplemented=[{
 /**
  * Set up defined API routes at prefix
  */
-module.exports=function(app, prefix) {
-  const dispatcher=app.dispatcher
-  app.callbacks = callbacks
-  app.ratelimiter = ratelimiter
+module.exports = function(app, prefix) {
+  const dispatcher = app.dispatcher;
+  app.callbacks    = callbacks
+  app.ratelimiter  = ratelimiter
+  var nconf      = app.nconf;
+  var upload     = multer({ storage: storage, limits: { fileSize: app.config.maxUploadSize } });
+
   /*
    * Authenticated endpoints
    */

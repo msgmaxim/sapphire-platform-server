@@ -16,6 +16,8 @@
   },
   "web": {
     "port": 7070,
+    "listen": "0.0.0.0",
+    "public_url": "https://localhost",
     "api_client_id": "AreWeConformingToAnySpecificFormatYetQuestionMark",
     "mounts": [
       {

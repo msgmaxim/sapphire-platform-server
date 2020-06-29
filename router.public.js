@@ -28,6 +28,11 @@ var apiroot = nconf.get('uplink:apiroot') || 'https://api.app.net';
 app.apiroot=apiroot;
 app.dispatcher=dispatcher;
 app.nconf=nconf;
+app.config = {
+  maxUploadSize: nconf.get('limits:default:max_file_size') || 100 * 1024 * 1024
+}
+console.log('router.public - maxUploadSize', app.config.maxUploadSize.toLocaleString(), 'bytes');
+
 
 /* load dialects from config */
 //console.log('nconf', nconf.get('web:mounts'));
@@ -49,7 +54,7 @@ for(var i in mounts) {
   // require already guards this..
   if (dialects[mount.dialect]==undefined) {
     // load dialect
-    console.log("Loading dialect "+mount.dialect);
+    console.log('router.public - Loading dialect', mount.dialect);
     // if has a directory
     if (mount.dialect.match(/\.\.|\//)) {
       dialects[mount.dialect]=require(mount.dialect+'.js');
@@ -57,7 +62,7 @@ for(var i in mounts) {
       dialects[mount.dialect]=require('./dialect.'+mount.dialect+'.js');
     }
   }
-  console.log('Mounting '+mount.dialect+' at '+mount.destination+'/');
+  console.log('router.public - Mounting', mount.dialect, 'at', mount.destination + '/');
   dialects[mount.dialect](app, mount.destination);
 }
 
@@ -76,13 +81,15 @@ app.auth_client_secret=auth_client_secret;
 app.webport=webport;
 
 // only can proxy if we're set up as a client or an auth_base not app.net
-console.log('upstream_client_id', upstream_client_id)
-if (upstream_client_id!='NotSet' || auth_base!='https://account.app.net/oauth/') {
+if (!upstream_client_id || upstream_client_id!=='NotSet' || auth_base!=='https://account.app.net/oauth/') {
+  console.log('router.public - upstream_client_id', upstream_client_id)
   var obj = require('./lib.platform');
   var oauthproxy=require('./routes.oauth.proxy.js');
   oauthproxy.auth_base=auth_base;
   oauthproxy.setupoauthroutes(app, obj.cache);
 } else {
+  // no proxy
+  // does this mean no auth?
   function generateToken(string_length) {
     var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz";
     var randomstring = '';

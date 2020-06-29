@@ -16,6 +16,7 @@ var channelParams=['channel_types']
 var fileParams=['file_types']
 
 var upstream_client_id=nconf.get('uplink:client_id') || 'NotSet'
+//let upstream_client_id;
 
 /**
  * Set up middleware to check for prettyPrint
@@ -81,6 +82,15 @@ function adnMiddleware(req, res, next) {
   }
 
   // debug incoming requests
+  /*
+  if (upstream_client_id === undefined) {
+    if (nconf && nconf.get) {
+      upstream_client_id=nconf.get('uplink:client_id') || 'NotSet';
+    } else {
+      console.log('middleware.js - nconf is not configured')
+    }
+  }
+  */
   if (dispatcher.notsilent && upstream_client_id!='NotSet') {
     process.stdout.write("\n")
   }
@@ -239,10 +249,17 @@ function corsMiddleware(req, res, next){
   res.set('Access-Control-Allow-Credentials', 'true')
   res.set('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Authorization') // add the list of headers your site allows.
   if (req.method === 'OPTIONS') {
+<<<<<<< HEAD
     var ts=new Date().getTime()
     var diff = ts-res.start
     if (diff > 100) {
       console.log('app.js - OPTIONS requests served in', (diff)+'ms', req.path)
+=======
+    var ts=new Date().getTime();
+    var diff = ts - res.start;
+    if (diff > 100) {
+      console.log('app.js - OPTIONS requests served in', diff+'ms', req.path);
+>>>>>>> b24867f8d00742618f957116528ad015ca9c4410
     }
     return res.sendStatus(200)
   }
@@ -250,7 +267,7 @@ function corsMiddleware(req, res, next){
 }
 
 function debugMiddleware(req, res, next) {
-  console.debug('DBGrequest', req.path)
+  console.debug('DBGrequest', req.method, req.path)
   if (req.method == 'POST') {
     //console.debug('DBGbody', req)
     var body = ''
@@ -275,5 +292,10 @@ function debugMiddleware(req, res, next) {
 module.exports = {
   adnMiddleware: adnMiddleware,
   corsMiddleware: corsMiddleware,
+<<<<<<< HEAD
   debugMiddleware: debugMiddleware
 }
+=======
+  debugMiddleware: debugMiddleware,
+};
+>>>>>>> b24867f8d00742618f957116528ad015ca9c4410

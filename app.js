@@ -40,3 +40,9 @@ if (upstream_client_id!='NotSet') {
 // hoover users (from our last max ID to appstream start (dispatcher.first_post))
 // hoover posts (from our last max ID to appstream start (dispatcher.first_post))
 // hoover stars for all users in db
+
+module.exports = {
+  publicApp: publicRouter,
+  hasAdminApp: admin_modkey ? true : false,
+  adminApp: internalServer,
+}
