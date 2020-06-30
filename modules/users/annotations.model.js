@@ -23,7 +23,10 @@ module.exports = {
     note.typeid=id
     note.type=type
     note.value=value
-    db_insert(note, annotationModel, callback)
+    note.save(function(err) {
+      callback(err, note)
+    })
+    //db_insert(note, annotationModel, callback)
   },
   clearAnnotations: function(idtype, id, callback) {
     //console.log('dataaccess.caminte.js::clearAnnotations - idtype', idtype, 'id', id)
