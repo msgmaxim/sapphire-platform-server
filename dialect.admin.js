@@ -57,7 +57,7 @@ module.exports=function(app, prefix) {
     switch(model) {
       case 'users':
         if (id[0] == '@') {
-          cache.getUserID(id.substring(1), function(user, err, meta) {
+          cache.getUserID(id.substring(1), function(err, user, meta) {
             const resObj={
               meta: meta,
               data: user,
@@ -65,7 +65,7 @@ module.exports=function(app, prefix) {
             return sendresponse(resObj, res);
           });
         } else {
-          cache.getUser(id, function(user, err, meta) {
+          cache.getUser(id, function(err, user, meta) {
             const resObj={
               meta: meta,
               data: user,
@@ -189,6 +189,7 @@ module.exports=function(app, prefix) {
       case 'users':
         // "password" (2nd) parameter is not saved/used
         cache.addUser(req.body.username, '', function(err, user, meta) {
+          if (err) console.error('dialect.admin::POST /users err', err)
           const resObj={
             meta: meta,
             data: user,
@@ -197,7 +198,7 @@ module.exports=function(app, prefix) {
         })
       break;
       case 'channels':
-        cache.addChannel(req.body.userid, req.body.channel, function(chnl, err, meta) {
+        cache.addChannel(req.body.userid, req.body.channel, function(err, chnl, meta) {
           const resObj={
             meta: meta,
             data: chnl,
@@ -227,7 +228,7 @@ module.exports=function(app, prefix) {
         }
       break;
       case 'annotations':
-        cache.addAnnotation(req.body.idtype, req.body.id, req.body.type, req.body.value, function(note, err, meta) {
+        cache.addAnnotation(req.body.idtype, req.body.id, req.body.type, req.body.value, function(err, note, meta) {
           const resObj={
             meta: meta,
             data: note,
@@ -270,7 +271,7 @@ module.exports=function(app, prefix) {
     console.log('admin::delete model', model, 'id', id);
     switch(model) {
       case 'tokens':
-        cache.delAPIUserToken(id, function(delToken, err) {
+        cache.delAPIUserToken(id, function(err, delToken) {
           const resObj={
             meta: {
               code: 200,
