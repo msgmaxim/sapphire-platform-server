@@ -129,7 +129,7 @@ module.exports = {
           } else {
             // generate HTML
             // text, entities, postcontext, callback
-            ref.textProcess(message.text, post.entities, true, function(textProcess, err) {
+            ref.textProcess(message.text, post.entities, true, function(err, textProcess) {
               //console.dir(textProcess)
               api.html=textProcess.html
               //finalcompsite(post, user, client, callback, err, meta)
@@ -138,7 +138,7 @@ module.exports = {
           }
         }) // getEntities
       } else {
-        ref.textProcess(message.text, message.entities, true, function(textProcess, err) {
+        ref.textProcess(message.text, message.entities, true, function(err, textProcess) {
           api.entities=textProcess.entities
           api.html=textProcess.html
           //finalcompsite(post, user, client, callback, err, meta)
@@ -276,7 +276,7 @@ module.exports = {
       }
 
       function getEntities(message, cb) {
-        ref.textProcess(message.text, message.entities, true, function(textProc, err) {
+        ref.textProcess(message.text, message.entities, true, function(err, textProc) {
           //console.log('dispatcher.js::addMessage - textProc', textProc)
           message.entities=textProc.entities
           message.html=textProc.html
