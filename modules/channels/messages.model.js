@@ -49,7 +49,7 @@ module.exports = {
     })
   },
   addMessage: function(message, callback) {
-    message.is_deleted = true
+    message.is_deleted = 1
     messageModel.create(message, function(err, omsg) {
       if (err) {
         console.error('dataaccess.camtine.js::addMessage - err', err)
@@ -68,7 +68,7 @@ module.exports = {
       }
       return
     }
-    messageModel.update({ where: { id: message_id } }, { is_deleted: true }, function(err, omsg) {
+    messageModel.update({ where: { id: message_id } }, { is_deleted: 1 }, function(err, omsg) {
       if (err) {
         console.log('dataaccess.camtine.js::deleteMessage - err', err)
       } else {
@@ -138,7 +138,7 @@ module.exports = {
       query=query.where('is_deleted', false)
     }
     //console.log('dataaccess.caminte.js::getChannelMessages - query', query)
-    //console.log('dataaccess.camintejs::getChannelMessages - channelid', channelid, 'token', params.tokenobj)
+    //console.log('dataaccess.camintejs::getChannelMessages - channelid', channelid, 'token', JSON.parse(JSON.stringify(params.tokenobj)))
     if (params.tokenobj && params.tokenobj.userid) {
       var mutedUserIDs = []
       //muteModel.find({ where: { 'userid': { in: params.tokenobj.userid } } }, function(err, mutes) {
@@ -146,7 +146,9 @@ module.exports = {
         for(var i in mutes) {
           mutedUserIDs.push(mutes[i].muteeid)
         }
-        query=query.where('userid', { nin: mutedUserIDs })
+        if (mutedUserIDs.length) {
+          query = query.where('userid', { nin: mutedUserIDs })
+        }
         //console.log('getChannelMessages - params', params)
         applyParams(query, params, callback)
       })
