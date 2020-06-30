@@ -71,18 +71,20 @@ module.exports = {
       //console.log('getInteractions - calling', userid, params, tokenObj)
       ref.cache.getNotices(userid, params, tokenObj, function(err, notices) {
         //console.log('dispatcher.js::getInteractions - gotNotice', notices.length)
+        if (err) console.error('stars.controller.js::getInteractions - getNotices err', err)
 
         // actionuserid <= may have to look this up too
         // look up: notice.postid => post
         // look up: post.user.id => post.user
         // we can roll up multiple entries for same type and post objects
         if (!notices.length) {
-          callback([], err)
+          callback(err, [])
           return
         }
         var interactions={}
         // we need to maintain the order of the result set
-        function resortReturn(interactions, err) {
+        function resortReturn(err, interactions) {
+          if (err) console.error('stars.controller.js::getInteractions - resortReturn Err', err)
           //console.log('dispatcher.js::getInteractions - resortReturn')
           var res=[]
           for(var i in notices) {
@@ -94,7 +96,7 @@ module.exports = {
             }
           }
           //console.log('dispatcher.js::getInteractions - calling back')
-          callback(res, err)
+          callback(err, res)
         }
         var count=0
         for(var i in notices) {
@@ -106,6 +108,7 @@ module.exports = {
               //typeid is who was followed
               // but it would be action user followed typeid
               ref.getUser(notice.actionuserid, { tokenobj: tokenObj }, function(fuser, err) {
+                if (err) console.error('stars.controller.js::getInteractions - getUser Err', err)
                 if (!fuser) {
                   fuser={
                     id: 0,
@@ -136,7 +139,7 @@ module.exports = {
                 count++
                 if (count==notices.length) {
                   //console.log('dispatcher.js::getInteractions - resortReturn')
-                  resortReturn(interactions, err)
+                  resortReturn(err, interactions)
                 }
               })
             } else {
@@ -144,7 +147,9 @@ module.exports = {
               // not follow, look up post
               // if we use use the dispatcher one then we don't need to conver it
               ref.getUser(notice.actionuserid, { tokenobj: tokenObj }, function(auser, err) {
+                if (err) console.error('stars.controller.js::getInteractions - getUser2 Err', err)
                 ref.getPost(notice.typeid, {}, function(post, err) {
+                  if (err) console.error('stars.controller.js::getInteractions - getPost Err', err)
                   interactions[notice.id]={
                       "event_date": notice.event_date,
                       "action": notice.type,
@@ -162,14 +167,14 @@ module.exports = {
                       count++
                       if (count==notices.length) {
                         //console.log('dispatcher.js::getInteractions - resortReturn')
-                        resortReturn(interactions, err)
+                        resortReturn(err, interactions)
                       }
                     })
                   } else {
                     count++
                     if (count==notices.length) {
                       //console.log('dispatcher.js::getInteractions - resortReturn')
-                      resortReturn(interactions, err)
+                      resortReturn(err, interactions)
                     }
                   }
                 })
@@ -255,7 +260,7 @@ module.exports = {
                 if (interactions.length==list.length || interactions.length==20) {
                   // 16-70s on 54posts 0 followers
                   console.log('sending')
-                  callback(interactions, null)
+                  callback(null, interactions)
                 }
               })
             //})
