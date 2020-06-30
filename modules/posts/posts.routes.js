@@ -152,13 +152,8 @@ module.exports = {
         } else {
           //console.log('dialect.appdotnet_official.js:postsStream - getUserStream', req.token)
           //dispatcher.getUserStream(usertoken.userid, req.apiParams.pageParams, req.token, callbacks.postsCallback(resp))
-          dispatcher.getUserStream(usertoken.userid, req.apiParams,
-              usertoken, function(posts, err, meta) {
-            //console.log('dialect.appdotnet_official.js:postsStream - sending')
-            var func=callbacks.postsCallback(resp, req.token)
-            //console.log('getUserStream', posts)
-            func(posts, err, meta)
-          })
+          dispatcher.getUserStream(usertoken.userid, req.apiParams, usertoken,
+            callbacks.postsCallback(resp, req.token))
         }
       })
     })
@@ -216,12 +211,8 @@ module.exports = {
           } else {
             //console.log('dialect.appdotnet_official.js:postsStream - getUserStream', req.token)
             //dispatcher.getUserStream(usertoken.userid, req.apiParams.pageParams, req.token, callbacks.postsCallback(resp))
-            dispatcher.getUnifiedStream(usertoken.userid, req.apiParams, req.token, function(posts, err, meta) {
-              //console.log('dialect.appdotnet_official.js:postsStream - sending')
-              var func=callbacks.postsCallback(resp, req.token)
-              //console.log('getUserStream',posts)
-              func(posts, err, meta)
-            })
+            dispatcher.getUnifiedStream(usertoken.userid, req.apiParams,
+              req.token, callbacks.postsCallback(resp, req.token))
           }
         })
       }
