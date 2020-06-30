@@ -19,7 +19,7 @@ funcs.push(require('../modules/streams/userstreams.model'))
 funcs.push(require('../modules/streams/appstreams.model'))
 funcs.push(require('../modules/users/sessions.model'))
 funcs.push(require('../modules/channels/subscriptions.model'))
-funcs.push(require('../modules/channels/streammarkers.model'))
+funcs.push(require('../modules/markers/streammarkers.model'))
 
 /**
  * http://www.camintejs.com / https://github.com/biggora/caminte

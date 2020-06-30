@@ -61,14 +61,14 @@ module.exports = function(app, prefix) {
   // channels
   require('./modules/channels/channels.routes').mount(prefix, app)
   require('./modules/channels/messages.routes').mount(prefix, app)
-  require('./modules/channels/streammarkers.routes').mount(prefix, app)
   require('./modules/channels/subscriptions.routes').mount(prefix, app)
-  require('./modules/channels/textprocess.routes').mount(prefix, app)
   // clients
   // files
   require('./modules/files/files.routes').mount(prefix, app)
   // follows
   require('./modules/follows/follows.routes').mount(prefix, app)
+  // markers
+  require('./modules/markers/streammarkers.routes').mount(prefix, app)
   // posts
   require('./modules/posts/posts.routes').mount(prefix, app)
   require('./modules/posts/stars.routes').mount(prefix, app)
@@ -76,5 +76,6 @@ module.exports = function(app, prefix) {
   // users
   require('./modules/users/mutes.routes').mount(prefix, app)
   require('./modules/users/tokens.routes').mount(prefix, app)
+  require('./modules/users/textprocess.routes').mount(prefix, app)
   require('./modules/users/users.routes').mount(prefix, app)
 }
