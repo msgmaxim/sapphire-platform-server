@@ -1,6 +1,6 @@
-var obj = require('./lib.platform');
+var obj = require('./lib/lib.platform.js');
 var dispatcher = obj.dispatcher;
-var middlewares = require('./middlewares');
+var middlewares = require('./middlewares.js');
 
 /** set up express framework */
 var express = require('express');

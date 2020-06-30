@@ -1,4 +1,4 @@
-var obj = require('./lib.platform')
+var obj = require('./lib/lib.platform.js')
 var dispatcher = obj.dispatcher
 var streamEngine = obj.streamEngine
 var nconf = obj.nconf

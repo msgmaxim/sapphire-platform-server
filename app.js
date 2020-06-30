@@ -1,7 +1,7 @@
-var obj = require('./lib.platform');
+var obj = require('./lib/lib.platform.js');
 var nconf = obj.nconf;
-var publicRouter = require('./router.public');
-var internalServer = require('./router.admin');
+var publicRouter = require('./router.public.js');
+var internalServer = require('./router.admin.js');
 
 /**
  * Launch the server!

@@ -1,7 +1,7 @@
-var obj = require('./lib.platform');
+var obj = require('./lib/lib.platform.js');
 var dispatcher = obj.dispatcher;
 var nconf = obj.nconf;
-var middlewares = require('./middlewares');
+var middlewares = require('./middlewares.js');
 
 /** set up express framework */
 var bodyParser = require('body-parser');
@@ -83,7 +83,7 @@ app.webport=webport;
 // only can proxy if we're set up as a client or an auth_base not app.net
 if (!upstream_client_id || upstream_client_id!=='NotSet' || auth_base!=='https://account.app.net/oauth/') {
   console.log('router.public - upstream_client_id', upstream_client_id)
-  var obj = require('./lib.platform');
+  var obj = require('./lib/lib.platform');
   var oauthproxy=require('./routes.oauth.proxy.js');
   oauthproxy.auth_base=auth_base;
   oauthproxy.setupoauthroutes(app, obj.cache);
