@@ -25,14 +25,16 @@ module.exports = {
     }
     function checkDone() {
       if (api.user && api.source) {
-        callback(api, null)
+        callback(null, api)
       }
     }
-    this.getUser(file.userid, params, function(user, userErr, userMeta) {
+    this.getUser(file.userid, params, function(userErr, user, userMeta) {
+      if (userErr) console.error('files.controller.js::fileToAPI - getUser err', userErr)
       api.user = user
       checkDone()
     })
     this.getClient(file.client_id, function(source, clientErr, clientMeta) {
+      if (clientErr) console.error('files.controller.js::fileToAPI - getClient err', clientErr)
       api.source = source
       checkDone()
     }, false) // don't need to add if d.n.e.
@@ -45,12 +47,14 @@ module.exports = {
     //console.log('dispatcher.js::getFiles - for user', userid, params)
     var ref=this
     this.cache.getFiles(userid, params, function(err, dbFiles, meta) {
+      if (err) console.error('files.controller.js::getFiles - err', err)
       if (!dbFiles.length) {
         callback(false, [])
       }
       var files=[]
       for(var i in dbFiles) {
-        ref.fileToAPI(dbFiles[i], params, { userid: userid }, function(api, err) {
+        ref.fileToAPI(dbFiles[i], params, { userid: userid }, function(err, api) {
+          if (err) console.error('files.controller.js::getFiles - fileToAPI err', err)
           files.push(api)
           if (files.length === dbFiles.length) {
             callback(err, files, meta)
@@ -69,10 +73,9 @@ module.exports = {
     file.created_at=new Date()
     var ref=this
     this.cache.addFile(file, tokenObj, function(err, dbFile, meta) {
+      if (err) console.error('files.controller.js::addFile - err', err)
       // and convert back
-      ref.fileToAPI(dbFile, params, tokenObj, function(api, err) {
-        callback(api, err)
-      })
+      ref.fileToAPI(dbFile, params, tokenObj, callback)
       /*
       var resFile=dbFile
       // probably can be optimized out
