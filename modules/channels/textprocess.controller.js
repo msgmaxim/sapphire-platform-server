@@ -199,7 +199,7 @@ module.exports = {
         html: '<span itemscope="https://app.net/schemas/Post">'+html+'</span>',
         text: text
       }
-      callback(res, null)
+      callback(false, res)
     }
 
     var mentionsSrch=text.match(mentionRegex)
