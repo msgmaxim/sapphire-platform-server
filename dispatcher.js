@@ -7,7 +7,8 @@
  * @module dispatcher
  */
 
-var downloader=require('./downloader.js')
+const downloader = require('./downloader.js')
+const configUtil = require('./lib/lib.config.js')
 
 var first_post_id
 var last_post_id
@@ -16,21 +17,36 @@ var last_post_id
 var lmem={ heapUsed: 0 }
 
 const funcs = []
-funcs.push(require('./modules/users/annotations.controller'))
-funcs.push(require('./modules/channels/channels.controller'))
-funcs.push(require('./modules/clients/clients.controller'))
-funcs.push(require('./modules/users/entities.controller'))
-funcs.push(require('./modules/files/files.controller'))
-funcs.push(require('./modules/follows/follows.controller'))
-funcs.push(require('./modules/channels/messages.controller'))
-funcs.push(require('./modules/users/mutes.controller'))
-funcs.push(require('./modules/posts/posts.controller'))
-funcs.push(require('./modules/posts/stars.controller'))
-funcs.push(require('./modules/markers/streammarkers.controller'))
-funcs.push(require('./modules/channels/subscriptions.controller'))
-funcs.push(require('./modules/users/textprocess.controller'))
 funcs.push(require('./modules/users/tokens.controller'))
+funcs.push(require('./modules/users/textprocess.controller'))
+funcs.push(require('./modules/users/annotations.controller'))
+funcs.push(require('./modules/users/entities.controller'))
+funcs.push(require('./modules/users/mutes.controller'))
 funcs.push(require('./modules/users/users.controller'))
+
+funcs.push(require('./modules/clients/clients.controller'))
+
+if (configUtil.moduleEnabled('channels')) {
+  funcs.push(require('./modules/channels/channels.controller'))
+  funcs.push(require('./modules/channels/messages.controller'))
+  funcs.push(require('./modules/channels/subscriptions.controller'))
+}
+
+if (configUtil.moduleEnabled('files')) {
+  funcs.push(require('./modules/files/files.controller'))
+}
+if (configUtil.moduleEnabled('follows')) {
+  funcs.push(require('./modules/follows/follows.controller'))
+}
+
+if (configUtil.moduleEnabled('posts')) {
+  funcs.push(require('./modules/posts/posts.controller'))
+  funcs.push(require('./modules/posts/stars.controller'))
+}
+
+if (configUtil.moduleEnabled('markers')) {
+  funcs.push(require('./modules/markers/streammarkers.controller'))
+}
 
 // create bus
 var coreOptions = {

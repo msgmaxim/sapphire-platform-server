@@ -14,6 +14,16 @@
     "provider": "catbox.moe",
     "provider_url": "https://catbox.moe/user/api.php"
   },
+  "modules": {
+    "channels": true,
+    "clients": true,
+    "files": true,
+    "follows": true,
+    "markers": true,
+    "posts": true,
+    "streams": true,
+    "users": true
+  },
   "web": {
     "port": 7070,
     "listen": "0.0.0.0",

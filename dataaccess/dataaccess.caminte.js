@@ -3,23 +3,43 @@
  * @module dataaccess_camintejs
  */
 
+const configUtil = require('../lib/lib.config.js')
+
 const funcs = []
+// token is p. foundational
+funcs.push(require('../modules/users/sessions.model'))
 funcs.push(require('../modules/users/users.model'))
 funcs.push(require('../modules/users/mutes.model'))
-funcs.push(require('../modules/clients/clients.model'))
-funcs.push(require('../modules/posts/posts.model'))
-funcs.push(require('../modules/channels/channels.model'))
-funcs.push(require('../modules/channels/messages.model'))
 funcs.push(require('../modules/users/annotations.model'))
 funcs.push(require('../modules/users/entities.model'))
-funcs.push(require('../modules/posts/interactions.model'))
-funcs.push(require('../modules/follows/follows.model'))
-funcs.push(require('../modules/files/files.model'))
-funcs.push(require('../modules/streams/userstreams.model'))
-funcs.push(require('../modules/streams/appstreams.model'))
-funcs.push(require('../modules/users/sessions.model'))
-funcs.push(require('../modules/channels/subscriptions.model'))
-funcs.push(require('../modules/markers/streammarkers.model'))
+
+// needs by posts/messages
+// could be foundation (put in users)
+funcs.push(require('../modules/clients/clients.model'))
+
+if (configUtil.moduleEnabled('channels')) {
+  funcs.push(require('../modules/channels/channels.model'))
+  funcs.push(require('../modules/channels/messages.model'))
+  funcs.push(require('../modules/channels/subscriptions.model'))
+}
+
+if (configUtil.moduleEnabled('posts')) {
+  funcs.push(require('../modules/posts/posts.model'))
+  funcs.push(require('../modules/posts/interactions.model'))
+}
+if (configUtil.moduleEnabled('follows')) {
+  funcs.push(require('../modules/follows/follows.model'))
+}
+if (configUtil.moduleEnabled('files')) {
+  funcs.push(require('../modules/files/files.model'))
+}
+if (configUtil.moduleEnabled('streams')) {
+  funcs.push(require('../modules/streams/userstreams.model'))
+  funcs.push(require('../modules/streams/appstreams.model'))
+}
+if (configUtil.moduleEnabled('markers')) {
+  funcs.push(require('../modules/markers/streammarkers.model'))
+}
 
 /**
  * http://www.camintejs.com / https://github.com/biggora/caminte

@@ -1,4 +1,5 @@
 const assert = require('assert')
+const configUtil = require('../lib/lib.config.js')
 
 module.exports = {
   runTests: function(platformApi) {
@@ -92,18 +93,20 @@ module.exports = {
       //console.log('user files res', res.response.data)
     })
 
-    it('get user stream', async () => {
-      const res = await platformApi.serverRequest('posts/stream')
-      assert.equal(200, res.statusCode)
-      // right now just []
-      //console.log('user files res', res.response.data)
-    })
+    if (configUtil.moduleEnabled('posts')) {
+      it('get user stream', async () => {
+        const res = await platformApi.serverRequest('posts/stream')
+        assert.equal(200, res.statusCode)
+        // right now just []
+        //console.log('user files res', res.response.data)
+      })
 
-    it('get unified stream', async () => {
-      const res = await platformApi.serverRequest('posts/stream/unified')
-      assert.equal(200, res.statusCode)
-      // right now just []
-      //console.log('user files res', res.response.data)
-    })
+      it('get unified stream', async () => {
+        const res = await platformApi.serverRequest('posts/stream/unified')
+        assert.equal(200, res.statusCode)
+        // right now just []
+        //console.log('user files res', res.response.data)
+      })
+    }
   },
 }

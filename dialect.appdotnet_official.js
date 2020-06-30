@@ -7,11 +7,7 @@ we're responsible for filteirng models to make sure we only return what matches 
 */
 const callbacks   = require('./dialect.appdotnet_official.callbacks.js');
 const ratelimiter = require('./ratelimiter.js');
-
-// for pomf support
-var request = require('request');
-var multer  = require('multer');
-var storage = multer.memoryStorage()
+const configUtil  = require('./lib/lib.config.js')
 
 // post structure, good enough to fool alpha
 const notimplemented=[{
@@ -45,7 +41,6 @@ module.exports = function(app, prefix) {
   app.callbacks    = callbacks
   app.ratelimiter  = ratelimiter
   var nconf      = app.nconf;
-  var upload     = multer({ storage: storage, limits: { fileSize: app.config.maxUploadSize } });
 
   /*
    * Authenticated endpoints
@@ -59,23 +54,35 @@ module.exports = function(app, prefix) {
     dispatcher.getOEmbed(req.query.url, callbacks.oembedCallback(resp))
   })
   // channels
-  require('./modules/channels/channels.routes').mount(prefix, app)
-  require('./modules/channels/messages.routes').mount(prefix, app)
-  require('./modules/channels/subscriptions.routes').mount(prefix, app)
+  if (configUtil.moduleEnabled('channels')) {
+    require('./modules/channels/channels.routes').mount(prefix, app)
+    require('./modules/channels/messages.routes').mount(prefix, app)
+    require('./modules/channels/subscriptions.routes').mount(prefix, app)
+  }
   // clients
   // files
-  require('./modules/files/files.routes').mount(prefix, app)
+  if (configUtil.moduleEnabled('files')) {
+    require('./modules/files/files.routes').mount(prefix, app)
+  }
   // follows
-  require('./modules/follows/follows.routes').mount(prefix, app)
+  if (configUtil.moduleEnabled('follows')) {
+    require('./modules/follows/follows.routes').mount(prefix, app)
+  }
   // markers
-  require('./modules/markers/streammarkers.routes').mount(prefix, app)
+  if (configUtil.moduleEnabled('markers')) {
+    require('./modules/markers/streammarkers.routes').mount(prefix, app)
+  }
   // posts
-  require('./modules/posts/posts.routes').mount(prefix, app)
-  require('./modules/posts/stars.routes').mount(prefix, app)
+  if (configUtil.moduleEnabled('posts')) {
+    require('./modules/posts/posts.routes').mount(prefix, app)
+    require('./modules/posts/stars.routes').mount(prefix, app)
+  }
   // streams
+  if (configUtil.moduleEnabled('streams')) {
+  }
   // users
-  require('./modules/users/mutes.routes').mount(prefix, app)
   require('./modules/users/tokens.routes').mount(prefix, app)
-  require('./modules/users/textprocess.routes').mount(prefix, app)
   require('./modules/users/users.routes').mount(prefix, app)
+  require('./modules/users/mutes.routes').mount(prefix, app)
+  require('./modules/users/textprocess.routes').mount(prefix, app)
 }

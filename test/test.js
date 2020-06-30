@@ -1,18 +1,19 @@
 const path = require('path')
-const nconf = require('nconf')
+const configUtil = require('../lib/lib.config.js')
 const assert = require('assert')
 const lokinet = require('loki-launcher/lokinet')
 const URL = require('url').URL // node 8.x backfill
+const nconf = configUtil.nconf
 
 //require('longjohn')
 
 const ADN_SCOPES = 'stream'
 
 // Look for a config file
-const config_path = path.join(__dirname, '/../config.json')
+// const config_path = path.join(__dirname, '/../config.json')
 // and a model file
 //const config_model_path = path.join(__dirname, '/config.models.json')
-nconf.argv().env('__').file({file: config_path})
+// nconf.argv().env('__').file({file: config_path})
 //.file('model', {file: config_model_path})
 
 const cache = require('../dataaccess/dataaccess.proxy-admin')
@@ -220,30 +221,39 @@ setupTesting()
 // like get user files (/users/me/files) doesn't belong in users...
 
 function runIntegrationTests() {
+
   describe('#token', async () => {
     require('./test.tokens').runTests(platformApi)
   })
     describe('#users', async () => {
       require('./test.users').runTests(platformApi)
     })
-      describe('#files', async () => {
-        require('./test.files').runTests(platformApi, nconf)
-      })
+      if (configUtil.moduleEnabled('files')) {
+        describe('#files', async () => {
+          require('./test.files').runTests(platformApi, nconf)
+        })
+      }
       describe('#mutes', async () => {
         require('./test.mutes').runTests(platformApi)
       })
-      describe('#posts', async () => {
-        require('./test.posts').runTests(platformApi)
-      })
-        describe('#markers', async () => {
-          require('./test.markers').runTests(platformApi)
+      if (configUtil.moduleEnabled('posts')) {
+        describe('#posts', async () => {
+          require('./test.posts').runTests(platformApi)
         })
-        describe('#interactions', async () => {
-          require('./test.interactions').runTests(platformApi)
+          describe('#interactions', async () => {
+            require('./test.interactions').runTests(platformApi)
+          })
+      }
+        if (configUtil.moduleEnabled('markers')) {
+          describe('#markers', async () => {
+            require('./test.markers').runTests(platformApi)
+          })
+        }
+      if (configUtil.moduleEnabled('channels')) {
+        describe('#channels', async () => {
+          require('./test.channels').runTests(platformApi, testConfig)
         })
-      describe('#channels', async () => {
-        require('./test.channels').runTests(platformApi, testConfig)
-      })
+      }
 }
 
 runIntegrationTests()
