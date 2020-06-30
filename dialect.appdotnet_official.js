@@ -52,7 +52,7 @@ module.exports = function(app, prefix) {
    */
   app.get(prefix+'/config', function(req, resp) {
     // just call the callback directly. err and meta are optional params
-    callbacks.dataCallback(resp)(dispatcher.getConfig())
+    callbacks.dataCallback(resp)(false, dispatcher.getConfig())
   })
   app.get(prefix+'/oembed', function(req, resp) {
     // never any meta
