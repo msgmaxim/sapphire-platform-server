@@ -149,7 +149,9 @@ module.exports = {
     // returns an array of user IDs
     // (should be string formatted IDs)
     it('get single channel subscribe id', async () => {
+      //console.log('asking for', channelRes.response.data.id, 'using token', platformApi.token)
       const channelSingleSubIdRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/subscribers/ids')
+      // getting 401 right now... is it wrong? no param swap
       //console.log('channelSingleSubIdRes', channelSingleSubIdRes)
       assert.equal(200, channelSingleSubIdRes.statusCode)
       //console.log('channelSingleSubIdRes data', channelSingleSubIdRes.response.data)
