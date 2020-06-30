@@ -2,18 +2,20 @@
 const request=require('request')
 const multer  = require('multer')
 const storage = multer.memoryStorage()
-const upload = multer({ storage: storage, limits: {fileSize: 100 * 1024 * 1024} })
 
 module.exports = {
   mount: function(prefix, app) {
     const dispatcher = app.dispatcher
     const callbacks = app.callbacks
 
+    const upload = multer({ storage: storage, limits: {fileSize: app.config.maxUploadSize } })
+
     app.put(prefix+'/files', function(req, resp) {
       console.log('dialect.appdotnet_official.js:PUT/files - detect');
 
       resp.status(401).type('application/json').send(JSON.stringify(res));
     });
+
     // create file (for attachments)
     app.post(prefix+'/files', upload.single('content'), function(req, resp) {
       if (req.file) {
