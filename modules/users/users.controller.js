@@ -309,7 +309,7 @@ module.exports={
             } else {
               // you can pass entities if you want...
               // text, entities, postcontext, callback
-              ref.textProcess(user.description, users.entities, false, function(textProc, err) {
+              ref.textProcess(user.description, users.entities, false, function(err, textProc) {
                 res.description.html=textProc.html
                 callback(userEntitiesErr, res)
               })
@@ -318,7 +318,7 @@ module.exports={
         } else {
           //console.log('dispatcher.js::userToAPI - textProcess description '+user.id)
           //console.log('dispatcher.js::userToAPI - calling back', res)
-          ref.textProcess(user.description, user.entities, false, function(textProc, err) {
+          ref.textProcess(user.description, user.entities, false, function(err, textProc) {
             res.description.html=textProc.html
             res.description.entities=textProc.entities
             callback(false, res)
