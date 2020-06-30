@@ -19,9 +19,7 @@ module.exports = {
       callback('invalid userid', false, false)
       return
     }
-    applyParams(muteModel.find().where('userid', { in: userid }), params, function(mutes, err, meta) {
-      callback(mutes, err, meta)
-    })
+    applyParams(muteModel.find().where('userid', { in: userid }), params, callback)
   },
   getAllMutesForUser: function(userid, callback) {
     var mutedUserIDs = []
@@ -29,7 +27,7 @@ module.exports = {
       for(var i in mutes) {
         mutedUserIDs.push(mutes[i].muteeid)
       }
-      callback(mutedUserIDs)
+      callback(false, mutedUserIDs)
     })
   },
   addMute: function(userid, muteeid, params, callback) {
