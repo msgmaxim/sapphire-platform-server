@@ -46,7 +46,7 @@ module.exports = {
             //console.log('dispatcher.js::addPost - {post_id} live tag detected')
             //console.log('dispatcher.js::addPost - reading', dbpost.id, 'got', dbpost.text)
             // recalculate entities and html
-            ref.textProcess(dbpost.text, false, true, function(textProc, err) {
+            ref.textProcess(dbpost.text, false, true, function(err, textProc) {
               //console.log('dispatcher.js::addPost - got new links', textProc.entities.links)
               // need dbpost for the id
               //dbpost.html=textProc.html
@@ -96,7 +96,7 @@ module.exports = {
     }
 
     function getEntities(post, cb) {
-      ref.textProcess(post.text, post.entities, true, function(textProc, err) {
+      ref.textProcess(post.text, post.entities, true, function(err, textProc) {
         //console.log('dispatcher.js::addPost - textProc', textProc)
         post.entities=textProc.entities
         post.html=textProc.html
@@ -190,7 +190,7 @@ module.exports = {
         //getPost: function(id, params, callback) {
         //ref.getPost(postid, params, callback)
         post.is_deleted = true
-        callback(false, post, postMeta)
+        callback(dbErr, post, postMeta)
         /*
         ref.postToApi(post, { }, function(apiPost, err) {
           ref.pumpStreams({
@@ -670,7 +670,7 @@ module.exports = {
           } else {
             // generate HTML
             // text, entities, postcontext, callback
-            ref.textProcess(post.text, post.entities, true, function(textProcess, err) {
+            ref.textProcess(post.text, post.entities, true, function(err, textProcess) {
               //console.dir(textProcess)
               data.html=textProcess.html
               //finalcompsite(post, user, client, callback, err, meta)
@@ -679,7 +679,7 @@ module.exports = {
           }
         }) // getEntities
       } else {
-        ref.textProcess(post.text, post.entities, true, function(textProcess, err) {
+        ref.textProcess(post.text, post.entities, true, function(err, textProcess) {
           data.entities=textProcess.entities
           data.html=textProcess.html
           //finalcompsite(post, user, client, callback, err, meta)
@@ -840,7 +840,7 @@ module.exports = {
                 res.push(apiposts[id])
               }
             }
-            callback(false, res, meta)
+            callback(err, res, meta)
             /*
             for(var i in apiposts) {
               var id=apiposts[i].id
@@ -855,7 +855,7 @@ module.exports = {
       // no entities
       // this can be normal, such as an explore feed that's being polled for since_id
       //console.log('dispatcher.js::idsToAPI - no posts')
-      callback('idsToAPI no posts', [], meta)
+      callback(false, [], meta)
     }
   },
   addRepost: function(postid, tokenObj, callback) {
@@ -930,7 +930,7 @@ module.exports = {
     // FIXME: make sure postid is a number
     this.cache.getPost(postid, function(err, post) {
       if (!post || err) {
-        callback('no posts for replies: '+err, [])
+        callback(err, [])
         return
       }
       // probably should chain these
@@ -969,14 +969,14 @@ module.exports = {
                   }
                 }
                 //console.log('dispatcher.js::getReplies - result ', res)
-                callback(false, res, meta)
+                callback(err, res, meta)
               }
             })
           }, ref)
         } else {
           // no posts which is fine
           //console.log('dispatcher.js:getReplies - no replies ')
-          callback('no posts for replies', [], meta)
+          callback(err, [], meta)
         }
       })
     })
@@ -1038,7 +1038,7 @@ module.exports = {
         }, ref)
       } else {
         // no entities
-        callback('no mentions/entities for '+userid, [], meta)
+        callback(err, [], meta)
       }
     })
   },
@@ -1091,13 +1091,13 @@ module.exports = {
               }
               //console.log('sending',res.length,'posts to dialect')
               //console.log('dispatcher.js::getGlobal - meta', meta)
-              callback(false, res, meta)
+              callback(err, res, meta)
             }
           })
         }, ref)
       } else {
         // no posts
-        callback('no posts for global', [], meta)
+        callback(err, [], meta)
       }
     })
   },
@@ -1186,13 +1186,13 @@ module.exports = {
                 }
                 //console.log('dispatcher::getUserStream - meta', meta)
                 //console.log('imeta',imeta)
-                callback(false, res, meta)
+                callback(err, res, meta)
               }
             })
           }, ref)
         } else {
           // no posts
-          callback('no posts for user stream', [], meta)
+          callback(err, [], meta)
         }
       })
     })
@@ -1201,6 +1201,7 @@ module.exports = {
     //console.log('dispatcher.js::getUnifiedStream', user)
     var ref=this
     this.cache.getUnifiedStream(user, params, function(err, posts, meta) {
+      if (err) console.error('post.controllers.js::getUnifiedStream - getUnifiedStream err', err)
       // data is an array of entities
       var apiposts={}, postcounter=0
       //console.log('dispatcher.js:getUserPosts - mapping '+posts.length)
@@ -1209,6 +1210,7 @@ module.exports = {
           //console.log('dispatcher.js:getUserPosts - map postid: '+current.id)
           // get the post in API foromat
           ref.postToAPI(current, params, token, function(err, post, postmeta) {
+            if (err) console.error('post.controllers.js::getUnifiedStream - postToAPI err', err)
             apiposts[post.id]=post
             postcounter++
             // join
@@ -1219,13 +1221,13 @@ module.exports = {
               for(var i in posts) {
                 res.push(apiposts[posts[i].id])
               }
-              callback(false, res, meta)
+              callback(err, res, meta)
             }
           })
         }, ref)
       } else {
         // no posts
-        callback('no posts for unified', [], meta)
+        callback(err, [], meta)
       }
     })
     //console.log('dispatcher.js::getUnifiedStream - write me')
@@ -1264,7 +1266,7 @@ module.exports = {
                   res.push(apiposts[posts[i].id])
                 }
                 //console.log('dispatcher.js::getUserPosts - callingback', res.length, 'posts')
-                callback(false, res, meta)
+                callback(err, res, meta)
                 /*
                 var res={}
                 var done=0
@@ -1301,7 +1303,7 @@ module.exports = {
           }, ref)
         } else {
           // no posts
-          callback('no posts for user posts', [], meta)
+          callback(err, [], meta)
         }
       })
     })
@@ -1357,7 +1359,7 @@ module.exports = {
             // interactions.length looks good
             if (apiposts.length==params.count || apiposts.length==interactions.length) {
               //console.log('dispatcher.js::getUserStars - finishing', apiposts.length)
-              callback(false, apiposts)
+              callback(err, apiposts, meta)
               return // kill map, somehow?
             }
           })
@@ -1392,13 +1394,13 @@ module.exports = {
             //console.log(apiposts.length+'/'+entities.length)
             if (apiposts.length==entities.length) {
               //console.log('dispatcher.js::getHashtag - finishing')
-              callback(false, apiposts)
+              callback(err, apiposts)
             }
           })
         }, ref)
       } else {
         // no entities
-        callback('no entities for '+hashtag, [], meta)
+        callback(err, [], meta)
       }
     })
   },
@@ -1463,7 +1465,7 @@ module.exports = {
     this.cache.searchPosts(query, params, function(err, users, meta) {
       //console.log('dispatcher.js::userSearch - got', users.length, 'users')
       if (!users.length) {
-        callback(false, [], meta)
+        callback(err, [], meta)
         return
       }
       var rPosts=[]
@@ -1474,7 +1476,7 @@ module.exports = {
           rPosts.push(adnPostObj)
           if (rPosts.length==users.length) {
             //console.log('dispatcher.js::userSearch - final', rUsers)
-            callback(false, rPosts, meta)
+            callback(err, rPosts, meta)
           }
         }, meta)
       }
