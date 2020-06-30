@@ -1213,7 +1213,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     function finalfunc(userid) {
       var query = noticeModel.find().where('notifyuserid', userid)
       if (tokenObj.userid) {
-        ref.getAllMutesForUser(tokenObj.userid, function(mutedUserIDs) {
+        ref.getAllMutesForUser(tokenObj.userid, function(err, mutedUserIDs) {
           query=query.where('actionuserid', { nin: mutedUserIDs })
           //console.log('getChannelMessages - params', params)
           applyParams(query, params, callback)
