@@ -215,6 +215,10 @@ setupTesting()
 // for rdev
 // web__port=7082 admin__modKey=CHANGEME pomf__provider_url=http://localhost:7082/upload admin__port=3005
 
+// we're group these in order of documentation groups
+// but I wonder if we should re-org by our internal module process
+// like get user files (/users/me/files) doesn't belong in users...
+
 function runIntegrationTests() {
   describe('#token', async () => {
     require('./test.tokens').runTests(platformApi)
