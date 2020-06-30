@@ -117,8 +117,10 @@ function formatpost(post, token) {
 module.exports = {
   ISODateString: ISODateString,
   sendObject: sendObject,
-  'postsCallback' : function(resp, token) {
+
+  postsCallback: function(resp, token) {
     return function(err, posts, meta) {
+      if (err) console.error('dialect_adn_cbs::postsCallback - err', err)
       //console.log('dialect.appdotnet_official.callback.js::postsCallback - in posts callback', posts.length, 'posts', posts)
       for(var i in posts) {
         var post = posts[i]
@@ -146,10 +148,11 @@ module.exports = {
     }
   },
 
-  'posts2usersCallback' : function(resp, token) {
+  posts2usersCallback: function(resp, token) {
     // posts is a hack, we're converting things like global to user lists
     // we need to not do this...
     return function(err, posts, meta) {
+      if (err) console.error('dialect_adn_cbs::posts2usersCallback - err', err)
       var users = []
       // if any return fucking nothing (null) kill them (don't push them)
       for(var i in posts) {
@@ -164,8 +167,10 @@ module.exports = {
       sendObject(res, resp)
     }
   },
-  'postCallback' : function(resp, token) {
+
+  postCallback: function(resp, token) {
     return function(err, post, meta) {
+      if (err) console.error('dialect_adn_cbs::postCallback - err', err)
       // console.log('postCallack post', post, 'err', err, 'meta', meta)
       var res = {
         meta: { code: 200 },
@@ -181,8 +186,9 @@ module.exports = {
     }
   },
 
-  'tokenCallback' : function(resp, token) {
+  tokenCallback: function(resp, token) {
     return function(err, data, meta) {
+      if (err) console.error('dialect_adn_cbs::tokenCallback - err', err)
       err = typeof err !== 'undefined' ? err : undefined
       meta = typeof meta !== 'undefined' ? meta : undefined
       var res={
@@ -194,8 +200,9 @@ module.exports = {
   },
 
   // what's the difference between this and post?
-  'dataCallback' : function(resp) {
+  dataCallback: function(resp) {
     return function(err, data, meta) {
+      if (err) console.error('dialect_adn_cbs::dataCallback - err', err)
       err = typeof err !== 'undefined' ? err : undefined
       meta = typeof meta !== 'undefined' ? meta : undefined
       var res={
@@ -206,9 +213,10 @@ module.exports = {
     }
   },
 
-  'fileCallback': function(resp, token) {
+  fileCallback: function(resp, token) {
     return function(err, data, meta) {
-      console.log('fileCallback', data, 'err', err, 'meta', meta)
+      //console.log('fileCallback', data, 'err', err, 'meta', meta)
+      if (err) console.error('dialect_adn_cbs::fileCallback - err', err)
       err = typeof err !== 'undefined' ? err : undefined
       meta = typeof meta !== 'undefined' ? meta : undefined
       var res={
@@ -219,8 +227,9 @@ module.exports = {
     }
   },
 
-  'oembedCallback' : function(resp) {
+  oembedCallback: function(resp) {
     return function(err, oembed) {
+      if (err) console.error('dialect_adn_cbs::oembedCallback - err', err)
       // there's no data/meta envelope for oembed
       //console.log('ADNO::oembed got ',oembed)
       sendresponse(JSON.stringify(oembed), resp)
