@@ -452,7 +452,7 @@ module.exports={
         for(var i in subs) {
           var userid = subs[i].userid
           ref.cache.setSubscription(channelid, userid, true, new Date(), function(err, subscription) {
-            //console.log('dispatcher::deactiveChannel - remove used from channel', channelid)
+            console.log('dispatcher::deactiveChannel - removed a user from channel', channelid)
           })
         }
       })
