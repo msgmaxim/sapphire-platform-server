@@ -66,6 +66,7 @@ module.exports = {
     var finishfunc=function(userid) {
       //console.log('caminte::getInteractions', type, params, user, '=>', userid)
       interactionModel.find({ where: { userid: userid, type: type, idtype: 'post' }, limit: params.count, order: "datetime DESC" }, function(err, interactions) {
+        if (err) console.error('interactions.model.js::getInteractions - err', err)
         if (interactions==null && err==null) {
           // none found
           //console.log('dataaccess.caminte.js::getStars - check proxy?')
@@ -82,7 +83,8 @@ module.exports = {
     }
     if (user[0]=='@') {
       var username=user.substr(1)
-      this.getUserID(username, function(userobj, err) {
+      this.getUserID(username, function(err, userobj) {
+        if (err) console.error('interactions.model.js::getInteractions - err', err)
         var id = false
         if (userobj) {
           id = userobj.id
