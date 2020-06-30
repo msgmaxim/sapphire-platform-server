@@ -249,17 +249,10 @@ function corsMiddleware(req, res, next){
   res.set('Access-Control-Allow-Credentials', 'true')
   res.set('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Authorization') // add the list of headers your site allows.
   if (req.method === 'OPTIONS') {
-<<<<<<< HEAD
-    var ts=new Date().getTime()
-    var diff = ts-res.start
-    if (diff > 100) {
-      console.log('app.js - OPTIONS requests served in', (diff)+'ms', req.path)
-=======
-    var ts=new Date().getTime();
+    var ts   = new Date().getTime();
     var diff = ts - res.start;
     if (diff > 100) {
       console.log('app.js - OPTIONS requests served in', diff+'ms', req.path);
->>>>>>> b24867f8d00742618f957116528ad015ca9c4410
     }
     return res.sendStatus(200)
   }
@@ -292,10 +285,5 @@ function debugMiddleware(req, res, next) {
 module.exports = {
   adnMiddleware: adnMiddleware,
   corsMiddleware: corsMiddleware,
-<<<<<<< HEAD
-  debugMiddleware: debugMiddleware
-}
-=======
   debugMiddleware: debugMiddleware,
-};
->>>>>>> b24867f8d00742618f957116528ad015ca9c4410
+}
