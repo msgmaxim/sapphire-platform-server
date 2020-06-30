@@ -47,21 +47,7 @@ module.exports = {
       //ipost.client_id=tokenObj.client_id
       if (file.urlexpires === undefined) file.urlexpires=new Date(0)
       if (file.sha1 === undefined) file.sha1=''
-      db_insert(new fileModel(file), fileModel, function(rec, err) {
-        //console.log('camintejs::addPost - res', rec, err)
-        // process id
-        /*
-        if (rec.id && !rec.thread_id) {
-          rec.thread_id=rec.id
-          rec.save()
-        }
-        */
-        // deal with caminte short coming on mysql
-        //rec.type=rec.type.replace(new RegExp('_', 'g'), '.')
-        console.log('camintejs::addFile - final', rec)
-        // set thread_id
-        callback(rec, err)
-      })
+      fileModel.create(file, callback);
     }
   },
   setFile: function(file, del, ts, callback) {
