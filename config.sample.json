@@ -37,6 +37,10 @@
       {
         "destination": "/stream/0",
         "dialect": "appdotnet_official"
+      },
+      {
+        "destination": "",
+        "dialect": "config"
       }
     ]
   },
