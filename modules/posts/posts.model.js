@@ -209,7 +209,7 @@ module.exports = {
         callback(post, err, meta)
         return
       }
-      post.is_deleted = true
+      post.is_deleted = 1
       post.save(function(err2) {
         var meta={
           code: 200
@@ -217,7 +217,7 @@ module.exports = {
         //console.log('camintejs::delPost - cleaning reposts of', postid)
         // now we have to mark any reposts as deleted
         postModel.update({ where: { repost_of: postid } },
-        { is_deleted: true }, function(repostErr, udpateRes) {
+        { is_deleted: 1 }, function(repostErr, udpateRes) {
           //console.log('camintejs::delPost - postModel.update returned', updateRes)
           ref.updatePostCounts(postid, function() {
             callback(err2, post, meta)
@@ -669,6 +669,7 @@ module.exports = {
     // get a list of followers
     //followModel.find({ where: { active: 1, userid: userid } }, function(err, follows) {
     this.getAllFollowing(userid, function(err, follows) {
+      if (err) console.error('posts.model.js::getUnifiedStream - getAllFollowing err', err)
       //console.log('dataaccess.caminte.js::getUserStream - got '+follows.length+' for user '+userid)
       if (err==null && follows!=null && follows.length==0) {
         //console.log('User follows no one?')
@@ -677,7 +678,7 @@ module.exports = {
           ref.next.getUserStream(userid, params, token, callback)
           return
         }
-        callback([], null)
+        callback(false, [])
       } else {
         // we have some followings
         // for each follower
@@ -743,7 +744,7 @@ module.exports = {
     var ref=this
 
     //applyParams(query, params, callback)
-    //.where('active', true)
+    //.where('active', 1)
     var query=postModel.find().where('userid', userid)
     applyParams(query, params, function(posts, err, meta) {
       if (err==null && (posts==null || !posts.length)) {
