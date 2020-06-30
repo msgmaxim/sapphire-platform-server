@@ -39,7 +39,7 @@ funcs.forEach((func) => {
   if (func.start) func.start(coreOptions)
 })
 
-
+// FIXME: users list version
 function normalizeUserID(input, tokenobj, callback) {
   //console.log('dispatcher::normalizeUserID', input)
   if (input=='me') {
