@@ -46,14 +46,14 @@ module.exports = {
     var ref=this
     this.cache.getFiles(userid, params, function(err, dbFiles, meta) {
       if (!dbFiles.length) {
-        callback([], null)
+        callback(false, [])
       }
       var files=[]
       for(var i in dbFiles) {
         ref.fileToAPI(dbFiles[i], params, { userid: userid }, function(api, err) {
           files.push(api)
           if (files.length === dbFiles.length) {
-            callback(files, err, meta)
+            callback(err, files, meta)
           }
         })
       }
