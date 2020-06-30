@@ -81,7 +81,10 @@ module.exports = {
         userModel.update({ where: { id: iuser.id } }, iuser, callback)
       } else {
         //console.log('camtinejs::setUser - creating user')
-        db_insert(new userModel(iuser), userModel, callback)
+        var userRec = new userModel(iuser)
+        userRec.save(function(err) {
+          callback(err, userRec)
+        })
       }
     })
   },

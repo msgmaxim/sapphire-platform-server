@@ -308,7 +308,8 @@ module.exports = {
         notice.actionuserid=ipost.userid // who took an action
         notice.type='repost' // star,repost,reply,follow
         notice.typeid=ipost.id // postid(star,respot,reply),userid(follow)
-        db_insert(notice, noticeModel)
+        //db_insert(notice, noticeModel)
+        notice.save()
       })
     }
     if (ipost.reply_to) {
@@ -323,7 +324,8 @@ module.exports = {
         // riposte is showing the original post
         notice.typeid=ipost.id // postid(star,respot,reply),userid(follow)
         notice.altnum = post.id
-        db_insert(notice, noticeModel)
+        //db_insert(notice, noticeModel)
+        notice.save()
       })
     }
     var ref=this

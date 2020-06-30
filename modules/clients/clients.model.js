@@ -32,7 +32,9 @@ module.exports = {
     client.client_id=client_id;
     client.name=name;
     client.link=link;
-    db_insert(client, clientModel, callback);
+    client.save(function(err) {
+      callback(err, client);
+    })
   },
   getClient: function(client_id, callback) {
     clientModel.findOne({ where: {client_id: client_id} }, function(err, client) {
