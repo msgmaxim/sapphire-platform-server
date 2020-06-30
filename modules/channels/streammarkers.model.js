@@ -51,7 +51,7 @@ module.exports = {
       marker.version++;
       marker.save(function() {
         //console.log('dataaccess.camintejs.js::setStreamMarker - marker', marker);
-        callback(marker, err);
+        callback(err, marker);
       })
     })
   },
