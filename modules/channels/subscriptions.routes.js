@@ -93,7 +93,7 @@ module.exports = {
     })
 
     app.get(prefix+'/channels/:channel_id/subscribers/ids', function(req, resp) {
-      dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+      dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
         var userid=''
         if (usertoken==null) {
           var res={
@@ -107,8 +107,9 @@ module.exports = {
         }
         req.apiParams.tokenobj=usertoken
         //console.log('dialect.appdotnet_official.js:GETchannelsXsubscribers - valid token')
-        dispatcher.getChannelsSubscriptionIds([req.params.channel_id], req.apiParams, usertoken, function(subs, err, meta) {
-          callbacks.dataCallback(resp)(subs[req.params.channel_id], err, meta)
+        dispatcher.getChannelsSubscriptionIds([req.params.channel_id], req.apiParams, usertoken, function(err, subs, meta) {
+          if (err) console.error('subscriptions.routes - err', err)
+          callbacks.dataCallback(resp)(err, subs[req.params.channel_id], meta)
         })
       })
     })
