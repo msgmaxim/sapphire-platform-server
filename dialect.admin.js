@@ -115,7 +115,7 @@ module.exports=function(app, prefix) {
     //console.log('loading channel', cid);
     cache.getChannelDeletions(cid, req.apiParams, function(err, interactions, meta) {
       if (err) {
-        console.error('getMessage err', err);
+        console.error('getChannelDeletions err', err);
         const resObj={
           meta: {
             code: 500,
@@ -164,7 +164,7 @@ module.exports=function(app, prefix) {
     // marks it is_deleted: 1
     cache.deleteMessage(mid, cid, function(err, message, meta) {
       if (err) {
-        console.error('getMessage err', err);
+        console.error('deleteMessage err', err);
         const resObj={
           meta: {
             code: 500,
