@@ -1,10 +1,13 @@
+// copyentities
+const entitiesController = require('../users/entities.controller')
+
 module.exports = {
   //
   // messages
   //
   apiToMessage: function(api, meta, callback) {
     var channel=api
-    callback(channel, null)
+    callback(null, channel)
   },
   messageToAPI: function(message, params, tokenObj, callback, meta) {
     if (!message) {
@@ -61,7 +64,7 @@ module.exports = {
       //console.log('dispatcher.js::channelToAPI('+channel.id+') - done', data, meta)
       //console.log('dispatcher.js::messageToAPI('+message.id+') - done, text', api.id, message.text)
       // everything is done
-      callback(api, null, meta)
+      callback(false, api, meta)
     }
     function loadUser(userid, params, cb) {
       //console.log('dispatcher.js::postToAPI('+message.id+') - getting user '+message.userid)
@@ -118,9 +121,9 @@ module.exports = {
             hashtags: [],
             links: [],
           }
-          copyentities('mentions', entities.mentions, api, 1)
-          copyentities('hashtags', entities.hashtags, api, 1)
-          copyentities('links', entities.links, api, 1)
+          entitiesController.copyentities('mentions', entities.mentions, api, 1)
+          entitiesController.copyentities('hashtags', entities.hashtags, api, 1)
+          entitiesController.copyentities('links', entities.links, api, 1)
           // use html cache?
           if (1) {
             //console.log('dispatcher.js::postToAPI('+post.id+') - calling final comp')
@@ -332,7 +335,8 @@ module.exports = {
             // OPT: if no streams and no callback, no need for API conversion
             message.id = msg.id
             //console.log('dispatcher.js::addMessage - msg', message)
-            ref.messageToAPI(message, params, tokenobj, function(api, err) {
+            ref.messageToAPI(message, params, tokenobj, function(err, api) {
+              if (err) console.error('message.controller.js::addMessage - messageToAPI err', err)
               //console.log('dispatcher.js::addMessage - api', api)
               ref.pumpStreams({
                 id:   msg.id,
@@ -344,7 +348,7 @@ module.exports = {
               ref.setEntities('message', msg.id, message.entities, function() {
                 // if current, extract annotations too
                 if (callback) {
-                  //console.log('dispatcher.js::addMessage - has callback', api.id, api)
+                  //console.log('dispatcher.js::addMessage - has callback', api)
                   callback(err, api, meta)
                 }
               })
@@ -472,6 +476,7 @@ module.exports = {
         var message = messages[i]
         // messageToAPI: function(message, params, tokenObj, callback, meta) {
         ref.messageToAPI(message, params, tokenObj, function(err, api) {
+          if (err) console.error('messages.controller.js::getMessage - messageToAPI err', err)
           apis.push(api)
           //console.log(apis.length, '/', messages.length)
           if (apis.length == messages.length) {
@@ -492,7 +497,7 @@ module.exports = {
     var ref=this
     if (cid=='pm') {
       console.log('dispatcher.js::getChannelMessages - getting pm message is not allowed')
-      callback([], 'getting pm message is not allowed')
+      callback('getting pm message is not allowed', [])
       return
     }
     //getChannel: function(ids, params, callback) {
@@ -538,7 +543,7 @@ module.exports = {
           var apiCount = 0
           for(var i in messages) {
             // channel, params, tokenObj, callback, meta
-            ref.messageToAPI(messages[i], params, params.tokenobj, function(message, cErr) {
+            ref.messageToAPI(messages[i], params, params.tokenobj, function(cErr, message) {
               //console.log('dispatcher.js::getChannelMessages - pushing', message.id)
               //apis.push(message)
               apis[message.id] = message
