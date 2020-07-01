@@ -1,7 +1,7 @@
 module.exports={
   /** channels */
   apiToChannel: function(api, meta, callback) {
-    //console.log('dispatcher.js::apiToChannel - api', api)
+    //console.log('channel.controller.js::apiToChannel - api', api)
     // map API to DB
     // default to most secure
     var raccess=2 // 0=public, 1=loggedin, 2=selective
@@ -47,12 +47,12 @@ module.exports={
   },
   channelToAPI: function (channel, params, tokenObj, callback, meta) {
     if (typeof(channel)!='object') {
-      console.trace('dispatcher.js::channelToAPI - channel passed in wasnt object')
+      console.trace('channel.controller.js::channelToAPI - channel passed in wasnt object')
       callback('bad data')
       return
     }
     if (!channel) {
-      console.trace('dispatcher.js::channelToAPI - channel is falish')
+      console.trace('channel.controller.js::channelToAPI - channel is falish')
       callback('null data')
       return
     }
@@ -108,12 +108,12 @@ module.exports={
       var nList=[]
       for(var i in api.writers.user_ids) {
         var writer=api.writers.user_ids[i]
-        //console.log('dispatcher.js::channelToAPI('+channel.id+') - looking at', writer, 'vs', channel.ownerid)
+        //console.log('channel.controller.js::channelToAPI('+channel.id+') - looking at', writer, 'vs', channel.ownerid)
         if (writer!=channel.ownerid) {
           nList.push(writer)
         }
       }
-      //console.log('dispatcher.js::channelToAPI('+channel.id+') - final list', nList)
+      //console.log('channel.controller.js::channelToAPI('+channel.id+') - final list', nList)
       api.writers.user_ids=nList
     }
     var ref=this
@@ -129,20 +129,20 @@ module.exports={
       channelDone[type]=true
       // if something is not done
       //if (channel.debug) {
-      //console.log('dispatcher.js::channelToAPI('+channel.id+') - checking if done')
+      //console.log('channel.controller.js::channelToAPI('+channel.id+') - checking if done')
       //}
       for(var i in channelDone) {
         if (!channelDone[i]) {
           if (channel.debug) {
-            console.log('dispatcher.js::channelToAPI('+channel.id+') -', i, 'is not done')
+            console.log('channel.controller.js::channelToAPI('+channel.id+') -', i, 'is not done')
           }
           return
         }
       }
       if (channel.debug) {
-        console.log('dispatcher.js::channelToAPI('+channel.id+') - done', meta, typeof(callback))
+        console.log('channel.controller.js::channelToAPI('+channel.id+') - done', meta, typeof(callback))
       }
-      //console.log('dispatcher.js::channelToAPI('+channel.id+') - done, text', data.text)
+      //console.log('channel.controller.js::channelToAPI('+channel.id+') - done, text', data.text)
       // everything is done
       callback(false, api, meta)
     }
@@ -153,7 +153,7 @@ module.exports={
     })
 
     function loadUser(userid, params, cb) {
-      if (channel.debug) console.log('dispatcher.js::channelToAPI('+channel.id+') - getting user '+userid)
+      if (channel.debug) console.log('channel.controller.js::channelToAPI('+channel.id+') - getting user '+userid)
       //params.debug = true
       const dummyUser = {
         id: 0,
@@ -173,8 +173,8 @@ module.exports={
         return cb(dummyUser, false, false);
       }
       ref.getUser(userid, params, function(userErr, user, userMeta) {
-        if (userErr) console.error('dispatcher.js::channelToAPI('+channel.id+') - ', userErr)
-        if (channel.debug) console.log('dispatcher.js::channelToAPI('+channel.id+') - got user '+userid)
+        if (userErr) console.error('channel.controller.js::channelToAPI('+channel.id+') - ', userErr)
+        if (channel.debug) console.log('channel.controller.js::channelToAPI('+channel.id+') - got user '+userid)
         if (!user) {
           user = dummyUser
         }
@@ -197,7 +197,7 @@ module.exports={
       })
     }
 
-    //console.log('dispatcher.js::channelToAPI - tokenObj', tokenObj)
+    //console.log('channel.controller.js::channelToAPI - tokenObj', tokenObj)
     // you_subscribed
     if (tokenObj.subscribedOpt) {
       api.you_subscribed=true
@@ -205,15 +205,15 @@ module.exports={
       api.you_subscribed=false
     } else {
       if (tokenObj.subscribedOpt===undefined && tokenObj.unsubscribedOpt===undefined) {
-        //console.log('dispatcher.js::channelToAPI - are you subscribed?', tokenObj.userid)
+        //console.log('channel.controller.js::channelToAPI - are you subscribed?', tokenObj.userid)
         channelDone.subscribed = false
         ref.cache.getSubscription(api.id, tokenObj.userid ? tokenObj.userid : 0, function(err, subed) {
-          //console.log('dispatcher.js::channelToAPI - are you subscribed?', subed)
+          //console.log('channel.controller.js::channelToAPI - are you subscribed?', subed)
           api.you_subscribed=false
           if (subed) {
             api.you_subscribed=true
           }
-          //console.log('dispatcher.js::channelToAPI - are you subscribed?', api.you_subscribed)
+          //console.log('channel.controller.js::channelToAPI - are you subscribed?', api.you_subscribed)
           setDone('subscribed')
         })
       }
@@ -228,7 +228,7 @@ module.exports={
       // you_muted
       api.you_muted=false // can't mute self
     } else
-    //console.log('dispatcher.js::channelToAPI - tokenObj', tokenObj)
+    //console.log('channel.controller.js::channelToAPI - tokenObj', tokenObj)
     if (tokenObj.userid) {
       // process readers
       if (channel.reader==0) {
@@ -253,7 +253,7 @@ module.exports={
     //if (channel.debug) console.log('asking to load', channel.ownerid)
     loadUser(channel.ownerid, params, function(userErr, user, userMeta) {
       api.owner=user
-      //console.log('dispatcher.js::channelToAPI - params', params)
+      //console.log('channel.controller.js::channelToAPI - params', params)
       setDone('user')
     })
     if (params.generalParams.annotations || params.generalParams.post_annotations) {
@@ -270,10 +270,10 @@ module.exports={
     var mParams={ pageParams: { count: 1 }, generalParams: {}, tokenobj: tokenObj }
     this.getChannelMessages(channel.id, mParams, function(messageErr, messages, messageMeta) {
       if (messageErr) {
-        console.log('dispatcher::channelToAPI - messageErr', messageErr, 'channel', channel.id)
+        console.log('channel.controller::channelToAPI - messageErr', messageErr, 'channel', channel.id)
       }
       if (!messages.length) {
-        //console.log('dispatcher::channelToAPI - last message for', channel.id, 'is', messages)
+        //console.log('channel.controller::channelToAPI - last message for', channel.id, 'is', messages)
       }
       if (messages[0]) {
         api.recent_message_id = messages[0].id
@@ -290,7 +290,7 @@ module.exports={
    */
   setChannel: function(json, ts, callback) {
     if (!json) {
-      console.log('dispatcher.js::setChannel - no json passed in')
+      console.log('channel.controller.js::setChannel - no json passed in')
       callback(false, 'no json passed in')
       return
     }
@@ -311,21 +311,21 @@ module.exports={
     }
   },
   updateChannel: function(channelid, update, params, token, callback) {
-    //console.log('dispatcher.js::updateChannel', channelid)
+    //console.log('channel.controller.js::updateChannel', channelid)
     // The only keys that can be updated are annotations, readers, and writers
     // (and the ACLs can only be updated if immutable=false).
     // The you_can_edit property tells you if you are allowed to update a channel. Currently, only the Channel owner can edit a channel.
     var ref = this
     this.cache.getChannel(channelid, params, function(err, channel, meta) {
       if (err) {
-        console.error('dispatcher.js::updateChannel - err', err)
+        console.error('channel.controller.js::updateChannel - err', err)
         return callback(err, false, meta)
       }
       if (!channel) {
-        console.warn('dispatcher.js::updateChannel - channelid', channelid, 'has no data')
+        console.warn('channel.controller.js::updateChannel - channelid', channelid, 'has no data')
         return callback(false, false, meta)
       }
-      //console.log('dispatcher.js::updateChannel - got channel', typeof(channel), channel && Object.keys(channel), channel)
+      //console.log('channel.controller.js::updateChannel - got channel', typeof(channel), channel && Object.keys(channel), channel)
       // FIXME: use apiToChannel
       if (!token.userid || channel.ownerid != token.userid) {
         callback('access denied to channel', {}, {
@@ -366,11 +366,11 @@ module.exports={
           channel.writers = ''
         }
       }
-      //console.log('dispatcher.js::updateChannel - updating channel', channel.id, 'to', channel)
+      //console.log('channel.controller.js::updateChannel - updating channel', channel.id, 'to', channel)
       channel.save(function(){
         //ref.cache.setChannel(channel, Date.now()/1000, function(ochnl, chanUpdErr) {
         //ref.cache.updateChannel(channelid, channel, function(ochnl, chanUpdErr) {
-        //console.log('dispatcher.js::updateChannel - chanUpdErr', chanUpdErr)
+        //console.log('channel.controller.js::updateChannel - chanUpdErr', chanUpdErr)
         // update annotations
         //setAnnotations: function(type, id, annotations, callback) {
         // if it's not set, it'll clear it...
@@ -378,7 +378,7 @@ module.exports={
         // it's optional
         if (update.annotations !== undefined) {
           ref.setAnnotations('channel', channelid, update.annotations, function() {
-            //console.log('dispatcher.js::updateChannel - annotations set')
+            //console.log('channel.controller.js::updateChannel - annotations set')
             ref.channelToAPI(channel, params, token, callback, meta)
           })
         } else {
@@ -389,7 +389,7 @@ module.exports={
     })
   },
   addChannel: function(api, params, token, callback) {
-    //console.log('dispatcher::addChannel', params, token)
+    //console.log('channel.controller::addChannel', params, token)
     var ref=this
     function createChannel() {
       // Currently, the only keys we use from your JSON will be readers, writers, annotations, and type.
@@ -399,7 +399,7 @@ module.exports={
       ref.apiToChannel(api, {}, function(err, channel, meta) {
         delete channel.id
         ref.cache.addChannel(token.userid, channel, function(createErr, channelRes, createMeta) {
-          //console.log('dispatcher::addChannel', channelRes.id)
+          //console.log('channel.controller::addChannel', channelRes.id)
           ref.setAnnotations('channel', channelRes.id, api.annotations, function() {
             ref.channelToAPI(channelRes, params, token, callback, createMeta)
           })
@@ -411,10 +411,10 @@ module.exports={
       for(var i in api.writers.user_ids) {
         group.push(api.writers.user_ids[i])
       }
-      console.log('dispatcher.addChannel - detecting pm channel creation, dedupe check for', group)
+      console.log('channel.controller.js::addChannel - detecting pm channel creation, dedupe check for', group)
       // destinations is input string (comma sep list: @,ints)
       this.cache.getPMChannel(group, function(err, nChannel_id, createMeta) {
-        console.log('dispatcher.addChannel - dedupe result', nChannel_id)
+        console.log('channel.controller.js::addChannel - dedupe result', nChannel_id)
         if (nChannel_id) {
           ref.getChannel(nChannel_id, params, callback)
         } else {
@@ -426,7 +426,7 @@ module.exports={
     }
   },
   deactiveChannel: function(channelid, params, token, callback) {
-    //console.log('dispatcher::deactiveChannel', channelid, params, token)
+    //console.log('channel.controller::deactiveChannel', channelid, params, token)
     var ref=this
     // only the owner can deactivate
     this.getChannel(channelid, params, function(err, channel, meta) {
@@ -440,7 +440,7 @@ module.exports={
       var chnl={
         inactive: new Date(),
       }
-      //console.log('dispatcher::deactiveChannel', channelid, params, token)
+      //console.log('channel.controller::deactiveChannel', channelid, params, token)
       ref.cache.updateChannel(channelid, chnl, function(err2, success, meta2) {
         //channel.is_deleted = true
         channel.is_inactive = true
@@ -452,7 +452,7 @@ module.exports={
         for(var i in subs) {
           var userid = subs[i].userid
           ref.cache.setSubscription(channelid, userid, true, new Date(), function(err, subscription) {
-            console.log('dispatcher::deactiveChannel - removed a user from channel', channelid)
+            console.log('channel.controller.js::deactiveChannel - removed a user from channel', channelid)
           })
         }
       })
@@ -470,28 +470,28 @@ module.exports={
           allowed=true
         }
       }
-      //console.log('dispatcher.js::getChannel - allowed', allowed, 'writers', channel.writers, 'looking for', params.tokenobj.userid)
+      //console.log('channel.controller.js::getChannel - allowed', allowed, 'writers', channel.writers, 'looking for', params.tokenobj.userid)
       // pm hack, if you can write to the channel, you can read from it
       if (!allowed && channel.writers) {
         var writeList=channel.writers.split(/,/)
         if (writeList.indexOf(userid+'')!=-1){
           allowed=true
         }
-        //console.log('dispatcher.js::getChannel - ', writeList, 'allowed', allowed)
+        //console.log('channel.controller.js::getChannel - ', writeList, 'allowed', allowed)
       }
     }
     return allowed
   },
   checkWriteChannelAccess: function(channel, userid) {
     if (!channel) {
-      console.warn('dispatcher::checkWriteChannelAccess - no channel passed in')
+      console.warn('channel.controller.js::checkWriteChannelAccess - no channel passed in')
       return false
     }
     var allowed=false
     // maybe throw error if channel isnt an object
     // this isn't a thing in writer mode
     //if (channel.writer==0) allowed=true
-    //console.log('dispatcher::checkWriteChannelAccess - userid', userid, 'channel', channel)
+    //console.log('channel.controller::checkWriteChannelAccess - userid', userid, 'channel', channel)
     if (userid) { // have to be loggedin to write
       if (channel.ownerid==userid) allowed=true
       else if (channel.writer==1) allowed=true
@@ -501,7 +501,7 @@ module.exports={
           allowed=true
         }
       }
-      //console.log('dispatcher.js::getChannel - allowed', allowed, 'writers', channel.writers, 'looking for', params.tokenobj.userid)
+      //console.log('channel.controller.js::getChannel - allowed', allowed, 'writers', channel.writers, 'looking for', params.tokenobj.userid)
       // pm hack, if you can write to the channel, you can read from it
       /*
       if (!allowed && channel.writers) {
@@ -509,24 +509,24 @@ module.exports={
         if (writeList.indexOf(userid+'')!=-1){
           allowed=true
         }
-        //console.log('dispatcher.js::getChannel - ', writeList, 'allowed', allowed)
+        //console.log('channel.controller.js::getChannel - ', writeList, 'allowed', allowed)
       }
       */
     }
     return allowed
   },
   getUserChannels: function(params, tokenobj, callback) {
-    //console.log('dispatcher::getUserChannels - tokenobj', tokenobj)
+    //console.log('channel.controller::getUserChannels - tokenobj', tokenobj)
     if (!tokenobj.userid) {
       callback('not user token')
       return
     }
     var ref=this
-    //console.log('dispatcher::getUserChannels - userid', tokenobj.userid)
-    //console.log('dispatcher::getUserChannels - params', params)
+    //console.log('channel.controller::getUserChannels - userid', tokenobj.userid)
+    //console.log('channel.controller::getUserChannels - params', params)
     this.cache.getUserChannels(tokenobj.userid, params, function(err, channels, meta) {
-      if (err) console.error('dispatcher.js::getUserChannels - getUserChannels err', err)
-      //console.log('dispatcher::getUserChannels - channels', channels.length)
+      if (err) console.error('channel.controller.js::getUserChannels - getUserChannels err', err)
+      //console.log('channel.controller::getUserChannels - channels', channels.length)
       if (!channels || !channels.length) {
         callback(err, [])
         return
@@ -535,17 +535,17 @@ module.exports={
       for(var i in channels) {
         var channel=channels[i]
         // channel, params, tokenObj, callback, meta
-        //console.log('dispatcher::getUserChannels - convert obj', channels[i], 'to API')
+        //console.log('channel.controller::getUserChannels - convert obj', channels[i], 'to API')
         // channelToAPI: function (channel, params, tokenObj, callback, meta) {
         //console.log('asking for', channels[i].id)
         //channels[i].debug = true
         ref.channelToAPI(channels[i], params, params.tokenobj?params.tokenobj:{}, function(cErr, api, meta2) {
-          if (cErr) console.error('dispatcher.js::getUserChannels - channelToAPI err', cErr)
-          //console.log('dispatcher.js::getUserChannels - got API')
+          if (cErr) console.error('channel.controller.js::getUserChannels - channelToAPI err', cErr)
+          //console.log('channel.controller.js::getUserChannels - got API')
           apis.push(api)
-          //console.log('dispatcher.js::getUserChannels - ', channels.length, '/', apis.length)
+          //console.log('channel.controller.js::getUserChannels - ', channels.length, '/', apis.length)
           if (channels.length == apis.length) {
-            //console.log('dispatcher.js::getUserChannels - returning array')
+            //console.log('channel.controller.js::getUserChannels - returning array')
             callback(err || cErr, apis)
           }
         }, meta)
@@ -560,24 +560,24 @@ module.exports={
    */
   getChannel: function(ids, params, callback) {
     if (ids===undefined || ids === "undefined") {
-      console.log('dispatcher.js::getChannel - id was undefined')
+      console.log('channel.controller.js::getChannel - id was undefined')
       callback('ids was undefined')
       return
     }
-    //console.log('dispatcher.js::getChannel - ids', ids)
+    //console.log('channel.controller.js::getChannel - ids', ids)
     var ref=this
     this.cache.getChannel(ids, params, function(err, channels, meta) {
-      //console.log('dispatcher.js::getChannel - got array', channels)
-      if (err) console.error('dispatcher.js::getChannel err -', err)
+      //console.log('channel.controller.js::getChannel - got array', channels)
+      if (err) console.error('channel.controller.js::getChannel err -', err)
       if (!channels) {
         callback(err, [], meta)
         return
       }
-      //console.log('dispatcher.js::getChannel - got array', channels)
+      //console.log('channel.controller.js::getChannel - got array', channels)
       if (channels instanceof Array) {
-        //console.log('dispatcher.js::getChannel - got array', channels.length)
+        //console.log('channel.controller.js::getChannel - got array', channels.length)
         if (!channels.length) {
-          //console.log('dispatcher.js::getChannel multiple - no result for', ids)
+          //console.log('channel.controller.js::getChannel multiple - no result for', ids)
           callback(err, [], meta)
           return
         }
@@ -598,14 +598,14 @@ module.exports={
                 allowed=true
               }
             }
-            //console.log('dispatcher.js::getChannel - allowed', allowed, 'writers', channel.writers, 'looking for', params.tokenobj.userid)
+            //console.log('channel.controller.js::getChannel - allowed', allowed, 'writers', channel.writers, 'looking for', params.tokenobj.userid)
             // pm hack, if you can write to the channel, you can read from it
             if (!allowed && channel.writers) {
               var writeList=channel.writers.split(/,/)
               if (writeList.indexOf(params.tokenobj.userid+'')!=-1){
                 allowed=true
               }
-              //console.log('dispatcher.js::getChannel - ', writeList, 'allowed', allowed)
+              //console.log('channel.controller.js::getChannel - ', writeList, 'allowed', allowed)
             }
           }
           */
@@ -614,18 +614,18 @@ module.exports={
           if (!allowed) {
             apis.push({ id: channel.id, readers: { user_ids: [] }, writers: { user_ids: [] }, editors: { user_ids: [] } })
             if (channels.length == apis.length) {
-              //console.log('dispatcher.js::getChannel - returning array')
+              //console.log('channel.controller.js::getChannel - returning array')
               callback(err, apis)
             }
             continue
           }
-          //console.log('dispatcher.js::getChannel array - channel', channels[i])
+          //console.log('channel.controller.js::getChannel array - channel', channels[i])
           // channel, params, tokenObj, callback, meta
           ref.channelToAPI(channels[i], params, params.tokenobj?params.tokenobj:{}, function(api, cErr) {
             apis.push(api)
-            //console.log('dispatcher.js::getChannel - ', channels.length, '/', apis.length)
+            //console.log('channel.controller.js::getChannel - ', channels.length, '/', apis.length)
             if (channels.length == apis.length) {
-              //console.log('dispatcher.js::getChannel - returning array')
+              //console.log('channel.controller.js::getChannel - returning array')
               callback(err || cErr, apis)
             }
           })
@@ -644,8 +644,8 @@ module.exports={
         return
       }
 
-      //console.log('dispatcher.js::getChannel single - channel', channels)
-      //console.log('dispatcher.js::getChannel - non array')
+      //console.log('channel.controller.js::getChannel single - channel', channels)
+      //console.log('channel.controller.js::getChannel - non array')
       // channelToAPI: function (channel, params, tokenObj, callback, meta) {
       ref.channelToAPI(channels, params, params.tokenobj ? params.tokenobj : {}, callback, meta)
     })
@@ -672,21 +672,21 @@ module.exports={
         if (!allowed) {
           apis.push({ id: channel.id, readers: { user_ids: [] }, writers: { user_ids: [] }, editors: { user_ids: [] } })
           if (channels.length == apis.length) {
-            //console.log('dispatcher.js::getChannel - returning array')
+            //console.log('channel.controller.js::getChannel - returning array')
             callback(err, apis)
           }
           continue
         }
         // channel, params, tokenObj, callback, meta
-        //console.log('dispatcher.js::channelSearch - channel', channel)
+        //console.log('channel.controller.js::channelSearch - channel', channel)
         ref.channelToAPI(channel, params, tokenObj, function(api, cErr) {
           apis.push(api)
           // todo: sorting by popularity (number of subscriptions)
           // todo: sorting by activity (by recent message)
 
-          //console.log('dispatcher.js::getChannel - ', channels.length, '/', apis.length)
+          //console.log('channel.controller.js::getChannel - ', channels.length, '/', apis.length)
           if (channels.length == apis.length) {
-            //console.log('dispatcher.js::getChannel - returning array')
+            //console.log('channel.controller.js::getChannel - returning array')
             callback(err || cErr, apis)
           }
         })
