@@ -49,7 +49,9 @@ module.exports = {
     })
   },
   addMessage: function(message, callback) {
-    message.is_deleted = 1
+    message.is_deleted = 0
+    // do we want a layer like this
+    // we can detect and handle certain errors
     messageModel.create(message, function(err, omsg) {
       if (err) {
         console.error('dataaccess.camtine.js::addMessage - err', err)
@@ -61,6 +63,7 @@ module.exports = {
   },
   deleteMessage: function (message_id, channel_id, callback) {
     //console.log('dataaccess.camtine.js::deleteMessage - start', message_id, channel_id)
+    var ref = this
     if (!message_id) {
       console.warn('dataaccess.camtine.js::deleteMessage -  no message_id')
       if (callback) {
@@ -68,20 +71,14 @@ module.exports = {
       }
       return
     }
-    messageModel.update({ where: { id: message_id } }, { is_deleted: 1 }, function(err, omsg) {
+    messageModel.update({ where: { id: parseInt(message_id) } }, { is_deleted: 1 }, function(err, omsg) {
       if (err) {
         console.log('dataaccess.camtine.js::deleteMessage - err', err)
       } else {
         //console.log('dataaccess.camtine.js::deleteMessage - loggin interaction')
         // log delete interaction
-        interaction=new interactionModel()
-        interaction.userid=channel_id
-        interaction.type='delete'
-        interaction.datetime=Date.now()
-        interaction.idtype='message'
-        interaction.typeid=message_id
-        //interaction.asthisid=omsg.channel_id
-        interaction.save()
+        ref.addInteraction('delete', parseInt(channel_id), 'message', parseInt(message_id))
+        //ref.setInteraction(parseInt(channel_id), parseInt(message_id), 'delete', 0, 0, Date.now())
       }
       //console.log('dataaccess.camtine.js::deleteMessage - check cb')
       if (callback) {
@@ -99,9 +96,18 @@ module.exports = {
       return
     }
     //console.log('dataaccess.caminte.js::getMessage - id', id)
-    var criteria={ where: { id: id, is_deleted: false } }
+    var criteria={ where: { id: id, is_deleted: 0 } }
     if (id instanceof Array) {
-      criteria.where['id']={ in: id }
+      // this wasn't necessary
+      var newList = []
+      for(var i in id) {
+        var val = parseInt(id[i])
+        if (val) {
+          newList.push(val)
+        }
+      }
+      //console.log('dataaccess.caminte.js::getMessage - newList', newList);
+      criteria.where['id']={ in: newList };
     }
     //if (params.channelParams && params.channelParams.inactive) {
       //criteria.where['inactive']= { ne: null }
@@ -111,6 +117,7 @@ module.exports = {
       if (err) {
         console.log('dataaccess.caminte.js::getMessage - err', err)
       }
+      // console.log('dataaccess.caminte.js::getMessage - messages', JSON.parse(JSON.stringify(messages)))
       if (messages==null && err==null) {
         if (ref.next) {
           ref.next.getMessage(id, callback)
@@ -131,11 +138,11 @@ module.exports = {
   },
   getChannelMessages: function(channelid, params, callback) {
     var ref=this
-    var query=messageModel.find().where('channel_id', channelid)
+    var query=messageModel.find().where('channel_id', parseInt(channelid))
     //console.log('dataaccess.caminte.js::getChannelMessages - params', params)
     if (params.generalParams.deleted) {
     } else {
-      query=query.where('is_deleted', false)
+      query=query.where('is_deleted', 0)
     }
     //console.log('dataaccess.caminte.js::getChannelMessages - query', query)
     //console.log('dataaccess.camintejs::getChannelMessages - channelid', channelid, 'token', JSON.parse(JSON.stringify(params.tokenobj)))
