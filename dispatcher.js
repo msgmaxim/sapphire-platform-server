@@ -122,7 +122,7 @@ var humanFormat=require('human-format')
 
 /** minutely status report */
 setInterval(function () {
-  var ts = Date().now()
+  var ts = Date.now()
   var mem = process.memoryUsage()
   /*
   regarding: the dispatcher stdout writes (isThisDoingAnything)
