@@ -14,6 +14,7 @@ internalServer.use(bodyParser.urlencoded({
 }));
 //internalServer.all('/*', corsMiddleware);
 internalServer.use(middlewares.adnMiddleware);
+//internalServer.use(middlewares.debugMiddleware);
 
 var internal_mounts={};
 
