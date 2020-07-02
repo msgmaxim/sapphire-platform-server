@@ -213,6 +213,7 @@ module.exports=function(app, prefix) {
         //console.log('creating token', tokenIn);
         if (tokenIn.expireInMins !== undefined && tokenIn.token) {
           cache.addUnconstrainedAPIUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, tokenIn.token, tokenIn.expireInMins, function(err, token, meta) {
+            if (err) console.log('dialect.admin.js::POSTtokensExpire - addUnconstrainedAPIUserToken err', err)
             const resObj={
               meta: meta,
               data: token,
@@ -221,6 +222,7 @@ module.exports=function(app, prefix) {
           });
         } else {
           cache.createOrFindUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, function(err, usertoken, meta) {
+            if (err) console.log('dialect.admin.js::POSTtokensUnique - createOrFindUserToken err', err)
             const resObj={
               meta: meta,
               data: usertoken,
