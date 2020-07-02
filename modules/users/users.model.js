@@ -95,7 +95,7 @@ module.exports = {
     var ref=this
     userModel.findById(userid, function(err, user) {
       if (!user) {
-        console.log('updateUserCounts no user', user, 'for id', userid)
+        console.log('users.model.js::updateUserCounts no user', user, 'for id', userid)
         if (callback) {
           callback()
         }
@@ -145,8 +145,8 @@ module.exports = {
   getUserID: function(username, callback) {
     //console.log('dataaccess.caminte.js::getUserID(', username, ') - start')
     if (!username) {
-      console.log('dataaccess.caminte.js::getUserID() - username was not set')
-      callback('dataaccess.caminte.js::getUserID() - username was not set', false)
+      console.log('users.model.js::getUserID() - username was not set')
+      callback('users.model.js::getUserID() - username was not set', false)
       return
     }
     // probably should move this into dispatcher?
@@ -169,18 +169,18 @@ module.exports = {
   // we only support integers unlike getUser
   getUser: function(userid, callback) {
     if (userid == undefined) {
-      console.trace('dataaccess.caminte.js:getUser - userid is undefined')
-      callback('dataaccess.caminte.js:getUser - userid is undefined')
+      console.trace('users.model.js:getUser - userid is undefined')
+      callback('users.model.js:getUser - userid is undefined')
       return
     }
     if (!userid) {
-      console.log('dataaccess.caminte.js:getUser - userid isn\'t set')
-      callback('dataaccess.caminte.js:getUser - userid isn\'t set')
+      console.log('users.model.js:getUser - userid isn\'t set')
+      callback('users.model.js:getUser - userid isn\'t set')
       return
     }
     if (callback == undefined) {
-      console.trace('dataaccess.caminte.js:getUser - callback is undefined')
-      callback('dataaccess.caminte.js:getUser - callback is undefined')
+      console.trace('users.model.js:getUser - callback is undefined')
+      callback('users.model.js:getUser - callback is undefined')
       return
     }
     //console.log('dataaccess.caminte.js:getUser - userid', userid)
@@ -190,10 +190,10 @@ module.exports = {
       return
     }
     if (isNaN(userid)) {
-      console.log('dataaccess.caminte.js:getUser - userid isn\'t a number')
+      console.log('users.model.js:getUser - userid isn\'t a number')
       var stack = new Error().stack
       console.error(stack)
-      callback('dataaccess.caminte.js:getUser - userid isn\'t a number')
+      callback('users.model.js:getUser - userid isn\'t a number')
       return
     }
     var ref = this
@@ -211,12 +211,14 @@ module.exports = {
   },
   getUsers: function(userids, params, callback) {
     if (!userids.length) {
-      console.log('dataaccess.caminte::getUsers - no userids passed in')
+      console.log('users.model::getUsers - no userids passed in')
       callback([], 'did not give a list of userids')
       return
     }
-    applyParams(userModel.find().where('id', { in: userids }), params, 0, function(posts, err, meta) {
-      callback(posts, err, meta)
+    //console.log('users.model::getUsers - userids', userids)
+    applyParams(userModel.find().where('id', { in: userids }), params, function(err, users, meta) {
+      if (err) console.error('users.model::getUsers - err', err)
+      callback(err, users, meta)
     })
   },
   searchUsers: function(query, params, callback) {
