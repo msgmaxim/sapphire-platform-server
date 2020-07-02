@@ -67,7 +67,6 @@ module.exports = {
       // check upload
       let url = res.response.data.url
       if (provider_url.match(/localhost|127.0.0.1|192.168/i)) {
-        url = res.response.data.url.replace('^/', '')
         if (url.match(/:\/\//)) {
           // console.log('absolute download test is not yet written, skipping', url)
           const result = await fetch(url)
@@ -77,6 +76,7 @@ module.exports = {
             console.log('POMF download result code', result)
           }
         } else {
+          url = res.response.data.url.replace(/^\//, '') // strip front slash
           const downloadRes = await platformApi.serverRequest(url, {
             //noJson: true
           })
