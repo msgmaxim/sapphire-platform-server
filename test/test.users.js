@@ -2,13 +2,15 @@ const assert = require('assert')
 const configUtil = require('../lib/lib.config.js')
 
 module.exports = {
-  runTests: function(platformApi) {
-    it('user search', async () => {
-      const res = await platformApi.serverRequest('users/search?q=test')
-      assert.equal(200, res.statusCode)
-      // FIXME: [] we're not found??
-      //console.log('user search res', res.response.data)
-    })
+  runTests: function(platformApi, options) {
+    if (!options.skipUserSearch) {
+      it('user search', async () => {
+        const res = await platformApi.serverRequest('users/search?q=test')
+        assert.equal(200, res.statusCode)
+        // FIXME: [] we're not found??
+        //console.log('user search res', res.response.data)
+      })
+    }
     it('write user', async () => {
       const res = await platformApi.serverRequest('users/me', {
         method: 'PUT',
