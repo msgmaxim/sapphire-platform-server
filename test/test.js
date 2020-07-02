@@ -226,7 +226,7 @@ function runIntegrationTests() {
     require('./test.tokens').runTests(platformApi)
   })
     describe('#users', async () => {
-      require('./test.users').runTests(platformApi)
+      require('./test.users').runTests(platformApi, {})
     })
       if (configUtil.moduleEnabled('files')) {
         describe('#files', async () => {
