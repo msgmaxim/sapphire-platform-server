@@ -914,19 +914,21 @@ let functions = {
   getAPITokenByUsername: function(username, callback) {
     //console.log('dataaccess.camintejs.js::getAPITokenByUsername - username:', username)
     if (username==undefined) {
-      console.log('dataaccess.camintejs.js::getAPITokenByUsername - username not defined')
-      return callback(null, 'username undefined')
+      console.trace('dataaccess.camintejs.js::getAPITokenByUsername - username not defined')
+      if (callback) callback('username undefined')
+      return
     }
-    this.getUserID(username, function(user, err) {
+    this.getUserID(username, function(err, user) {
+      if (err) console.error('dataaccess.caminte.js::getAPITokenByUsername - err', err)
       if (!user) {
-        return callback(null, err)
+        return callback(err, false)
       }
       localUserTokenModel.findOne({ where: { userid: user.id }, limit: 1 }, function(err, usertoken) {
         if (err) {
           console.log('dataaccess.camintejs.js::getAPITokenByUsername - err', err, 'usertoken', usertoken)
         }
         //console.log('dataaccess.camintejs.js::getAPITokenByUsername - found:', usertoken)
-        callback(usertoken, err)
+        callback(err, usertoken)
       })
     })
   },
