@@ -147,6 +147,7 @@ module.exports = {
     console.log('dataaccess.proxy-admin.js:getUserID - proxying user @'+username, 'haveToken', !!module.exports.token);
     proxycalls++;
     var qs = '';
+    //console.log('we have token?', module.exports.token)
     if (module.exports.token) {
       qs = '?access_token=' + module.exports.token;
     } else {
@@ -155,8 +156,9 @@ module.exports = {
         method: 'GET',
       });
       var res = newUserRes.response
-      ref.dispatcher.updateUser(res.data,new Date().getTime(), function(user,err) {
-        callback(user,err,res.meta);
+      ref.dispatcher.updateUser(res.data,new Date().getTime(), function(err, user) {
+        if (err) console.error('dataaccess.proxy-admin.js:getUserID - noToken updateUser err', err)
+        callback(err, user, res.meta);
       });
       return
     }
@@ -180,14 +182,14 @@ module.exports = {
           // FIXME: convert ADN to API
           //console.log('getUserID result for', username, 'is', user);
           // finally return
-          callback(err,user,res.meta);
+          callback(err, user, res.meta);
         });
       } else {
         console.log('dataccess.proxy-admin.js:getUserID - request failure');
         console.log('error', e);
         console.log('statusCode', r && r.statusCode);
         console.log('body', body);
-        callback(null, e, null);
+        callback(false, e, false);
       }
     })
   },
