@@ -373,7 +373,7 @@ module.exports = {
   getAPITokenByUsername: async function(username, callback) {
     const newTokenRes = await serverRequest(`tokens/@${username}`);
     //console.log('proxy-admin::getAPITokenByUsername - response', newTokenRes);
-    callback(newTokenRes.response.data, newTokenRes.err);
+    callback(newTokenRes.err, newTokenRes.response.data);
   },
   /*
    * user upstream tokens
