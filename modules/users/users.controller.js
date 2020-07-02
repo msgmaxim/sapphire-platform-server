@@ -31,10 +31,12 @@ module.exports={
     }
     // fix api/stream record in db format
     this.apiToUser(data, function(err, userData) {
+      if (err) console.error('user.controller.js::updateUser - apiToUser err', err)
       //console.log('made '+data.created_at+' become '+userData.created_at)
       // can we tell the difference between an add or update?
       //console.log('dispatcher.js::updateUser - final', userData)
       ref.cache.setUser(userData, ts, function(err, user, meta) {
+        if (err) console.error('user.controller.js::updateUser - setUser err', err)
         // TODO: define signal if ts is old
         if (callback) {
           callback(err, user, meta)
