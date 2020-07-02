@@ -8,7 +8,7 @@ const adnServerAPI = function(url, token) {
 
   // make a request to the server
   this.serverRequest = async (endpoint, options = {}) => {
-    const { params = {}, method, objBody, rawBody } = options;
+    const { params = {}, method, objBody, rawBody, headers } = options;
     const url = new URL(`${this.base_url}/${endpoint}`);
     if (params) {
       url.search = new URLSearchParams(params);
@@ -16,7 +16,7 @@ const adnServerAPI = function(url, token) {
     let result;
     try {
       const fetchOptions = {};
-      const headers = {};
+      const headers = options.headers || {};
       if (this.token) {
         headers.Authorization = `Bearer ${this.token}`;
       }
@@ -39,6 +39,7 @@ const adnServerAPI = function(url, token) {
     }
     let response = null;
     if (options.noJson) {
+      response = await result.text();
       return {
         statusCode: result.status,
         response,
