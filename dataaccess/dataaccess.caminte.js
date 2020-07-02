@@ -831,6 +831,7 @@ let functions = {
         callback(null, 'token_lookup')
         return
       }
+      //console.log('userid', userid)
       // token is not in use, please create it
       var usertoken=new localUserTokenModel
       usertoken.userid=userid
@@ -842,7 +843,7 @@ let functions = {
         usertoken.expires_at=new Date(Date.now() + expireInMins * 60 * 1000)
       }
       //expireInSecs
-      console.log('creating localUserToken', usertoken)
+      //console.log('addUnconstrainedAPIUserToken creating localUserToken', JSON.parse(JSON.stringify(usertoken)))
       /*usertoken.save(function() {
         callback(usertoken, null)
       })*/
@@ -870,7 +871,7 @@ let functions = {
         // do we auto upgrade scopes?
         // probably should just fail
         if (callback) {
-          callback(usertoken, null)
+          callback(null, usertoken)
         }
         return
       }
@@ -878,24 +879,27 @@ let functions = {
       //console.log('no token')
       function genCheckToken(cb) {
         var token=generateToken(98)
-        // =console.log('is', token, 'used')
+        // console.log('is', token, 'used')
+        // console.log('genCheckToken token', token)
         localUserTokenModel.findOne({ where: { token: token }}, function(err, tokenUnique) {
           if (err) console.error('localUserTokenModel find', token, 'err', err)
           if (tokenUnique) {
             // try again
             genCheckToken(cb)
           } else {
-            cb(token)
+            //console.log('genCheckToken returning token', token)
+            cb(err, token)
           }
         })
       }
-      genCheckToken(function(token) {
+      genCheckToken(function(err, token) {
+        if (err) console.error('dataaccess.caminte.js::createOrFindUserToken - genCheckToken err', err)
         var usertoken=new localUserTokenModel
         usertoken.userid=userid
         usertoken.client_id=client_id
         usertoken.scopes=scopes
         usertoken.token=token
-        //console.log('dataaccess.caminte.js::createOrFindUserToken - creating localUserToken', usertoken)
+        // console.log('dataaccess.caminte.js::createOrFindUserToken - creating localUserToken', JSON.parse(JSON.stringify(usertoken)))
         /*usertoken.save(function() {
           callback(usertoken, null)
         })*/
