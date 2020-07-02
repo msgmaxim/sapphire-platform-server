@@ -78,6 +78,7 @@ module.exports=function(app, prefix) {
         // look up by token string
         if (id[0] == '@') {
           cache.getAPITokenByUsername(id.substring(1), function(err, usertoken, meta) {
+            if (err) console.error('dialect.admin.js::getAPITokenByUsername - err', err)
             const resObj={
               meta: meta,
               data: usertoken,
@@ -86,6 +87,7 @@ module.exports=function(app, prefix) {
           });
         } else {
           cache.getAPIUserToken(id, function(err, usertoken, meta) {
+            if (err) console.error('dialect.admin.js::getAPIUserToken - err', err)
             const resObj={
               meta: meta,
               data: usertoken,
