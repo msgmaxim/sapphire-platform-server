@@ -10,7 +10,7 @@ rateLimit(function() {
 
 // minutely status report
 setInterval(function () {
-  var ts=new Date().getTime();
+  var ts=Date.now();
   process.stdout.write("\n");
   var ref=module.exports;
   console.log('rate.limit report, resetting in', (ts-ref.resetAt).toLocaleString(), 'ms');
