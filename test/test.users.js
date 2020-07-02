@@ -3,7 +3,7 @@ const configUtil = require('../lib/lib.config.js')
 
 module.exports = {
   runTests: function(platformApi, options) {
-    if (!options.skipUserSearch) {
+    if (!options || !options.skipUserSearch) {
       it('user search', async () => {
         const res = await platformApi.serverRequest('users/search?q=test')
         assert.equal(200, res.statusCode)
