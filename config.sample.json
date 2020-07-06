@@ -55,7 +55,7 @@
   },
   "database": {
     "default": {
-      "type": "mysql",
+      "type": "memory",
       "options": {
         "database": "db",
         "username": "user",
