@@ -1,6 +1,7 @@
 /** get request http library */
-var request = require('request')
-var rateLimiter = require('./ratelimiter.js')
+const request = require('request')
+const rateLimiter = require('./ratelimiter.js')
+const configUtil = require('./lib/lib.config.js')
 
 // backwards compatibility to allow us to do the right thing
 // this doesn't give us QoS but does allow us to say put in the background
@@ -19,13 +20,16 @@ var rateLimiter = require('./ratelimiter.js')
 var proxycalls=0
 var proxywrites=0
 var lcalls=0
-// minutely status report
-setInterval(function () {
-  var ts=Date.now()
-  console.log('downloader report '+(proxycalls-lcalls)+' proxy recent calls. '+proxycalls+' overall')
-  // just need a redis info call to pull memory and keys stats
-  lcalls=proxycalls
-}, 60*1000)
+
+if (configUtil.getLoggingPeridoticReports()) {
+  // minutely status report
+  setInterval(function () {
+    var ts=Date.now()
+    console.log('downloader report '+(proxycalls-lcalls)+' proxy recent calls. '+proxycalls+' overall')
+    // just need a redis info call to pull memory and keys stats
+    lcalls=proxycalls
+  }, 60*1000)
+}
 
 var path = require('path')
 var nconf = require('nconf')

@@ -1,3 +1,5 @@
+const configUtil = require('./lib/lib.config.js')
+
 /*
 rateLimit(function() {
   request.get(function(err, res, body) {
@@ -8,14 +10,16 @@ rateLimit(function() {
 // FIXME: we have to use a database model
 // nah use redis and it's expirations
 
-// minutely status report
-setInterval(function () {
-  var ts=Date.now();
-  process.stdout.write("\n");
-  var ref=module.exports;
-  console.log('rate.limit report, resetting in', (ts-ref.resetAt).toLocaleString(), 'ms');
-  // just need a redis info call to pull memory and keys stats
-}, 60*1000);
+if (configUtil.getLoggingPeridoticReports()) {
+  // minutely status report
+  setInterval(function () {
+    var ts=Date.now();
+    process.stdout.write("\n");
+    var ref=module.exports;
+    console.log('rate.limit report, resetting in', (ts-ref.resetAt).toLocaleString(), 'ms');
+    // just need a redis info call to pull memory and keys stats
+  }, 60*1000);
+}
 
 // pass in proxy settings or just conf it?
 module.exports = {

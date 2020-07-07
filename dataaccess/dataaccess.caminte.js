@@ -356,10 +356,8 @@ function start(nconf) {
   }, 60000)
   */
 
-  /** minutely status report */
-  // @todo name function and call it on startup
-  var statusmonitor=function () {
-    if (schemaDataType=='mysql') {
+  var db_monitor=function () {
+    if (schemaDataType === 'mysql') {
       schemaData.client.ping(function (err) {
         if (err) {
           console.log('trying to reconnect to data db')
@@ -367,7 +365,7 @@ function start(nconf) {
         }
       })
     }
-    if (schemaDataType=='mysql') {
+    if (schemaTokenType === 'mysql') {
       schemaToken.client.ping(function (err) {
         if (err) {
           console.log('trying to reconnect to token db')
@@ -375,49 +373,60 @@ function start(nconf) {
         }
       })
     }
+  }
 
-    var ts=new Date().getTime()
-    // this is going to be really slow on innodb
-    /*
-    userModel.count({}, function(err, userCount) {
-      followModel.count({}, function(err, followCount) {
-        postModel.count({}, function(err, postCount) {
-          channelModel.count({}, function(err, channelCount) {
-            messageModel.count({}, function(err, messageCount) {
-              subscriptionModel.count({}, function(err, subscriptionCount) {
-                interactionModel.count({}, function(err, interactionCount) {
-                  annotationModel.count({}, function(err, annotationCount) {
-                    entityModel.count({}, function(err, entityCount) {
-                      noticeModel.count({}, function(err, noticeCount) {
-                        // break so the line stands out from the instant updates
-                        // dispatcher's output handles this for now
-                        //process.stdout.write("\n")
-                        // if using redis
-                        if (schemaDataType=='sqlite3') {
-                          schemaData.client.get('PRAGMA page_count;', function(err, crow) {
-                            //console.log('dataaccess.caminte.js::status sqlite3 page_count', row)
-                            schemaData.client.get('PRAGMA page_size;', function(err, srow) {
-                              var cnt=crow['page_count']
-                              var psize=srow['page_size']
-                              var size=cnt*psize
-                              console.log('dataaccess.caminte.js::status sqlite3 data [',cnt,'x',psize,'] size: ', size)
+  if (schemaDataType === 'mysql' || schemaTokenType === 'mysql') {
+    db_monitor()
+    setInterval(db_monitor, 60 * 1000)
+  }
+
+  if (configUtil.getLoggingPeridoticReports()) {
+    /** minutely status report */
+    // @todo name function and call it on startup
+    var statusmonitor=function () {
+      var ts=new Date().getTime()
+      // this is going to be really slow on innodb
+      /*
+      userModel.count({}, function(err, userCount) {
+        followModel.count({}, function(err, followCount) {
+          postModel.count({}, function(err, postCount) {
+            channelModel.count({}, function(err, channelCount) {
+              messageModel.count({}, function(err, messageCount) {
+                subscriptionModel.count({}, function(err, subscriptionCount) {
+                  interactionModel.count({}, function(err, interactionCount) {
+                    annotationModel.count({}, function(err, annotationCount) {
+                      entityModel.count({}, function(err, entityCount) {
+                        noticeModel.count({}, function(err, noticeCount) {
+                          // break so the line stands out from the instant updates
+                          // dispatcher's output handles this for now
+                          //process.stdout.write("\n")
+                          // if using redis
+                          if (schemaDataType=='sqlite3') {
+                            schemaData.client.get('PRAGMA page_count;', function(err, crow) {
+                              //console.log('dataaccess.caminte.js::status sqlite3 page_count', row)
+                              schemaData.client.get('PRAGMA page_size;', function(err, srow) {
+                                var cnt=crow['page_count']
+                                var psize=srow['page_size']
+                                var size=cnt*psize
+                                console.log('dataaccess.caminte.js::status sqlite3 data [',cnt,'x',psize,'] size: ', size)
+                              })
                             })
-                          })
-                        }
-                        if (schemaDataType=='redis') {
-                          //console.dir(schemaAuth.client.server_info)
-                          // just need a redis info call to pull memory and keys stats
-                          // evicted_keys, expired_keys are interesting, keyspace_hits/misses
-                          // total_commands_proccesed, total_connections_received, connected_clients
-                          // update internal counters
-                          schemaData.client.info(function(err, res) {
-                            schemaData.client.on_info_cmd(err, res)
-                          })
-                          // then pull from counters
-                          console.log("dataaccess.caminte.js::status redis token "+schemaToken.client.server_info.used_memory_human+" "+schemaToken.client.server_info.db0)
-                          console.log("dataaccess.caminte.js::status redis data "+schemaData.client.server_info.used_memory_human+" "+schemaData.client.server_info.db0)
-                        }
-                        console.log('dataaccess.caminte.js::status '+userCount+'U '+followCount+'F '+postCount+'P '+channelCount+'C '+messageCount+'M '+subscriptionCount+'s '+interactionCount+'/'+noticeCount+'i '+annotationCount+'a '+entityCount+'e')
+                          }
+                          if (schemaDataType=='redis') {
+                            //console.dir(schemaAuth.client.server_info)
+                            // just need a redis info call to pull memory and keys stats
+                            // evicted_keys, expired_keys are interesting, keyspace_hits/misses
+                            // total_commands_proccesed, total_connections_received, connected_clients
+                            // update internal counters
+                            schemaData.client.info(function(err, res) {
+                              schemaData.client.on_info_cmd(err, res)
+                            })
+                            // then pull from counters
+                            console.log("dataaccess.caminte.js::status redis token "+schemaToken.client.server_info.used_memory_human+" "+schemaToken.client.server_info.db0)
+                            console.log("dataaccess.caminte.js::status redis data "+schemaData.client.server_info.used_memory_human+" "+schemaData.client.server_info.db0)
+                          }
+                          console.log('dataaccess.caminte.js::status '+userCount+'U '+followCount+'F '+postCount+'P '+channelCount+'C '+messageCount+'M '+subscriptionCount+'s '+interactionCount+'/'+noticeCount+'i '+annotationCount+'a '+entityCount+'e')
+                        })
                       })
                     })
                   })
@@ -427,11 +436,11 @@ function start(nconf) {
           })
         })
       })
-    })
-    */
+      */
+    }
+    statusmonitor()
+    setInterval(statusmonitor, 60 * 1000)
   }
-  statusmonitor()
-  setInterval(statusmonitor, 60 * 1000)
 }
 
 // Not Cryptographically safe

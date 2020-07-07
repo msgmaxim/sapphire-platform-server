@@ -118,25 +118,27 @@ function postsToADN(posts, params, token) {
   }
 }
 
-var humanFormat=require('human-format')
 
-/** minutely status report */
-setInterval(function () {
-  var ts = Date.now()
-  var mem = process.memoryUsage()
-  /*
-  regarding: the dispatcher stdout writes (isThisDoingAnything)
-  it's pretty compact, only one or two lines per minute
-  so finding the exception still shouldn't be an issue
-  though they will get further and further apart as the quality of the code gets better
-  either case the exceptions need to be logged in a proper log file
-  */
-  // break so the line stands out from the instant updates
-  process.stdout.write("\n")
-  console.log("dispatcher @"+ts+" Memory+["+humanFormat(mem.heapUsed-lmem.heapUsed)+"] Heap["+humanFormat(mem.heapUsed)+"] uptime: "+process.uptime())
-  lmem = mem
-  ts = null
-}, 60*1000)
+if (configUtil.getLoggingPeridoticReports()) {
+  const humanFormat=require('human-format')
+  /** minutely status report */
+  setInterval(function () {
+    var ts = Date.now()
+    var mem = process.memoryUsage()
+    /*
+    regarding: the dispatcher stdout writes (isThisDoingAnything)
+    it's pretty compact, only one or two lines per minute
+    so finding the exception still shouldn't be an issue
+    though they will get further and further apart as the quality of the code gets better
+    either case the exceptions need to be logged in a proper log file
+    */
+    // break so the line stands out from the instant updates
+    process.stdout.write("\n")
+    console.log("dispatcher @"+ts+" Memory+["+humanFormat(mem.heapUsed-lmem.heapUsed)+"] Heap["+humanFormat(mem.heapUsed)+"] uptime: "+process.uptime())
+    lmem = mem
+    ts = null
+  }, 60*1000)
+}
 
 // cache is available at this.cache
 // we set from API to DB format
