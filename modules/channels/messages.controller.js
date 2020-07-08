@@ -69,6 +69,7 @@ module.exports = {
     function loadUser(userid, params, cb) {
       //console.log('dispatcher.js::postToAPI('+message.id+') - getting user '+message.userid)
       ref.getUser(userid, params, function(userErr, user, userMeta) {
+        if (userErr) console.error('messages.controller.js::messageToAPI - getUser err', userErr)
         //console.log('dispatcher.js::postToAPI('+message.id+') - got user '+message.userid, userErr)
         if (!user) {
           user={
@@ -158,7 +159,8 @@ module.exports = {
       })
     }
 
-    loadUser(message.userid, params, function(user, userErr, userMeta) {
+    loadUser(message.userid, params, function(userErr, user, userMeta) {
+      if (userErr) console.error('messages.controller.js::messageToAPI - loadUser err', userErr)
       api.user=user
       //console.log('dispatcher.js::messageToAPI - params', params.generalParams)
       if (params.generalParams.annotations || params.generalParams.post_annotations) {
@@ -170,7 +172,8 @@ module.exports = {
     })
 
     if (!message.is_deleted && (params.generalParams.annotations || params.generalParams.post_annotations)) {
-      loadAnnotation(message.id, function(apiNotes, noteErr, noteMeta) {
+      loadAnnotation(message.id, function(noteErr, apiNotes, noteMeta) {
+        if (noteErr) console.error('messages.controller.js::messageToAPI - loadAnnotation err', err)
         //console.log('dispatcher.js::messageToAPI - loading annotations', apiNotes.length)
         api.annotations = apiNotes
         setDone('annotations')
@@ -311,14 +314,14 @@ module.exports = {
           ref.cache.addMessage(message, function(err, msg, meta) {
             // msg just has id...
             if (err) {
-              console.log('dispatcher.js::addMessage - err', err)
+              console.log('messages.controller.js::addMessage - err', err)
               callback([], err, {
                 code: 500,
               })
               return
             }
             if (postdata.annotations) {
-              //console.log('dispatcher.js::addMessage - detected annotations', channel_id)
+              //console.log('messages.controller.js::addMessage - detected annotations', channel_id, postdata.annotations)
               // fix up channel_id for msg pump
               msg.channel_id = channel_id
               ref.setAnnotations('message', msg.id, postdata.annotations, function() {
@@ -360,7 +363,7 @@ module.exports = {
     if (channel_id=='pm') {
       //console.log('dispatcher.js::addMessage - pm channel')
       if (!postdata.destinations) {
-        console.log('dispatcher.js::addMessage - no destinations passed', postdata)
+        console.log('messages.controller.js::addMessage - no destinations passed', postdata)
         callback({}, 'no destinations passed')
         return
       }
@@ -376,14 +379,14 @@ module.exports = {
   deleteMessage: function(message_id, channel_id, params, tokenObj, callback) {
     //console.log('dispatcher.js::deleteMessage - channel_id', channel_id)
     if (!message_id) {
-      console.log('dispatcher.js::deleteMessage - no message')
+      console.log('messages.controller.js::deleteMessage - no message')
       callback('no message passed in', [], {
         code: 410,
       })
       return
     }
     if (!channel_id) {
-      console.log('dispatcher.js::deleteMessage - no channel')
+      console.log('messages.controller.js::deleteMessage - no channel')
       callback('no channel passed in', [], {
         code: tokenobj?403:401,
       })
@@ -400,7 +403,7 @@ module.exports = {
     //console.log('dispatcher.js::deleteMessage - checking channel', channel_id, 'permission for token user', tokenobj?tokenobj.userid:0)
     ref.cache.getChannel(channel_id, params, function(channelErr, channel, channelMeta) {
       if (!ref.checkWriteChannelAccess(channel, tokenObj?tokenObj.userid:0)) {
-        console.log('dispatcher.js::deleteMessage - denying channel access')
+        console.log('messages.controller.js::deleteMessage - denying channel access')
         callback({}, 'access denied to channel', {
           code: 403,
         })
@@ -409,10 +412,10 @@ module.exports = {
       // is this your message
       ref.getMessage(message_id, params, tokenObj, function(apiErr, apiMsgs, apiMeta) {
         if (apiErr) {
-          console.error('dispatcher.js::deleteMessage - err', apiErr)
+          console.error('messages.controller.js::deleteMessage - err', apiErr)
         }
         if (!apiMsgs || !apiMsgs.length || apiMsgs.length != 1) {
-          console.log('dispatcher.js::deleteMessage -', message_id, 'not found')
+          console.log('messages.controller.js::deleteMessage -', message_id, 'not found')
           callback('message not found', {}, {
             code: 410,
           })
@@ -420,7 +423,7 @@ module.exports = {
         }
         var apiMsg = apiMsgs[0]
         if (!apiMsg) {
-          console.log('dispatcher.js::deleteMessage -', message_id, 'not found')
+          console.log('messages.controller.js::deleteMessage -', message_id, 'not found')
           callback('message not found', {}, {
             code: 410,
           })
@@ -434,7 +437,7 @@ module.exports = {
           return
         }
         if (apiMsg.user.id != tokenObj.userid) {
-          console.log('dispatcher.js::deleteMessage - denying message access')
+          console.log('messages.controller.js::deleteMessage - denying message access')
           callback('access denied to message', {}, {
             code: 403,
           })
@@ -468,7 +471,7 @@ module.exports = {
       }
       //console.log('dispatcher.js::getMessage - messages', messages.length)
       if (!messages.length) {
-        console.warn('dispatcher.js::getMessage - no messages', mids)
+        console.warn('messages.controller.js::getMessage - no messages', mids)
         return callback([], err, meta)
       }
       var apis = []
@@ -496,7 +499,7 @@ module.exports = {
     //console.log('dispatcher.js::getChannelMessages - getChannelMessages', cid, params)
     var ref=this
     if (cid=='pm') {
-      console.log('dispatcher.js::getChannelMessages - getting pm message is not allowed')
+      console.log('messages.controller.js::getChannelMessages - getting pm message is not allowed')
       callback('getting pm message is not allowed', [])
       return
     }
@@ -590,9 +593,9 @@ module.exports = {
     //console.log('dispatcher.js::getChannelMessage - start')
     var ref = this
     this.cache.getMessage(mids, function(err, messages, meta) {
-      if (err) console.error('dispatcher.js::getChannelMessage - err', err)
+      if (err) console.error('messages.controller.js::getChannelMessage - err', err)
       if (messages === undefined) {
-        console.trace('dispatcher.js::getMessage - messages is undefined')
+        console.trace('messages.controller.js::getMessage - messages is undefined')
         messages = []
       }
       // make messages an array if not
