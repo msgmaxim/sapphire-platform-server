@@ -1,10 +1,12 @@
 module.exports = {
   /** annotations */
   getAnnotation: function(type, id, callback) {
+    //console.log('annotations.controller.js::getAnnotations - type', type, 'id', id)
     var ref=this
     var debug = false
     //if (id == 1861) debug = true
     this.cache.getAnnotations(type, id, function(err, notes, meta) {
+      if (err) console.error('annotations.controller.js::getAnnotations - err', err)
       //if (debug) console.log(type, id, 'start notes', notes)
       //var fixedNotes=[]
       if (!notes || !notes.length) {
@@ -22,15 +24,15 @@ module.exports = {
           // replace value
           notes[i].value=fixedSet
           replaces++
-          //console.log('dispatcher.js::getAnnotation(', type, id, ') - checkdone replaces', replaces, 'notes', notes.length)
+          //console.log('annotations.controller.js::getAnnotation(', type, id, ') - checkdone replaces', replaces, 'notes', notes.length)
           if (replaces===notes.length) {
-            //console.log('dispatcher.js::getAnnotation(', type, id, ') - final notes', notes)
+            //console.log('annotations.controller.js::getAnnotation(', type, id, ') - final notes', JSON.parse(JSON.stringify(notes)))
             callback(err, notes, meta)
           }
         }
       }
 
-      //if (debug) console.log('dispatcher.js::getAnnotation(', type, id, ') - notes', notes.length)
+      //if (debug) console.log('annotations.controller.js::getAnnotation(', type, id, ') - notes', notes.length)
       for(var i in notes) {
         // check values
         var fixedSet={}
@@ -105,7 +107,7 @@ module.exports = {
               }(k, oldValue, fixedSet, i)
             }
           } else {
-            //console.log('dispatcher.js::getAnnotation - note', i, 'value', k, 'copying', notes[i].value[k])
+            //console.log('annotations.controller.js::getAnnotation - note', i, 'value', k, 'copying', notes[i].value[k])
             fixedSet[k]=notes[i].value[k]
             checkDone(i)
           }
@@ -116,28 +118,30 @@ module.exports = {
     })
   },
   setAnnotations: function(type, id, annotations, callback) {
-    //console.log('dispatcher.js::setAnnotations - id', id, 'annotations', annotations)
+    //console.log('annotations.controller.js::setAnnotations - id', id, 'annotations', annotations)
     // probably should clear all the existing anntations for this ID
     // channel annotations mutable
     // and we don't have a unique constraint to tell if it's an add or update or del
     var ref=this
-    //console.log('dispatcher.js::setAnnotations - annotations', annotations)
-    //console.log('dispatcher.js::setAnnotations - clearing', type, id)
+    //console.log('annotations.controller.js::setAnnotations - annotations', annotations)
+    //console.log('annotations.controller.js::setAnnotations - clearing', type, id)
     this.cache.clearAnnotations(type, id, function() {
       for(var i in annotations) {
         var note=annotations[i]
-        //console.log('dispatcher.js::setAnnotations - note', i, note)
+        //console.log('annotations.controller.js::setAnnotations - note', i, note)
         // insert into idtype, id, type, value
         // type, id, note.type, note.value
         //console.log('dispatcher.js::setAnnotations - insert', note.type, note.value)
         if (!note.value) {
+          //console.log('annotations.controller.js::setAnnotations - deleting annotation')
           continue // support deleting annotations
         }
         ref.cache.addAnnotation(type, id, note.type, note.value, function(err, nNote) {
           if (err) {
-            console.log('dispatcher.js::setAnnotations - addAnnotation failure', err)
+            console.error('annotations.controller.js::setAnnotations - addAnnotation failure', err)
           //} else {
           }
+          //console.log('annotations.controller.js::setAnnotations - addAnnotation', JSON.parse(JSON.stringify(nNote)))
           if (this.notsilent) {
             process.stdout.write('a')
           }
