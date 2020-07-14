@@ -1,5 +1,7 @@
 const { URL, URLSearchParams } = require('url'); // node 8.x support
 
+// an adn communication wrapper that works in node or browser
+
 // ES2015 arrow functions cannot be constructors
 const adnServerAPI = function(url, token) {
   this.token = token;
