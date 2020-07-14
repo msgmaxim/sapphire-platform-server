@@ -113,7 +113,11 @@ module.exports = {
 
     // Retrieve the Messages in a Channel
     app.get(prefix+'/channels/:channel_id/messages/:message_id', function(req, resp) {
-      dispatcher.getChannelMessage(req.params.channel_id, req.params.message_id, req.apiParams, callbacks.dataCallback(resp))
+      dispatcher.getChannelMessage(req.params.channel_id, req.params.message_id, req.apiParams, function(err, messages, meta) {
+        // ensure we only return one message
+        var cb = callbacks.dataCallback(resp)
+        cb(err, messages[0], meta)
+      })
     })
   }
 }
