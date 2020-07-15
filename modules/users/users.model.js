@@ -89,6 +89,7 @@ module.exports = {
     })
   },
   patchUser: function(userid, changes, callback) {
+    // returns number of records updated
     userModel.update({ where: { id: userid } }, changes, callback)
   },
   updateUserCounts: function(userid, callback) {
