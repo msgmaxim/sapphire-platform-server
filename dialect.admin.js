@@ -138,7 +138,7 @@ module.exports=function(app, prefix) {
   app.get(prefix + '/channels/:cid/messages/:mid', (req, res) => {
     const cid = req.params.cid;
     const mid = req.params.mid;
-    //console.log('message id', mid);
+    //console.log('admin::get message id', mid);
     cache.getMessage(mid, function(err, message, meta) {
       if (err) {
         console.error('getMessage err', err);
@@ -162,7 +162,7 @@ module.exports=function(app, prefix) {
   app.delete(prefix + '/channels/:cid/messages/:mid', (req, res) => {
     const cid = req.params.cid;
     const mid = req.params.mid;
-    console.log('nuke message id', mid);
+    console.log('admin::delete message id', mid);
     // marks it is_deleted: 1
     cache.deleteMessage(mid, cid, function(err, message, meta) {
       if (err) {
