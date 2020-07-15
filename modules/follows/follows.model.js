@@ -83,7 +83,7 @@ module.exports = {
     } else {
       // FIXME: write me
       // search by referenceid, likely delete it
-      console.log('dataaccess.caminte.js::setFollow - no data, write me... deleted? '+del)
+      console.log('follows.model.js::setFollow - no data, write me... deleted? '+del)
       if (callback) {
         callback(false, false, false)
       }
@@ -93,8 +93,8 @@ module.exports = {
   },
   getAllFollowing: function(userid, callback) {
     if (userid==undefined) {
-      console.trace('dataaccess.caminte.js::getFollowing - userid is undefined')
-      callback('dataaccess.caminte.js::getFollowing - userid is undefined')
+      console.trace('follows.model.js::getFollowing - userid is undefined')
+      callback('follows.model.js::getFollowing - userid is undefined')
       return
     }
     followModel.find({ where: { userid: userid, active: 1 } }, function(err, followings) {
@@ -113,8 +113,8 @@ module.exports = {
   // who is this user following
   getFollowing: function(userid, params, callback) {
     if (userid==undefined) {
-      console.trace('dataaccess.caminte.js::getFollowing - userid is undefined')
-      callback('dataaccess.caminte.js::getFollowing - userid is undefined')
+      console.trace('follows.model.js::getFollowing - userid is undefined')
+      callback('follows.model.js::getFollowing - userid is undefined')
       return
     }
     // applyParams?
@@ -131,16 +131,17 @@ module.exports = {
       }
     })
   },
+  // does this src follow this trg?
   follows: function(src, trg, callback) {
     //console.log('dataaccess.caminte.js::follows - src/trg', src, trg)
-    if (src==undefined) {
-      console.trace('dataaccess.caminte.js::follows - undefined src')
-      callback('dataaccess.caminte.js::follows - undefined src')
+    if (src === undefined) {
+      console.trace('follows.model.js::follows - undefined src')
+      callback('undefined src')
       return
     }
-    if (trg==undefined) {
-      console.trace('dataaccess.caminte.js::follows - undefined trg')
-      callback('dataaccess.caminte.js::follows - undefined trg')
+    if (trg === undefined) {
+      console.trace('follows.model.js::follows - undefined trg')
+      callback('undefined trg')
       return
     }
     followModel.findOne({ where: { userid: src, followsid: trg } }, function(err, followings) {
@@ -150,8 +151,8 @@ module.exports = {
   // who follows this user
   getFollows: function(userid, params, callback) {
     if (userid==undefined) {
-      console.trace('dataaccess.caminte.js::getFollows - userid is undefined')
-      callback('dataaccess.caminte.js::getFollows - userid is undefined')
+      console.trace('follows.model.js::getFollows - userid is undefined')
+      callback('userid is undefined')
       return
     }
     //, limit: params.count, order: "last_updated DESC"
