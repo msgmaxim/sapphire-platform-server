@@ -40,6 +40,10 @@ function formatuser(user, token) {
 module.exports = {
   mount: function(prefix, app) {
     const dispatcher = app.dispatcher
+    if (!app.callbacks) {
+      console.error('architecture error')
+      process.exit()
+    }
     callbacks = app.callbacks
     const ref = this
 
@@ -193,6 +197,7 @@ module.exports = {
 
     app.post(prefix+'/users/me/avatar', upload.single('avatar'), function updateUserAvatar(req, resp) {
       if (!req.file) {
+        console.warn('users.routes.js:POSTavatar: - no file uploaded')
         // no files uploaded
         var res={
           "meta": {
@@ -205,11 +210,12 @@ module.exports = {
       }
       console.log('POSTavatar - file upload got', req.file.buffer.length, 'bytes')
       if (!req.file.buffer.length) {
+        console.warn('users.routes.js - empty file uploaded')
         // no files uploaded
         var res={
           "meta": {
             "code": 400,
-            "error_message": "No file uploaded"
+            "error_message": "Empty file uploaded"
           }
         }
         resp.status(400).type('application/json').send(JSON.stringify(res))
@@ -218,12 +224,12 @@ module.exports = {
       //console.log('looking for type - params:', req.params, 'body:', req.body)
       // type is in req.body.type
       //console.log('POSTfiles - req token', req.token)
-      dispatcher.getUserClientByToken(req.token, function(usertoken, err) {
+      dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
         if (err) {
-          console.log('dialect.appdotnet_official.js:POSTavatar - token err', err)
+          console.log('users.routes.js:POSTavatar - token err', err)
         }
         if (usertoken==null) {
-          console.log('dialect.appdotnet_official.js:POSTavatar - no token')
+          console.log('users.routes.js:POSTavatar - no token')
           // could be they didn't log in through a server restart
           var res={
             "meta": {
@@ -251,7 +257,7 @@ module.exports = {
           }
         }, function (err, uploadResp, body) {
           if (err) {
-            console.log('dialect.appdotnet_official.js:POSTavatar - pomf upload Error!', err)
+            console.log('users.routes.js:POSTavatar - pomf upload Error!', err)
             var res={
               "meta": {
                 "code": 500,
@@ -314,12 +320,12 @@ module.exports = {
             return
           }
           if (data.files.length > 1) {
-            console.warn('dialect.appdotnet_official.js:POSTavatar - Multiple files!', data)
+            console.warn('users.routes.js:POSTavatar - Multiple files!', data)
           }
           //for(var i in data.files) {
           var file=data.files[0]
           //console.log('dialect.appdotnet_official.js:POSTavatar - setting', file.url)
-          dispatcher.updateUserAvatar(file.url, req.apiParams, usertoken, callbacks.userCallback(resp, req.token))
+          dispatcher.updateUserAvatar(file.url, req.apiParams, usertoken, ref.userCallback(resp, req.token))
           //}
         })
       })
@@ -388,7 +394,7 @@ module.exports = {
         }
         //console.log('dialect.appdotnet_official.js:PATCHusersX - request', request)
         //console.log('dialect.appdotnet_official.js:PATCHusersX - creating channel of type', req.body.type)
-        dispatcher.patchUser(request, req.apiParams, usertoken, callbacks.dataCallback(resp))
+        dispatcher.patchUser(request, req.apiParams, usertoken, ref.userCallback(resp))
       })
     })
 
