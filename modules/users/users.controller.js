@@ -532,8 +532,16 @@ module.exports={
     var rUsers=[]
     //console.log('user.controller.js::getUsers - users', users)
     for(var i in users) {
-      //console.log('user.controller.js::getUsers - user', users[i])
-      this.normalizeUserID(users[i], params.tokenobj, function(err, userid) {
+      var user = users[i].trim()
+      //console.log('user.controller.js::getUsers - iterate user', user)
+      this.normalizeUserID(user, params.tokenobj, function(err, userid) {
+        if (!userid) {
+          rUsers.push(false)
+          if (rUsers.length==users.length) {
+            callback(false, rUsers)
+          }
+          return
+        }
         ref.cache.getUser(userid, function(userErr, userobj, userMeta) {
           //console.log('user.controller.js::getUsers - gotUser', userErr)
 
