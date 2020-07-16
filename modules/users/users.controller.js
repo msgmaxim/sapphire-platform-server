@@ -109,6 +109,13 @@ module.exports={
     }
     //console.log('user.controller.js::patchUser - changes', changes)
     if (JSON.stringify(changes) === '{}') {
+      if (request.annotations) {
+        // we did change something
+        ref.getUser(tokenObj.userid, params, callback)
+      } else {
+        console.log('user.controller.js::patchUser - no changes', changes)
+        callback('no changes', false)
+      }
       return
     }
     this.cache.patchUser(tokenObj.userid, changes, function(err, updateRes, meta) {
