@@ -329,8 +329,10 @@ module.exports = {
     app.patch(prefix+'/users/me', function updateUser(req, resp) {
       //console.log('dialect.appdotnet_official.js:PATCHusersX - token', req.token)
       dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
-        //console.log('dialect.appdotnet_official.js:PATCHusersX - usertoken', usertoken)
+        if (err) console.error('dialect.appdotnet_official.js:PATCHusersX - err', err)
+        // console.log('users.routers.js:PATCHusersX - usertoken', JSON.parse(JSON.stringify(usertoken)))
         if (usertoken===null) {
+          console.warn('users.routers.js:PATCHusersX - invalid token', req.token, usertoken)
           var res={
             "meta": {
               "code": 401,
@@ -374,6 +376,7 @@ module.exports = {
           request.annotations = req.body.annotations
         }
         if (Object.keys(request).length === 0) {
+          console.warn('users.routers.js:PATCHusersX - Requires at least one field to change', req.body)
           var res={
             "meta": {
               "code": 400,
