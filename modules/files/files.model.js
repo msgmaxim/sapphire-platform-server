@@ -47,6 +47,7 @@ module.exports = {
       //ipost.client_id=tokenObj.client_id
       if (file.urlexpires === undefined) file.urlexpires=new Date(0)
       if (file.sha1 === undefined) file.sha1=''
+      if (file.type === undefined) file.type=''; // not required per spec
       fileModel.create(file, callback);
     }
   },
