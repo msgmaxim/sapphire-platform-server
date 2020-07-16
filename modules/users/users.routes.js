@@ -72,8 +72,8 @@ module.exports = {
       // we should never enumerate users... it's not in the spec at all...
       if (!req.token) {
         var ids = req.query.ids
-        if (ids && ids.match(/,/)) {
-          ids = ids.split(/,/)
+        if (ids && ids.match(/, */)) {
+          ids = ids.split(/, */)
         }
         if (typeof(ids) === 'string') {
           ids = [ ids ]
