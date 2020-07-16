@@ -114,6 +114,7 @@ module.exports = {
     // Retrieve the Messages in a Channel
     app.get(prefix+'/channels/:channel_id/messages/:message_id', function(req, resp) {
       dispatcher.getChannelMessage(req.params.channel_id, req.params.message_id, req.apiParams, function(err, messages, meta) {
+        if (err) console.error('messages.router.js - getCHANNELSxMESSAGESy - err', err)
         // ensure we only return one message
         var cb = callbacks.dataCallback(resp)
         cb(err, messages[0], meta)
