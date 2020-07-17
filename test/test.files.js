@@ -47,9 +47,9 @@ module.exports = {
   }
 }
 */
-    it('10mb file upload', async () => {
+    it('10mb-ish file upload', async () => {
       const formData = new FormData()
-      const readStream = Buffer.from('0'.repeat(10 * 1024 * 1024))
+      const readStream = Buffer.from('0'.repeat(10 * 1000 * 1000))
       formData.append('type', 'network.loki')
       formData.append('content', readStream, {
         contentType: 'application/octet-stream',
