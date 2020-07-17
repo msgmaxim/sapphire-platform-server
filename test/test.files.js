@@ -10,20 +10,6 @@ module.exports = {
       return
     }
     let fileRes
-    it('file upload', async () => {
-      const formData = new FormData()
-      const buffer = Buffer.from('{ "this": "is a string of json" }')
-      formData.append('type', 'network.loki')
-      formData.append('content', buffer, {
-        contentType: 'application/octet-stream',
-        name: 'content',
-        filename: 'attachment',
-      })
-      const res = await platformApi.serverRequest('files', {
-        method: 'POST',
-        rawBody: formData
-      })
-      assert.equal(200, res.statusCode)
 /*
 {
   complete: true,
@@ -61,6 +47,20 @@ module.exports = {
   }
 }
 */
+    it('10mb file upload', async () => {
+      const formData = new FormData()
+      const readStream = Buffer.from('0'.repeat(10 * 1024 * 1024))
+      formData.append('type', 'network.loki')
+      formData.append('content', readStream, {
+        contentType: 'application/octet-stream',
+        name: 'content',
+        filename: 'attachment',
+      })
+      const res = await platformApi.serverRequest('files', {
+        method: 'POST',
+        rawBody: formData
+      })
+      assert.equal(200, res.statusCode)
       //console.log('file upload res', res.response.data)
       fileRes = res
       //console.log('setting fileRes', fileRes)
