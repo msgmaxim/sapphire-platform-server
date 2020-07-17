@@ -410,11 +410,11 @@ module.exports={
     //console.log('user.controller.js::getUser - '+user, params)
     if (!callback) {
       console.trace('user.controller.js::getUser - no callback passed in')
-      callback(null, 'user.controller.js::getUser - no callback passed in')
+      callback('user.controller.js::getUser - no callback passed in', false)
       return
     }
     if (!user) {
-      callback(null, 'user.controller.js::getUser - no user passed in')
+      callback('user.controller.js::getUser - no user passed in', false)
       return
     }
     if (params===null || params === undefined) {
@@ -532,8 +532,9 @@ module.exports={
     var rUsers=[]
     //console.log('user.controller.js::getUsers - users', users)
     for(var i in users) {
-      var user = users[i].trim()
-      //console.log('user.controller.js::getUsers - iterate user', user)
+      // can't trim numbers...
+      var user = users[i] && users[i].trim ? users[i].trim() : users[i];
+      console.log('user.controller.js::getUsers - iterate user', user)
       this.normalizeUserID(user, params.tokenobj, function(err, userid) {
         if (!userid) {
           rUsers.push(false)
