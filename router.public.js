@@ -11,11 +11,18 @@ var app = express();
 // temporary hack middleware for debugging
 //app.all('/*', middlewares.debugMiddleware);
 
+app.config = {
+  maxUploadSize: nconf.get('limits:default:max_file_size') || 100 * 1024 * 1024
+}
+
 /** need this for POST parsing */
 // heard this writes to /tmp and doesn't scale.. need to confirm if current versions have this problem
-app.use(bodyParser.json());
+app.use(bodyParser.json({
+  limit: app.config.maxUploadSize * 2 // because of the encoding, we need to increase this...
+}));
 app.use(bodyParser.urlencoded({
-  extended: true
+  extended: true,
+  limit: app.config.maxUploadSize * 2
 }));
 app.all('/' + '*', middlewares.corsMiddleware);
 app.use(middlewares.adnMiddleware);
@@ -28,9 +35,6 @@ var apiroot = nconf.get('uplink:apiroot') || 'https://api.app.net';
 app.apiroot=apiroot;
 app.dispatcher=dispatcher;
 app.nconf=nconf;
-app.config = {
-  maxUploadSize: nconf.get('limits:default:max_file_size') || 100 * 1024 * 1024
-}
 console.log('router.public - maxUploadSize', app.config.maxUploadSize.toLocaleString(), 'bytes');
 
 
