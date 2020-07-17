@@ -5,6 +5,9 @@ module.exports = {
   /** mutes */
   //req.params.user_id, req.apiParams, req.usertoken, callbacks.dataCallback(resp)
   getMutes: function(userids, params, tokenObj, callback) {
+    if (!userids) {
+      console.trace('mutes.controller.js::getMutes - no userIDs passsed in', userids)
+    }
     var ref = this
     // FIXME: handle arrays?
     this.normalizeUserID(userids, tokenObj, function(err, userid) {
@@ -25,7 +28,7 @@ module.exports = {
           delete nParams.before_id
           delete nParams.since_id
           ref.getUser(userid, nParams, function(user, userErr, userMeta) {
-            if (userErr) console.error('mutes.controller.js::getMutes - getUsers err', userEr)
+            if (userErr) console.error('mutes.controller.js::getMutes - getUsers err', userErr)
             userMutes.push(user)
             if (mutes.length == userMutes.length) {
               callback(err, userMutes, meta)
@@ -58,7 +61,7 @@ module.exports = {
         ref.getUser(mute.muteeid, nParams, callback)
       } else {
         console.log('mutes.controller::deleteMute - mute not found', userid, 'for', tokenObj.userid)
-        callback([], '404 mute not found')
+        callback('404 mute not found', [])
       }
     })
   },
