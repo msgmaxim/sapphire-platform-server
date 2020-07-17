@@ -32,7 +32,7 @@ module.exports = {
   },
   addMute: function(userid, muteeid, params, callback) {
     //console.log('dataaccess.caminte::addMute', muteeid, 'for', userid, typeof(callback))
-    var crit = { userid: userid, muteeid: muteeid }
+    var crit = { userid: parseInt(userid), muteeid: muteeid }
     muteModel.findOne({ where: crit }, function(err, mute) {
       //console.log('dataaccess.caminte::addMute - mute', mute)
       if (err) console.log('dataaccess.caminte::addMute - err', err, mute)
@@ -46,7 +46,7 @@ module.exports = {
   },
   delMute: function(userid, muteeid, params, callback) {
     //console.log('dataaccess.caminte::delMute', muteeid, 'for', userid, typeof(callback))
-    muteModel.findOne({ where: { userid: userid, muteeid: muteeid } }, function(err, mute) {
+    muteModel.findOne({ where: { userid: parseInt(userid), muteeid: muteeid } }, function(err, mute) {
       if (err) {
         console.log('dataaccess.caminte::delMute - find err', err, mute)
         callback(err)
