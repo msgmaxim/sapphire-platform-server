@@ -66,9 +66,15 @@ const serverRequest = async (endpoint, options = {}) => {
         console.error('serverRequest err', err);
         return rej(err);
       }
-      resolve({
-        response: JSON.parse(body),
-      });
+      try {
+        var obj = {
+          response: JSON.parse(body),
+        }
+        resolve(obj);
+      } catch (e) {
+        console.error('dataaccess.proxy-admin::serverRequest  - cant parse', body, e)
+        rej(e)
+      }
     });
   });
 }
