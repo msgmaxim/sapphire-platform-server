@@ -33,12 +33,13 @@ module.exports = {
         }
       })
       assert.equal(200, res.statusCode)
+      assert.ok(res.response.data.id) // make sure we have a user id
+      //console.log('patch res', res)
     })
 
     it('single user lookup', async () => {
       const userLookupRes = await platformApi.serverRequest('users/@test')
       assert.equal(200, userLookupRes.statusCode)
-      //console.log('single user lookup res', multiuserLookupRes.response.data)
     })
 
     it('multiple user lookup', async () => {
