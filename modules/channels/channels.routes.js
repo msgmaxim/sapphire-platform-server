@@ -3,6 +3,39 @@ module.exports = {
     const dispatcher = app.dispatcher
     const callbacks = app.callbacks
 
+    // has to be before /channels/:channel_id
+    // search for channels (Token: User, Scope: public_messages or messages)
+    app.get(prefix+'/channels/search', function(req, resp) {
+      //console.log('dialect.appdotnet_official.js:channelsSearch - start', req.token)
+      // don't we already handle this in the middleware
+      dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
+        //console.log('usertoken',usertoken)
+        if (usertoken==null) {
+          //console.log('dialect.appdotnet_official.js:channelsSearch - no token')
+          // could be they didn't log in through a server restart
+          var res={
+            "meta": {
+              "code": 401,
+              "error_message": "Call requires authentication: Authentication required to fetch token."
+            }
+          }
+          resp.status(401).type('application/json').send(JSON.stringify(res))
+          return
+        }
+        //console.log('dialect.appdotnet_official.js:channelsSearch - getUserStream', req.token)
+        //dispatcher.getUserStream(usertoken.userid, req.apiParams.pageParams, req.token, callbacks.postsCallback(resp))
+        var critera = {
+        }
+        if (req.query.type) {
+          critera.type = req.query.type
+        }
+        if (req.query.creator_id) {
+          critera.ownerid = req.query.creator_id
+        }
+        dispatcher.channelSearch(critera, req.apiParams, usertoken, callbacks.dataCallback(resp, req.token))
+      })
+    })
+
     // channel_id 1383 was always good for testing
     // Retrieve a Channel && Retrieve multiple Channels
     app.get(prefix+'/channels/:channel_id', function(req, resp) {
@@ -123,44 +156,6 @@ module.exports = {
           annotations: req.body.annotations
         }
         dispatcher.addChannel(channel, req.apiParams, usertoken, callbacks.dataCallback(resp))
-      })
-    })
-
-    // search for channels (Token: User, Scope: public_messages or messages)
-    app.get(prefix+'/channels/search', function(req, resp) {
-      //console.log('dialect.appdotnet_official.js:channelsSearch - start', req.token)
-      // don't we already handle this in the middleware
-      dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
-        //console.log('usertoken',usertoken)
-        if (usertoken==null) {
-          //console.log('dialect.appdotnet_official.js:channelsSearch - no token')
-          // could be they didn't log in through a server restart
-          var res={
-            "meta": {
-              "code": 401,
-              "error_message": "Call requires authentication: Authentication required to fetch token."
-            }
-          }
-          resp.status(401).type('application/json').send(JSON.stringify(res))
-          return
-        }
-        //console.log('dialect.appdotnet_official.js:channelsSearch - getUserStream', req.token)
-        //dispatcher.getUserStream(usertoken.userid, req.apiParams.pageParams, req.token, callbacks.postsCallback(resp))
-        var critera = {
-        }
-        if (req.query.type) {
-          critera.type = req.query.type
-        }
-        if (req.query.creator_id) {
-          critera.ownerid = req.query.creator_id
-        }
-        dispatcher.channelSearch(critera, req.apiParams, usertoken,
-            function(channels, err, meta) {
-          //console.log('dialect.appdotnet_official.js:channelsSearch - sending', channels)
-          var func=callbacks.dataCallback(resp, req.token)
-          //console.log('getUserStream', posts)
-          func(err, channels, meta)
-        })
       })
     })
 
