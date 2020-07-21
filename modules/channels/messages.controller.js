@@ -591,6 +591,11 @@ module.exports = {
    */
   getChannelMessage: function(cid, mids, params, callback) {
     //console.log('dispatcher.js::getChannelMessage - start')
+    if (mids === 'undefined') {
+      console.trace('messages.controller.js::getChannelMessage - message id ID is string undefined', cid, mids)
+      callback('undefined message ID')
+      return
+    }
     var ref = this
     this.cache.getMessage(mids, function(err, messages, meta) {
       if (err) console.error('messages.controller.js::getChannelMessage - err', err)
