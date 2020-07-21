@@ -47,10 +47,11 @@ const adnServerAPI = function(url, token) {
         response,
       };
     }
+    const json = await result.text();
     try {
-      response = await result.json();
+      response = JSON.parse(json);
     } catch (e) {
-      console.log(`serverRequest json parse ${e}`);
+      console.error(`serverRequest json parse ${e} ${json}`);
       return {
         err: e,
         statusCode: result.status,
