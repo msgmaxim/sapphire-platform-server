@@ -6,7 +6,7 @@ module.exports = {
     // get current user's subscribed channels (token: user)
     // token: user, scope: public_messages or messages
     app.get(prefix+'/users/me/channels', function(req, resp) {
-      //console.log('dialect.appdotnet_official.js:GETusersMEchannels - token:', req.token)
+      //console.log('subscriptions.routes.js::GETusersMEchannels - token:', req.token)
       dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
         //console.log('dialect.appdotnet_official.js:GETusersMEchannels - got token:', usertoken)
         if (usertoken===null) {
@@ -30,7 +30,7 @@ module.exports = {
     // subscribe to a channel (token: user / scope: public_messages or messages)
     app.post(prefix+'/channels/:channel_id/subscribe', function(req, resp) {
       dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
-        //console.log('dialect.appdotnet_official.js:POSTchannelsXsubscribe - got token:', usertoken)
+        //console.log('subscriptions.routes.js:POSTchannelsXsubscribe - got token:', usertoken)
         var userid=''
         if (usertoken==null) {
           var res={
@@ -52,7 +52,7 @@ module.exports = {
     // unsubscribe to a channel (token: user / scope: public_messages or messages)
     app.delete(prefix+'/channels/:channel_id/subscribe', function(req, resp) {
       dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
-        //console.log('dialect.appdotnet_official.js:DELETEchannelsXsubscribe - got token:', usertoken)
+        //console.log('subscriptions.routes.js:DELETEchannelsXsubscribe - got token:', usertoken)
         var userid=''
         if (usertoken==null) {
           var res={
