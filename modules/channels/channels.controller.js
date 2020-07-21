@@ -564,6 +564,7 @@ module.exports={
       callback('ids was undefined')
       return
     }
+    //ids = parseInt(ids)
     //console.log('channel.controller.js::getChannel - ids', ids)
     var ref=this
     this.cache.getChannel(ids, params, function(err, channels, meta) {
@@ -653,11 +654,9 @@ module.exports={
   channelSearch: function(criteria, params, tokenObj, callback) {
     var ref = this
     this.cache.searchChannels(criteria, params, function(err, channels, meta) {
-      if (err) {
-        console.error('searchChannels error', err)
-      }
+      if (err) console.error('channels.controller.js::channelSearch - err', err)
       if (!channels.length) {
-        callback([], err, meta)
+        callback(err, [], meta)
         return
       }
       //console.log('channelSearch', channels)
@@ -679,7 +678,8 @@ module.exports={
         }
         // channel, params, tokenObj, callback, meta
         //console.log('channel.controller.js::channelSearch - channel', channel)
-        ref.channelToAPI(channel, params, tokenObj, function(api, cErr) {
+        ref.channelToAPI(channel, params, tokenObj, function(cErr, api) {
+          if (cErr) console.error('channels.controller.js::channelSearch - channelToAPI err', cErr)
           apis.push(api)
           // todo: sorting by popularity (number of subscriptions)
           // todo: sorting by activity (by recent message)
