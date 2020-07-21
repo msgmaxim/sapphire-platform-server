@@ -10,7 +10,7 @@ function start(options) {
     type: { type: String, length: 255, index: true },
     reader: { type: Number }, // 0=public,1=loggedin,2=selective
     writer: { type: Number }, // 1=loggedin,2=selective
-    // editors are always seletcive
+    // editors are always selective
     readedit: { type: Boolean, default: true }, // immutable?
     writeedit: { type: Boolean, default: true }, // immutable?
     editedit: { type: Boolean, default: true }, // immutable?
@@ -48,7 +48,7 @@ module.exports = {
     // FIXME: maybe only update channels that are active
     channelModel.update({ id: channelid }, chnl, function(err, channel) {
       if (err) {
-        console.error('dataaccess.caminte.js::updateChannel - err', err)
+        console.error('channels.model.js::updateChannel - err', err)
       }
       if (callback) {
         callback(channel, err)
@@ -83,9 +83,7 @@ module.exports = {
     //console.log('dataaccess.caminte.js::addChannel - final obj', obj)
     // not sure create works with memory driver...
     channelModel.create(obj, function(err, ochnl) {
-      if (err) {
-        console.log('dataaccess.caminte.js::addChannel - create err', err)
-      }
+      if (err) console.error('channels.model.js::addChannel - create err', err)
       ref.addSubscription(ochnl.id, userid, callback)
       /*
       subscriptionModel.create({
@@ -108,26 +106,30 @@ module.exports = {
   // FIXME: call getChannels always return an array
   getChannel: function(id, params, callback) {
     if (id==undefined) {
-      console.log('dataaccess.caminte.js::getChannel - id is undefined')
-      callback('dataaccess.caminte.js::getChannel - id is undefined', false, false)
+      console.log('channels.model.js::getChannel - id is undefined')
+      callback('id is undefined', false, false)
       return
     }
     var ref=this
     // null is an object... which breaks the memory type driver rn
     // we'll remove this for now and do our own filtering for now
     // , inactive: null
-    var criteria={ where: { id: id, inactive: new Date(0) } }
+    var criteria={ where: { id: parseInt(id), inactive: new Date(0) } }
     if (params.channelParams && params.channelParams.types) {
       criteria.where['type']={ in: params.channelParams.types.split(/,/) }
       //console.log('dataaccess.caminte.js::getChannel - types', criteria.where['type'])
     }
     if (id instanceof Array) {
-      criteria.where['id']={ in: id }
+      var cleanArr = []
+      for(var i in id) {
+        cleanArr.push(parseInt(id[i]))
+      }
+      criteria.where['id']={ in: cleanArr }
     }
     if (params.channelParams && params.channelParams.inactive) {
       criteria.where['inactive']= { ne: new Date(0) }
     }
-    //console.log('dataaccess.caminte.js::getChannel - criteria', criteria)
+    //console.log('channels.model.js::getChannel - criteria', criteria)
     channelModel.find(criteria, function(err, channels) {
       //console.log('dataaccess.caminte.js::getChannel - found', channels.length)
       //console.log('dataaccess.caminte.js::getChannel - found', channels)
@@ -185,8 +187,8 @@ module.exports = {
   },
   getUserChannels: function(userid, params, callback) {
     if (userid==undefined) {
-      console.log('dataaccess.caminte.js::getUserChannels - id is undefined')
-      callback('dataaccess.caminte.js::getUserChannels - id is undefined', false, false)
+      console.log('channels.model.js::getUserChannels - id is undefined')
+      callback('channels.model.js::getUserChannels - id is undefined', false, false)
       return
     }
     var ref=this
@@ -202,9 +204,7 @@ module.exports = {
     //console.log('dataaccess.caminte.js::getUserChannels - criteria', criteria)
     channelModel.find(criteria, function(err, channels) {
       //console.log('dataaccess.caminte.js::getUserChannels - result', channels)
-      if (err) {
-        console.log('dataaccess.caminte.js::getUserChannels - err', err)
-      }
+      if (err) console.error('channels.model.js::getUserChannels - err', err)
       if (channels==null && err==null) {
         if (ref.next) {
           ref.next.getUserChannels(userid, params, callback)
@@ -225,17 +225,17 @@ module.exports = {
       var groupStr=group.join(',')
       channelModel.find({ where: { type: 'net.app.core.pm', writers: groupStr } }, function(err, channels) {
         if (err) {
-          console.log('dataaccess.caminte.js::getPMChannel - err', err)
+          console.log('channels.model.js::getPMChannel - err', err)
           callback(0, 'couldnt query existing PM channels')
           return
         }
         if (channels.length > 1) {
-          console.log('dataaccess.caminte.js::getPMChannel - too many PM channels for', group)
+          console.log('channels.model.js::getPMChannel - too many PM channels for', group)
           callback(0, 'too many PM channels')
           return
         }
         if (channels.length == 1) {
-          console.log('dataaccess.caminte.js::getPMChannel - found PM channel', channels[0].id)
+          console.log('channels.model.js::getPMChannel - found PM channel', channels[0].id)
           // make sure all users in the group are resub'd
           var ts = Date.now()
           for(var i in group) {
@@ -252,7 +252,7 @@ module.exports = {
           return
         }
         // create
-        console.log('dataaccess.caminte.js::getPMChannel - creating PM channel owned by', group[0])
+        console.log('channels.model.js::getPMChannel - creating PM channel owned by', group[0])
         ref.addChannel(group[0], {
           type: 'net.app.core.pm',
           reader: 2,
@@ -261,7 +261,7 @@ module.exports = {
           writers: groupStr,
           editors: groupStr
         }, function(channel, createErr) {
-          console.log('dataaccess.caminte.js::getPMChannel - created PM channel', channel.id)
+          console.log('channels.model.js::getPMChannel - created PM channel', channel.id)
           //channel.writers=groupStr
           //channel.save(function() {
           for(var i in group) {
