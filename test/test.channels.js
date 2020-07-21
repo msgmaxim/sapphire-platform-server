@@ -235,8 +235,8 @@ module.exports = {
       assert.equal(200, getMessageRes.statusCode)
     })
     it('get channel messages', async () => {
-      messageRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/messages')
-      assert.equal(200, messageRes.statusCode)
+      messagesRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/messages')
+      assert.equal(200, messagesRes.statusCode)
     })
 
     it('delete message', async () => {
