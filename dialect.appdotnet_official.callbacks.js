@@ -124,6 +124,10 @@ module.exports = {
       //console.log('dialect.appdotnet_official.callback.js::postsCallback - in posts callback', posts.length, 'posts', posts)
       for(var i in posts) {
         var post = posts[i]
+        if (!post) {
+          console.trace('dialect_adn_cbs::postsCallback - posts', posts)
+          continue
+        }
         //console.log('dialect.appdotnet_official.callback.js::postsCallback - looking at ', post, post.id, post.created_at, post.userid)
         posts[i] = formatpost(post, token)
         if (post.repost_of) {
