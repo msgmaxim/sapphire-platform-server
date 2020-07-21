@@ -162,7 +162,7 @@ module.exports = {
         method: 'GET',
       });
       var res = newUserRes.response
-      ref.dispatcher.updateUser(res.data,new Date().getTime(), function(err, user) {
+      ref.dispatcher.updateUser(res.data, Date.now(), function(err, user) {
         if (err) console.error('dataaccess.proxy-admin.js:getUserID - noToken updateUser err', err)
         callback(err, user, res.meta);
       });
@@ -174,7 +174,7 @@ module.exports = {
       if (!e && r.statusCode == 200) {
         var res=JSON.parse(body);
         // upload fresh proxy data back into dataSource
-        ref.dispatcher.updateUser(res.data,new Date().getTime(),function(user,err) {
+        ref.dispatcher.updateUser(res.data,new Date().getTime(),function(err, user) {
           if (user==null & err==null) {
             if (this.next) {
               this.next.getUserID(username, callback);
