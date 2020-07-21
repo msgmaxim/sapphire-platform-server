@@ -225,18 +225,18 @@ module.exports = {
     }
   },
   addMessage: function(channel_id, postdata, params, tokenobj, callback) {
-    //console.log('dispatcher.js::addMessage - channel_id', channel_id)
+    //console.log('message.controller.js::addMessage - channel_id', channel_id)
     var ref=this
     // change channel permissions
     function continueAddMessage(channel_id) {
-      //console.log('dispatcher.js::addMessage - checking channel', channel_id, 'permission for token user', tokenobj?tokenobj.userid:0)
+      //console.log('message.controller.js::addMessage - checking channel', channel_id, 'permission for token user', tokenobj?tokenobj.userid:0)
       ref.cache.getChannel(channel_id, params, function(channelErr, channel, channelMeta) {
-        if (channelErr) console.error('dispatcher::addMessage - channelErr', channelErr)
+        if (channelErr) console.error('messages.controller::addMessage - channelErr', channelErr)
         if (!channel) {
-          console.warn('dispatcher::addMessage - no channel for', channel_id)
+          console.warn('messages.controller::addMessage - no channel for', channel_id)
         }
         if (!ref.checkWriteChannelAccess(channel, tokenobj?tokenobj.userid:0)) {
-          //console.log('dispatcher.js::addMessage - denying access')
+          //console.log('message.controller.js::addMessage - denying access')
           callback({}, 'access denied to channel', {
             code: tokenobj?403:401,
           })
@@ -497,16 +497,18 @@ module.exports = {
    */
   getChannelMessages: function(cid, params, callback) {
     //console.log('dispatcher.js::getChannelMessages - getChannelMessages', cid, params)
-    var ref=this
-    if (cid=='pm') {
+    var ref = this
+    if (cid === 'pm') {
       console.log('messages.controller.js::getChannelMessages - getting pm message is not allowed')
       callback('getting pm message is not allowed', [])
       return
     }
     //getChannel: function(ids, params, callback) {
     this.cache.getChannel(cid, params, function(channelErr, channel, channelMeta) {
+      if (channelErr) console.error('messages.controller.js::getChannelMessages - getChannel err', channelErr)
       //console.log('dispatcher.js:getChannelMessages - check', channel)
       if (!channel) {
+        console.error('messages.controller.js::getChannelMessages - no such channel ' + cid)
         callback('no such channel', [], {
           code: 404,
         })
