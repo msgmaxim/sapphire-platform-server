@@ -107,7 +107,7 @@ module.exports = {
               // if we use use the dispatcher one then we don't need to conver it
               //typeid is who was followed
               // but it would be action user followed typeid
-              ref.getUser(notice.actionuserid, { tokenobj: tokenObj }, function(fuser, err) {
+              ref.getUser(notice.actionuserid, { tokenobj: tokenObj }, function(err, fuser) {
                 if (err) console.error('stars.controller.js::getInteractions - getUser Err', err)
                 if (!fuser) {
                   fuser={
@@ -146,9 +146,9 @@ module.exports = {
               // probably a star
               // not follow, look up post
               // if we use use the dispatcher one then we don't need to conver it
-              ref.getUser(notice.actionuserid, { tokenobj: tokenObj }, function(auser, err) {
+              ref.getUser(notice.actionuserid, { tokenobj: tokenObj }, function(err, auser) {
                 if (err) console.error('stars.controller.js::getInteractions - getUser2 Err', err)
-                ref.getPost(notice.typeid, {}, function(post, err) {
+                ref.getPost(notice.typeid, {}, function(err, post) {
                   if (err) console.error('stars.controller.js::getInteractions - getPost Err', err)
                   interactions[notice.id]={
                       "event_date": notice.event_date,
@@ -162,7 +162,7 @@ module.exports = {
                       "pagination_id": notice.id
                   }
                   if (notice.altnum) {
-                    ref.getPost(notice.altnum, {}, function(post2, err) {
+                    ref.getPost(notice.altnum, {}, function(err, post2) {
                       interactions[notice.id].objects.push(post2)
                       count++
                       if (count==notices.length) {
@@ -337,7 +337,8 @@ module.exports = {
     var repostlist=[]
     var replieslist=[]
     // can't count 20, we want any activity on all our posts
-    this.getUserPosts(userid, { }, function(posts, err) {
+    this.getUserPosts(userid, { }, function(err, posts) {
+      if (err) console.error('stars.controller::getInteractions2 getUserPosts err', err)
       if (!posts.length) {
         console.log('no posts')
         done_reposts=1
