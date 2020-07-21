@@ -534,7 +534,7 @@ module.exports={
     for(var i in users) {
       // can't trim numbers...
       var user = users[i] && users[i].trim ? users[i].trim() : users[i];
-      console.log('user.controller.js::getUsers - iterate user', user)
+      //console.log('user.controller.js::getUsers - iterate user', user)
       this.normalizeUserID(user, params.tokenobj, function(err, userid) {
         if (!userid) {
           rUsers.push(false)
