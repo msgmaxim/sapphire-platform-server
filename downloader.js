@@ -44,9 +44,16 @@ var upstream_client_id=nconf.get('uplink:client_id') || 'NotSet'
 module.exports = {
   dispatcher: null,
   apiroot: nconf.get('uplink:apiroot') || 'https://api.app.net',
+  disabled: function() {
+    return !nconf.get('uplink:client_id')
+  },
   // should utilize getReplies somehow or reverse...
   // we need a start point and a false to recurse the pages or not
   downloadThread: function(postid, token, callback) {
+    if (this.disabled()) {
+      if (callback) callback(false, [])
+      return
+    }
     var ref=this
     console.log('downloader.js::downloadThread - proxying posts replies '+postid)
     proxycalls++
@@ -92,6 +99,10 @@ module.exports = {
     })
   },
   downloadMentions: function(userid, params, token, callback) {
+    if (this.disabled()) {
+      if (callback) callback(false, [])
+      return
+    }
     //console.log('dataaccess.proxy.js::getGlobal - write me')
     var ref=this
     proxycalls++
@@ -143,6 +154,10 @@ module.exports = {
     })
   },
   downloadStars: function(userid, callback) {
+    if (this.disabled()) {
+      if (callback) callback(false, [])
+      return
+    }
     var ref=this
     var ts=Date.now()
     console.log('proxying user/stars '+userid)
@@ -212,6 +227,10 @@ module.exports = {
     })
   },
   downloadFollowing: function(user, token, callback) {
+    if (this.disabled()) {
+      if (callback) callback(false, [])
+      return
+    }
     //console.log('dataaccess.proxy.js::getUserStream - write me!')
     var ref=this
     var ts=Date.now()
