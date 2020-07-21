@@ -84,23 +84,10 @@ module.exports = {
     // not sure create works with memory driver...
     channelModel.create(obj, function(err, ochnl) {
       if (err) console.error('channels.model.js::addChannel - create err', err)
-      ref.addSubscription(ochnl.id, userid, callback)
-      /*
-      subscriptionModel.create({
-        channelid: ochnl.id,
-        userid: userid,
-        created_at: now,
-        active: true,
-        last_updated: now,
-      }, function(err, nsub) {
-        if (err) {
-          console.log('dataaccess.caminte.js::addChannel - subscribe err', err)
-        }
-        if (callback) {
-          callback(ochnl, err)
-        }
+      ref.addSubscription(ochnl.id, userid, function(sErr, subs, meta) {
+        if (err) console.error('channels.model.js::addChannel - addSubscription err', sErr)
+        if (callback) callback(err || sErr, ochnl)
       })
-      */
     })
   },
   // FIXME: call getChannels always return an array
