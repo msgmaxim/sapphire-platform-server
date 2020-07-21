@@ -567,7 +567,7 @@ module.exports = {
         cb(source) // was just ()
         return
       }
-      ref.getClient(post.client_id, function(client, clientErr, clientMeta) {
+      ref.getClient(post.client_id, function(clientErr, client, clientMeta) {
         //console.log('dispatcher.js::postToAPI('+post.id+') - gotClient')
         var source={
           link: 'https://sapphire.moe/',
