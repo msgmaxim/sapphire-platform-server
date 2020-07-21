@@ -270,7 +270,7 @@ module.exports={
     var mParams={ pageParams: { count: 1 }, generalParams: {}, tokenobj: tokenObj }
     this.getChannelMessages(channel.id, mParams, function(messageErr, messages, messageMeta) {
       if (messageErr) {
-        console.log('channel.controller::channelToAPI - messageErr', messageErr, 'channel', channel.id)
+        console.log('channel.controller::channelToAPI - getChannelMessages', messageErr, 'channel', channel.id)
       }
       if (!messages.length) {
         //console.log('channel.controller::channelToAPI - last message for', channel.id, 'is', messages)
@@ -389,7 +389,7 @@ module.exports={
     })
   },
   addChannel: function(api, params, token, callback) {
-    //console.log('channel.controller::addChannel', params, token)
+    // console.log('channel.controller::addChannel', api, params, token)
     var ref=this
     function createChannel() {
       // Currently, the only keys we use from your JSON will be readers, writers, annotations, and type.
@@ -397,16 +397,18 @@ module.exports={
       //apiToChannel: function(api, meta, callback) {
       api.owner={}
       ref.apiToChannel(api, {}, function(err, channel, meta) {
+        if (err) console.error('channels.controller.js::addChannel - apiToChannel err', err)
         delete channel.id
         ref.cache.addChannel(token.userid, channel, function(createErr, channelRes, createMeta) {
-          //console.log('channel.controller::addChannel', channelRes.id)
+          if (err) console.error('channels.controller.js::addChannel - err', createErr)
+          // console.log('channel.controller::addChannel - created channel ID', channelRes.id)
           ref.setAnnotations('channel', channelRes.id, api.annotations, function() {
             ref.channelToAPI(channelRes, params, token, callback, createMeta)
           })
         })
       })
     }
-    if (api.type == 'net.app.core.pm') {
+    if (api.type === 'net.app.core.pm') {
       var group = [token.userid]
       for(var i in api.writers.user_ids) {
         group.push(api.writers.user_ids[i])
@@ -414,6 +416,7 @@ module.exports={
       console.log('channel.controller.js::addChannel - detecting pm channel creation, dedupe check for', group)
       // destinations is input string (comma sep list: @,ints)
       this.cache.getPMChannel(group, function(err, nChannel_id, createMeta) {
+        if (err) console.error('channels.controller.js::addChannel - getPMChannel err', err)
         console.log('channel.controller.js::addChannel - dedupe result', nChannel_id)
         if (nChannel_id) {
           ref.getChannel(nChannel_id, params, callback)
@@ -484,7 +487,7 @@ module.exports={
   },
   checkWriteChannelAccess: function(channel, userid) {
     if (!channel) {
-      console.warn('channel.controller.js::checkWriteChannelAccess - no channel passed in')
+      console.trace('channel.controller.js::checkWriteChannelAccess - no channel passed in')
       return false
     }
     var allowed=false
