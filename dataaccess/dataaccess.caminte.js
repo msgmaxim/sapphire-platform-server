@@ -125,8 +125,8 @@ function start(nconf) {
   //console.log('default type', defaultSchemaType)
 
   /** set up where we're storing the "network data" */
-  var configData = nconf.get('database:tokenModel:options') || defaultOptions
-  var schemaDataType = nconf.get('database:tokenModel:type') || defaultSchemaType
+  var configData = nconf.get('database:dataModel:options') || defaultOptions
+  var schemaDataType = nconf.get('database:dataModel:type') || defaultSchemaType
   //console.log('configuring data', configData)
   var schemaData = new Schema(schemaDataType, configData)
   if (schemaDataType === 'memory') {
@@ -134,7 +134,7 @@ function start(nconf) {
   }
 
   /** set up where we're storing the tokens */
-  var configToken = nconf.get('database:dataModel:options') || defaultOptions
+  var configToken = nconf.get('database:tokenModel:options') || defaultOptions
   var schemaTokenType = nconf.get('database:tokenModel:type') || defaultSchemaType
   //console.log('configuring token', configData)
   var schemaToken = new Schema(schemaTokenType, configToken)
