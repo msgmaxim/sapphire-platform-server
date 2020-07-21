@@ -41,7 +41,7 @@ module.exports = {
       if (client) {
         delete client.secret;
       }
-      callback(client, err);
+      callback(err, client);
     });
   },
   setSource: function(source, callback) {
@@ -51,8 +51,10 @@ module.exports = {
       name: source.name,
       link: source.link
     }, function(err, client) {
-      delete client.secret
-      callback(client, err);
+      if (client) {
+        delete client.secret
+      }
+      callback(err, client);
     });
   },
 }
