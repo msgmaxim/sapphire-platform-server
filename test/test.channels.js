@@ -59,17 +59,20 @@ module.exports = {
       }
     }
     let messageRes
+    // once this was returning the subscription id instead of the channel id
     it('create channel', async () => {
       channelRes = await platformApi.serverRequest('channels', {
         method: 'POST',
         objBody: {
-          type: 'moe.sapphire.test',
+          type: 'moe.sapphire.unittests',
         }
       })
+      //console.log('create channel res', channelRes)
       assert.equal(200, channelRes.statusCode)
-      //console.log('create channel res', res.response.data)
+      assert.equal(200, channelRes.response.meta.code)
+      assert.ok(200, channelRes.response.data.id)
     })
-
+    // should be able to make sure the ID is valid
     it('get channel', async () => {
       if (channelRes.response.data.id === undefined) {
         channelRes = {
