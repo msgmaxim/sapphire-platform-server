@@ -20,14 +20,18 @@ const cache = require('../dataaccess/dataaccess.proxy-admin')
 cache.start(nconf)
 cache.dispatcher = {
   // ignore local user updates
-  updateUser: (user, ts, cb) => { cb(user) },
+  updateUser: (user, ts, cb) => { cb(false, user) },
   // ignore local message updates
   setMessage: (message, cb) => { if (cb) cb(message) },
 }
 
-let webport = nconf.get('web:port') || 7070
-const base_url = 'http://' + (nconf.get('web:listen') || '127.0.0.1') + ':' + webport + '/'
-const platform_admin_url = 'http://' + (nconf.get('admin:listen') || '127.0.0.1') + ':' + (nconf.get('admin:port') || 3000)
+const ifToHostname = iface => (!iface || iface === '0.0.0.0') ? '127.0.0.1' : iface
+
+const webport = nconf.get('web:port') || 7070
+
+// what about HTTPS detection?
+const base_url = 'http://' + ifToHostname(nconf.get('web:listen')) + ':' + webport + '/'
+const platform_admin_url = 'http://' + ifToHostname(nconf.get('admin:listen')) + ':' + (nconf.get('admin:port') || 3000)
 console.log('platform url', base_url)
 console.log('admin    url', platform_admin_url)
 
@@ -88,6 +92,7 @@ const ensureServer = () => {
     console.log('platform port', platformURL.port)
     lokinet.portIsFree(platformURL.hostname, platformURL.port, function(free) {
       if (free) {
+        console.log('starting server')
         // ini overrides server/config.json in unit testing (if platform isn't running where it should)
         // override any config to make sure it runs the way we request
         process.env.web__port = platformURL.port
@@ -147,7 +152,9 @@ async function setupTesting() {
       // console.log('baseUrl', platformApi.base_url)
       // only on file-server rn
       //const res = await platformApi.serverRequest('loki/v1/config')
-      const res = await platformApi.serverRequest('loki/v1/user_info')
+      const res = await platformApi.serverRequest('loki/v1/user_info', {
+        noJson: true,
+      })
       console.log('loki test', res.statusCode)
       if (res.statusCode === 403) {
         // we're in whitelist mode...
@@ -167,7 +174,7 @@ async function setupTesting() {
 
         // so lets assume tokens for userid are whitelisted...
         await new Promise(resolve => {
-          cache.getUser(1, function(user, err) {
+          cache.getUser(1, function(err, user) {
             if (err) console.error('getUser for user 1 err', err)
             if (!user) {
               console.log('No user 1')
@@ -177,7 +184,7 @@ async function setupTesting() {
             testConfig.testUsername = user.username
             testConfig.testUserid = user.id
             // console.log('testUserId', testConfig.testUserid)
-            cache.getAPITokenByUsername(user.username, async function(usertoken, err, meta) {
+            cache.getAPITokenByUsername(user.username, async function(err, usertoken, meta) {
               if (err) consoel.error('getAPIUserToken for user 1 err', err)
               if (!usertoken) {
                 console.log('No token for user 1')
@@ -220,8 +227,9 @@ setupTesting()
 // but I wonder if we should re-org by our internal module process
 // like get user files (/users/me/files) doesn't belong in users...
 
-function runIntegrationTests() {
+// MySQL may need --timeout 5000
 
+function runIntegrationTests() {
   describe('#token', async () => {
     require('./test.tokens').runTests(platformApi)
   })
