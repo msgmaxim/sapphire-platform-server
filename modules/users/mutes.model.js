@@ -22,10 +22,18 @@ module.exports = {
     applyParams(muteModel.find().where('userid', { in: userid }), params, callback)
   },
   getAllMutesForUser: function(userid, callback) {
-    var mutedUserIDs = []
+    if (!Array.isArray(userid)) userid = [userid]
+    //console.log('mutes.model.js::getAllMutesForUser - userid', userid)
     muteModel.find({ where: { 'userid': { in: userid } } }, function(err, mutes) {
+      if (err) console.error('mutes.model.js::getAllMutesForUser - err', err)
+      //console.log('mutes.model.js::getAllMutesForUser - mutes', mutes)
+      const mutedUserIDs = []
       for(var i in mutes) {
-        mutedUserIDs.push(mutes[i].muteeid)
+        if (mutes[i] && mutes[i].muteeid) {
+          mutedUserIDs.push(mutes[i].muteeid)
+        } else {
+          // console.error('mutes.model.js::getAllMutesForUser - what is the driver doing', mutes, 'for', userid)
+        }
       }
       callback(false, mutedUserIDs)
     })
@@ -49,7 +57,7 @@ module.exports = {
     muteModel.findOne({ where: { userid: parseInt(userid), muteeid: muteeid } }, function(err, mute) {
       if (err) {
         console.log('dataaccess.caminte::delMute - find err', err, mute)
-        callback(err)
+        return callback(err)
       }
       if (mute) {
         /*
