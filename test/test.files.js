@@ -50,7 +50,7 @@ module.exports = {
     it('10mb-ish file upload', async () => {
       const formData = new FormData()
       const readStream = Buffer.from('0'.repeat(10 * 1000 * 1000))
-      formData.append('type', 'network.loki')
+      formData.append('type', 'moe.sapphire.unittests.zerofile')
       formData.append('content', readStream, {
         contentType: 'application/octet-stream',
         name: 'content',
