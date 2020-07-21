@@ -2,7 +2,7 @@ module.exports = {
   /** client */
   getSource: function(source, callback) {
     if (source==undefined) {
-      callback(null, 'source is undefined')
+      callback('source is undefined')
       return
     }
     //console.dir(source)
