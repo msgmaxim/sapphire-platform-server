@@ -33,7 +33,7 @@ module.exports = {
       api.user = user
       checkDone()
     })
-    this.getClient(file.client_id, function(source, clientErr, clientMeta) {
+    this.getClient(file.client_id, function(clientErr, source, clientMeta) {
       if (clientErr) console.error('files.controller.js::fileToAPI - getClient err', clientErr)
       api.source = source
       checkDone()
