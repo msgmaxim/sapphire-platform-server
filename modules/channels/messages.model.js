@@ -90,9 +90,14 @@ module.exports = {
     })
   },
   getMessage: function(id, callback) {
-    if (id==undefined) {
-      console.trace('dataaccess.caminte.js::getMessage - id is undefined')
-      callback('dataaccess.caminte.js::getMessage - id is undefined')
+    if (id === undefined) {
+      console.trace('messages.model.js::getMessage - id is undefined')
+      callback('id is undefined')
+      return
+    }
+    if (id === 'undefined') {
+      console.trace('messages.model.js::getMessage - id is string undefined')
+      callback('id is undefined')
       return
     }
     //console.log('dataaccess.caminte.js::getMessage - id', id)
@@ -113,6 +118,7 @@ module.exports = {
       //criteria.where['inactive']= { ne: null }
     //}
     var ref=this
+    //console.log('messages.model.js::getMessage - criteria', criteria)
     messageModel.find(criteria, function(err, messages) {
       if (err) {
         console.log('dataaccess.caminte.js::getMessage - err', err)
@@ -150,7 +156,11 @@ module.exports = {
       var mutedUserIDs = []
       //muteModel.find({ where: { 'userid': { in: params.tokenobj.userid } } }, function(err, mutes) {
       this.getAllMutesForUser(params.tokenobj.userid, function(err, mutes) {
+        if (err) console.error('messages.model.js::getChannelMessages - getAllMutesForUser err', err)
         for(var i in mutes) {
+          if (!mutes[i].muteeid) {
+            console.warn('messages.model.js::getChannelMessages - no muteeid', mutes[i])
+          }
           mutedUserIDs.push(mutes[i].muteeid)
         }
         if (mutedUserIDs.length) {
