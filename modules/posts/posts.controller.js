@@ -1008,6 +1008,7 @@ module.exports = {
     })
     // userid could be a username though
     this.cache.getMentions(userid, params, function(err, entities, meta) {
+      if (err) console.error('posts.controller.js::getMentions - err', err)
       // data is an array of entities
       var apiposts={}
       var count=0
@@ -1019,7 +1020,8 @@ module.exports = {
         entities.map(function(current, idx, Arr) {
           // get the post in API foromat
           //console.log('getting post',current.typeid)
-          ref.getPost(current.typeid, params, function(post, perr, pmeta) {
+          ref.getPost(current.typeid, params, function(perr, post, pmeta) {
+            if (perr) console.error('posts.controller.js::getMentions - getPost err', perr)
             //console.log('got post',post.id)
             apiposts[post.id]=post
             count++
@@ -1060,15 +1062,16 @@ module.exports = {
       if (posts.length) {
         posts.map(function(current, idx, Arr) {
           if (!current) {
-            console.log('dispatcher.js:getGlobal - no post', idx)
+            console.log('posts.controller.js:getGlobal - no post', idx)
             current={} // needs to at least be an object
           }
           //console.log('dispatcher.js:getGlobal - map postid: '+current.id)
           //console.log('ref',ref,'this',this)
           // get the post in API foromat
-          ref.postToAPI(current, params, params.tokenobj, function(post, err, postmeta) {
+          ref.postToAPI(current, params, params.tokenobj, function(err, post, postmeta) {
+            if (err) console.err('posts.controller.js - postToAPI err', err)
             if (post && !post.user) {
-              console.log('dispatcher.js:getGlobal - no user from postToAPI',post.user)
+              console.log('posts.controller.js:getGlobal - no user from postToAPI',post.user)
             }
             //console.log('dispatcher.js:getGlobal - post id check post postToAPI ',post.userid)
             // can error out
