@@ -778,6 +778,7 @@ module.exports = {
     var mutedUserIDs = []
     //muteModel.find({ where: { 'userid': { in: params.tokenobj.userid } } }, function(err, mutes) {
     this.getAllMutesForUser(userid, function(err, mutes) {
+      if (err) console.error('posts.model.js::getAllMutedPosts - getAllMutesForUser err', err)
       for(var i in mutes) {
         mutedUserIDs.push(mutes[i].muteeid)
       }
@@ -812,8 +813,13 @@ module.exports = {
       if (params.tokenobj) {
         var mutedUserIDs = []
         //muteModel.find({ where: { 'userid': { in: params.tokenobj.userid } } }, function(err, mutes) {
+        //console.log('posts.model.js::getGlobal - userid', params.tokenobj.userid)
         this.getAllMutesForUser(params.tokenobj.userid, function(err, mutes) {
+          if (err) console.error('posts.model.js::getGlobal - getAllMutesForUser err', err)
           for(var i in mutes) {
+            if (!mutes[i]) {
+              console.warn('posts.model.js::getGlobal - no mutes in array', mutes)
+            }
             mutedUserIDs.push(mutes[i].muteeid)
           }
           query=query.where('userid', { nin: mutedUserIDs })
