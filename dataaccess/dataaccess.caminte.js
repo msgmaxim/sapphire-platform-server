@@ -986,11 +986,15 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     // what if there more than one?
     // if we get more than one, than we callback multiple times?
     localUserTokenModel.findOne({ where: { token: token }, limit: 1 }, function(err, usertoken) {
-      if (err) {
-        console.log('dataaccess.camintejs.js::getAPIUserToken - err', err, 'usertoken', usertoken)
-      }
+      if (err) console.error('dataaccess.camintejs.js::getAPIUserToken - err', err, 'usertoken', usertoken)
       // console.log('dataaccess.camintejs.js::getAPIUserToken - found:', usertoken)
       callback(err, usertoken)
+    })
+  },
+  getApiTokens: function(token_strings_arr, callback) {
+    localUserTokenModel.find({ where: { id: { in: token_strings_arr } } }, function(err, tokens) {
+      if (err) console.error('dataaccess.camintejs.js::getApiTokens - err', err)
+      callback(err, tokens)
     })
   },
   /*
