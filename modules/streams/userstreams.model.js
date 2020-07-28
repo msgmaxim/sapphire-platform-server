@@ -137,6 +137,7 @@ module.exports = {
   },
   getAllUserStreams: function(callback) {
     //console.log('dataaccess.caminte.js::getAllUserStreams - start');
+    var ref = this
     userStreamModel.all(function(err, userStreams) {
       //console.log('dataaccess.caminte.js::getAllUserStreams - result', userStreams.length);
       var ids = []
@@ -174,8 +175,8 @@ module.exports = {
         doneCheck('subs', subs);
       })
       // look up tokens
-      localUserTokenModel.find({ where: { id: { in: tokens } } }, function(tokenErr, tokens) {
-        doneCheck('tokens', tokens);
+      ref.getApiTokens(tokens, function(err, usertokens) {
+        doneCheck('tokens', usertokens);
       })
     });
   },
