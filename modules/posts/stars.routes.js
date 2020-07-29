@@ -72,6 +72,7 @@ module.exports = {
       });
     });
 
+    // get a list of posts starred by a User
     app.get(prefix+'/users/:user_id/stars', function(req, resp) {
       //console.log('ADNO::usersStar');
       // we need token for stars/context
