@@ -79,8 +79,9 @@ module.exports = {
 
     this.cache.getUserSubscriptions(userid, params, function(subsErr, subs, subsMeta) {
       //console.log('dispatcher.js::getUserSubscriptions - ', userid, 'has', subs.length)
+      if (subsErr) console.error('subscriptions.controller.js::getUserSubscriptions - err', subsErr)
       if (!subs.length) {
-        callback([], subsErr, { code: 200, more: false})
+        callback(subsErr, [], { code: 200, more: false})
         return
       }
       var channelids=[]
@@ -89,7 +90,7 @@ module.exports = {
         channelids.push(sub.channelid)
       }
       if (!channelids.length) {
-        callback([], err, { code: 200, more: false})
+        callback(err, [], { code: 200, more: false})
         return
       }
       //getChannel: function(ids, params, callback) {
@@ -97,7 +98,8 @@ module.exports = {
       var result_recent_messages=params.generalParams.recent_messages
       params.generalParams.recent_messages=true
       //params.channelParams.types=
-      ref.getChannel(channelids, params, function(apis, apiErr, apiMeta) {
+      ref.getChannel(channelids, params, function(apiErr, apis, apiMeta) {
+        if (apiErr) console.error('subscriptions.controller.js::getUserSubscriptions - getChannel err', apiErr)
         //console.log('dispatcher.js::getUserSubscriptions - got apis', apis.length)
         // sort by the "most recent post first"
         var list=[]
@@ -130,7 +132,7 @@ module.exports = {
         }
         //console.log('dispatcher.js::getUserSubscriptions - final count', nlist.length)
         // we actually want the count from subsMeta
-        callback(nlist, apiErr, subsMeta)
+        callback(apiErr, nlist, subsMeta)
       })
       /*
       var channelCriteria={ where: { id: { in: channelids } } }
@@ -185,7 +187,7 @@ module.exports = {
     this.cache.getChannelSubscriptionsPaged([channelid], params, function(err, subs, meta) {
       //console.log('dispatcher.js::getChannelSubscriptions - ', channelid, 'has', subs.length, 'subs');
       if (!subs.length) {
-        return callback([], '', meta)
+        return callback(false, [], meta)
       }
       var userIDs = subs.map(sub => sub.userid);
       //console.log('dispatcher.js::getChannelSubscriptions - userIDs', userIDs);
@@ -217,7 +219,7 @@ module.exports = {
       //console.log('dispatcher.js::getChannelsSubscriptionIds - ', ids, 'has', subs.length, 'subs');
       if (err) console.error('dispatcher.js::getChannelsSubscriptionIds - err', err)
       if (!subs.length) {
-        return callback([], '', meta)
+        return callback(false, [], meta)
       }
       var result = {}
       for(var i in subs) {
@@ -228,7 +230,7 @@ module.exports = {
         } else
           result[chanId].push(subs[i].userid);
       }
-      callback('', result, meta)
+      callback(false, result, meta)
     })
   },
 }
