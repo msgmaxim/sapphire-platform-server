@@ -66,4 +66,7 @@ module.exports = {
     */
     annotationModel.find({where: { idtype: idtype, typeid: id }}, callback)
   },
+  searchAnnotationByType: function(idtype, type, order, callback) {
+    annotationModel.find({ where: { idtype: idtype, type: type }, order: order }, callback)
+  }
 }
