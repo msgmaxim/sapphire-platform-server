@@ -12,6 +12,10 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getToken: function(userid, client_id, params, callback) {
+    if (!callback) {
+      console.trace('tokens.controller.js::getToken - no callback passed in')
+      return
+    }
     // we could lookup unique token by userid/client_id
     // dummy token
     this.getUser(userid, params, function(err, user) {
@@ -29,15 +33,15 @@ module.exports = {
           "follow"
         ],
         limits: {
-          "following": 40,
-          "max_file_size": 10000000
+          following: 40,
+          max_file_size: 10000000
         },
-        "storage": {
-          "available": 8787479688,
-          "used": 1212520312
+        storage: {
+          available: 8787479688,
+          used: 1212520312
         },
         user: user,
-        "invite_link": "https://join.app.net/from/notareallink"
+        invite_link: "https://join.app.net/from/notareallink"
       }
       //console.log('dispatcher::getToken - ', token)
       callback(false, token)
