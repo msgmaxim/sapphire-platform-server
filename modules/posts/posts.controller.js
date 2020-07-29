@@ -516,7 +516,7 @@ module.exports = {
             //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - got', userObjs.length)
             var rUsers=[]
             for(var i in userObjs) {
-              ref.userToAPI(userObjs[i], tokenObj, function(adnUserObj, err) {
+              ref.userToAPI(userObjs[i], tokenObj, function(err, adnUserObj) {
                 //console.log('dispatcher.js::postToAPI - got', adnUserObj, 'for', adnUserObj.id)
                 rUsers.push(adnUserObj)
                 //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - ', rUsers.length, 'vs', userids.length)
@@ -583,7 +583,7 @@ module.exports = {
         } else {
           console.log('dispatcher.js::postToAPI('+post.id+') - client is', client, clientErr)
         }
-        cb(source, clientErr, clientMeta)
+        cb(clientErr, source, clientMeta)
       }) // getClient
     }
 
@@ -608,7 +608,7 @@ module.exports = {
             }
           }
         }
-        cb(user, userErr, userMeta)
+        cb(userErr, user, userMeta)
       }) // getUser
     }
 
@@ -634,6 +634,7 @@ module.exports = {
 
     var loadAnnotation=function(post, cb) {
       ref.getAnnotation('post', post.id, function(err, dbNotes, noteMeta) {
+        if (err) console.error('posts.controller.js::postToAPI - err', err)
         var apiNotes=[]
         for(var j in dbNotes) {
           var note=dbNotes[j]
@@ -761,20 +762,20 @@ module.exports = {
 
     // post.client_id is string(32)
     //console.log('dispatcher.js::postToAPI - gotUser. post.client_id:', post.client_id)
-    loadClient(post, function(source, clientErr, clientMeta) {
+    loadClient(post, function(clientErr, source, clientMeta) {
       data.source=source
       setDone('client')
     })
     //console.log('dispatcher.js::postToAPI - gotPost. post.userid:', post.userid)
-    loadUser(post.userid, params, function(user, userErr, userMeta) {
+    loadUser(post.userid, params, function(userErr, user, userMeta) {
       data.user=user
       setDone('user')
     })
-    loadRepostOf(post, tokenObj, function(repost, repostErr, repostMeta) {
+    loadRepostOf(post, tokenObj, function(repostErr, repost, repostMeta) {
       if (repost) data.repost_of=repost
       setDone('repostOf')
     })
-    loadAnnotation(post, function(apiNotes, notesErr, notesMeta) {
+    loadAnnotation(post, function(notesErr, apiNotes, notesMeta) {
       data.annotations=apiNotes
       setDone('annotation')
     })
@@ -782,7 +783,8 @@ module.exports = {
     loadEntites(post, function() {
       setDone('entities')
     })
-    loadContext(post, tokenObj, function(post, contextErr, contextMeta) {
+    // writes to repostRepostDone
+    loadContext(post, tokenObj, function() {
       setDone('context')
     })
 
@@ -810,12 +812,13 @@ module.exports = {
     var apiposts={}
     var counts=0
     //var apiposts=[]
+    //console.log('posts.controller.js::idsToAPI - posts', posts)
     if (posts && posts.length) {
       posts.map(function(current, idx, Arr) {
         // get the post in API foromat
-        //console.log('getting', current.id)
+        //console.log('posts.controller.js::idsToAPI - getting current', current)
         // params && params.tokenobj?params.tokenobj:null
-        ref.getPost(current.id, params, function(post, err, postMeta) {
+        ref.getPost(current.id, params, function(err, post, postMeta) {
           if (post && post.text) {
             //apiposts.push(post)
             apiposts[post.id]=post
@@ -1112,8 +1115,9 @@ module.exports = {
   getExplore: function(params, callback) {
     var ref=this
     this.cache.getExplore(params, function(err, endpoints, meta) {
+      if (err) console.error('posts.controller.js::getExplore - err', err)
       //console.log('dispatcher.js::getExplore - returned meta', meta)
-      callback(null, endpoints, meta)
+      callback(false, endpoints, meta)
     })
   },
   getUserStream: function(user, params, tokenObj, callback) {
@@ -1121,19 +1125,21 @@ module.exports = {
     //console.log('dispatcher.js::getUserStream - ', user)
     this.normalizeUserID(user, tokenObj, function(err, userid) {
       //console.log('dispatcher.js::getUserStream - got', userid)
-      if (ref.downloader.apiroot != 'NotSet') {
+      //console.log('posts.controller.js::getUserStream - apiroot', ref.downloader.apiroot)
+      if (ref.downloader.apiroot !== 'NotSet') {
         ref.cache.getUser(userid, function(err, userdata, meta) {
           ref.cache.getFollowing(user, {}, function(err, followings) {
             if (!followings || !followings.length) {
               // Yer following no one
-              console.log('likely we need to sync followers for', user)
+              console.log('posts.controller.js::getUserStream - likely we need to sync followers for', user, 'theyre following no-one')
               ref.downloader.downloadFollowing(user, tokenObj)
               return
             }
-            console.log('user counts check', userdata.following, 'vs', followings.length)
+            console.log('posts.controller.js::getUserStream - user counts check', userdata.following, 'vs', followings.length)
             if (userdata.following==0 || followings.length==0 || userdata.following>followings.length) {
-              console.log('likely we need to sync followers for', user)
+              console.log('posts.controller.js::getUserStream - likely we need to sync followers for', user)
               ref.downloader.downloadFollowing(user, tokenObj)
+              // or maybe just the follow count needs to be ran...
             }
           })
         })
@@ -1312,69 +1318,6 @@ module.exports = {
     })
   },
   /**
-   * get range of stared posts for user id userid from data access
-   * @param {number} userid - the user id to get posts for
-   * @param {object} params - the pagination context
-   * @param {metaCallback} callback - function to call after completion
-   */
-  getUserStars: function(userid, params, callback) {
-    //console.log('dispatcher.js::getUserStars start')
-    if (!params.count) params.count=20
-    var ref=this
-    if (userid=='me') {
-      if (params.tokenobj && params.tokenobj.userid) {
-        //console.log('dispatcher.js::getUserStars - me became', params.tokenobj.userid)
-        this.getUserStars(params.tokenobj.userid, params, callback)
-        return
-      } else {
-        console.log('dispatcher.js::getUserStars - userid is me but invalud token', params.tokenobj)
-        callback('no or invalid token', [])
-        return
-      }
-    }
-
-    this.cache.getInteractions('star', userid, params, function(err, interactions, meta) {
-      // make sure stars are up to date
-      if (ref.downloader.apiroot != 'NotSet') {
-        console.log('dispatcher.js::getUserStars - start d/l')
-        ref.downloader.downloadStars(userid)
-        console.log('dispatcher.js::getUserStars - end d/l')
-      }
-      //console.log('dispatcher.js::getUserStars - ', interactions)
-      // data is an array of interactions
-      if (interactions && interactions.length) {
-        var apiposts=[]
-        interactions.map(function(current, idx, Arr) {
-          // we're a hasMany, so in theory I should be able to do
-          // record.posts({conds})
-          // get the post in API foromat
-          //console.log('dispatcher::getUserStars - tokenobj', params.tokenobj)
-          ref.getPost(current.typeid, params, function(err, post, meta) {
-            //console.dir(post)
-            if (post && post.user && post.text) { // some are deleted, others are errors
-              apiposts.push(post)
-            } else {
-              interactions.pop()
-            }
-            // join
-            // params.count is requested rpp
-            //console.log(apiposts.length+'/'+interactions.length+' or '+params.count)
-            // interactions.length looks good
-            if (apiposts.length==params.count || apiposts.length==interactions.length) {
-              //console.log('dispatcher.js::getUserStars - finishing', apiposts.length)
-              callback(err, apiposts, meta)
-              return // kill map, somehow?
-            }
-          })
-        }, ref)
-      } else {
-        // no interactions
-        //console.log('dispatcher.js::getUserStars - finishing but no stars for', userid, params)
-        callback(err, [], meta)
-      }
-    })
-  },
-  /**
    * get range of hashtagged posts from data access
    * @param {string} hashtag - the hashtag to get posts for
    * @param {object} params - the pagination context
@@ -1411,7 +1354,8 @@ module.exports = {
     //console.log('dispatcher.js::getExploreFeed(', feed, ',...,...) - start')
     var ref=this
     this.cache.getExploreFeed(feed, params, function(err, posts, meta) {
-      //console.log('dispatcher.js::getExploreFeed - gotExploreFeed')
+      if (err) console.error('posts.controller.js::getExploreFeed - err', err)
+      //console.log('posts.controller.js::getExploreFeed - posts', posts.length)
       // definitely need this system
       ref.idsToAPI(posts, params, callback, meta)
       /*
