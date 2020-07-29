@@ -75,8 +75,13 @@ var upstream_client_id=nconf.get('uplink:client_id') || 'NotSet';
 var upstream_client_secret=nconf.get('uplink:client_secret') || 'NotSet';
 var auth_client_id=nconf.get('auth:client_id') || upstream_client_id;
 var auth_client_secret=nconf.get('auth:client_secret') || upstream_client_secret;
-var webport = nconf.get('web:port') || 7070;
-var auth_base=nconf.get('auth:base') || 'https://account.app.net/oauth/';
+var webport   = nconf.get('web:port') || 7070;
+// outgoing
+var auth_base = nconf.get('auth:base') || 'https://account.app.net/oauth/';
+// incoming
+// can it be mounted else where?
+// 'http://'+req.headers.host+'/oauth/redirect_uri'
+var auth_callback = nconf.get('web:public_url') + '/oauth/redirect_uri';
 
 app.upstream_client_id=upstream_client_id;
 app.upstream_client_secret=upstream_client_secret;
@@ -89,7 +94,10 @@ if (!upstream_client_id || upstream_client_id!=='NotSet' || auth_base!=='https:/
   console.log('router.public - upstream_client_id', upstream_client_id)
   var obj = require('./lib/lib.platform');
   var oauthproxy=require('./routes.oauth.proxy.js');
-  oauthproxy.auth_base=auth_base;
+  console.log('rouer.public - auth_base     :', auth_base)
+  console.log('rouer.public - auth_callback :', auth_callback)
+  oauthproxy.auth_callback = auth_callback;
+  oauthproxy.auth_base     = auth_base;
   oauthproxy.setupoauthroutes(app, obj.cache);
 } else {
   // no proxy
