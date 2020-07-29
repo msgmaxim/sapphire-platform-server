@@ -64,7 +64,12 @@ module.exports = {
     // FIXME: why do we need this getUser call?
     // is this just used to normalize the userid?
     // it's to insert ourselves as a receiver of actions
-    this.getUser(userid, params, function(user, err) {
+    this.getUser(userid, params, function(err, user) {
+      if (err) console.error('stars.controller.js::getInteractions - getUser err', err)
+      if (!user || !user.id) {
+        callback('no such user', [])
+        return
+      }
       // o(3) maybe 4 if toApi
       //console.log('getInteractions - gotUser')
       // was base class getting in the way
@@ -482,5 +487,74 @@ module.exports = {
       }
       checkdone()
     }) // getUserPosts
+  },
+  /**
+   * get range of stared posts for user id userid from data access
+   * @param {number} userid - the user id to get posts for
+   * @param {object} params - the pagination context
+   * @param {metaCallback} callback - function to call after completion
+   */
+  getUserStars: function(userid, params, callback) {
+    //console.log('dispatcher.js::getUserStars start')
+    if (!params.count) params.count = 20
+    var ref = this
+    if (userid === 'me') {
+      if (params.tokenobj && params.tokenobj.userid) {
+        //console.log('dispatcher.js::getUserStars - me became', params.tokenobj.userid)
+        this.getUserStars(params.tokenobj.userid, params, callback)
+        return
+      } else {
+        console.log('dispatcher.js::getUserStars - userid is me but invalud token', params.tokenobj)
+        callback('no or invalid token', [])
+        return
+      }
+    }
+
+    this.cache.getInteractions('star', userid, params, function(err, interactions, meta) {
+      // make sure stars are up to date
+      if (ref.downloader.apiroot != 'NotSet') {
+        console.log('dispatcher.js::getUserStars - start d/l')
+        ref.downloader.downloadStars(userid)
+        console.log('dispatcher.js::getUserStars - end d/l')
+      }
+      //console.log('dispatcher.js::getUserStars - ', interactions)
+      // data is an array of interactions
+      if (interactions && interactions.length) {
+        var apiposts=[]
+        interactions.map(function(current, idx, Arr) {
+          // we're a hasMany, so in theory I should be able to do
+          // record.posts({conds})
+          // get the post in API foromat
+          //console.log('dispatcher::getUserStars - tokenobj', params.tokenobj)
+          ref.getPost(current.typeid, params, function(err, post, meta) {
+            //console.dir(post)
+            if (post && post.user && post.text) { // some are deleted, others are errors
+              apiposts.push(post)
+            } else {
+              interactions.pop()
+            }
+            // join
+            // params.count is requested rpp
+            //console.log(apiposts.length+'/'+interactions.length+' or '+params.count)
+            // interactions.length looks good
+            if (apiposts.length==params.count || apiposts.length==interactions.length) {
+              //console.log('dispatcher.js::getUserStars - finishing', apiposts.length)
+              console.log('stars.controller.js::getUserStars - meta', meta)
+              if (!meta) {
+                meta = {
+                  code: 200
+                }
+              }
+              callback(err, apiposts, meta)
+              return
+            }
+          })
+        }, ref)
+      } else {
+        // no interactions
+        //console.log('dispatcher.js::getUserStars - finishing but no stars for', userid, params)
+        callback(err, [], meta)
+      }
+    })
   },
 }
