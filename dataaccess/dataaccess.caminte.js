@@ -112,6 +112,87 @@ memoryUpdate = function (model, filter, data, callback) {
   }
 }
 
+// MySQL.prototype.toDatabase
+function dateToMysql(val) {
+    'use strict';
+    return val.getUTCFullYear() + '-' +
+        fillZeros(val.getUTCMonth() + 1) + '-' +
+        fillZeros(val.getUTCDate()) + ' ' +
+        fillZeros(val.getUTCHours()) + ':' +
+        fillZeros(val.getUTCMinutes()) + ':' +
+        fillZeros(val.getUTCSeconds());
+
+    function fillZeros(v) {
+        'use strict';
+        return v < 10 ? '0' + v : v;
+    }
+}
+
+mysqlToDatabase = function (prop, val) {
+    'use strict';
+    if (val === null) {
+        return 'NULL';
+    }
+    if (val.constructor.name === 'Object') {
+        var operator = Object.keys(val)[0];
+        val = val[operator];
+        if (operator === 'between') {
+            if (prop.type.name === 'Date') {
+                return 'STR_TO_DATE(' + this.toDatabase(prop, val[0]) + ', "%Y-%m-%d %H:%i:%s")' +
+                    ' AND STR_TO_DATE(' +
+                    this.toDatabase(prop, val[1]) + ', "%Y-%m-%d %H:%i:%s")';
+            } else {
+                return this.toDatabase(prop, val[0]) +
+                    ' AND ' +
+                    this.toDatabase(prop, val[1]);
+            }
+        } else if (operator === 'in' || operator === 'inq' || operator === 'nin') {
+            if (!(val.propertyIsEnumerable('length')) && typeof val === 'object' && typeof val.length === 'number') { //if value is array
+                // if it's an array of strings, no need to quote
+                //   but why? maybe it's already escaped...
+                // if it's an array of ints, no need to quote
+                // when do we need to escape an array?
+                /*
+                for (var i = 0; i < val.length; i++) {
+                    console.log('escaping [' + val[i] + ']')
+                    val[i] = this.client.escape(val[i]);
+                }
+                console.log('returning', val.join(','))
+                */
+                return val.join(',');
+            } else {
+                return val;
+            }
+        }
+    }
+    if (!prop) {
+        return val;
+    }
+    if (prop.type.name === 'Number') {
+        return val;
+    }
+    if (prop.type.name === 'Date') {
+        if (!val) {
+            return 'NULL';
+        }
+        if (typeof val === 'string') {
+            val = val.split('.')[0].replace('T', ' ');
+            val = Date.parse(val);
+        }
+        if (typeof val === 'number') {
+            val = new Date(val);
+        }
+        if (val instanceof Date) {
+            val = '"' + dateToMysql(val) + '"';
+        }
+        return val;
+    }
+    if (prop.type.name === "Boolean") {
+        return val ? 1 : 0;
+    }
+    return this.client.escape(val.toString());
+};
+
 
 // set up the configureable model pools
 function start(nconf) {
@@ -129,8 +210,11 @@ function start(nconf) {
   var schemaDataType = nconf.get('database:dataModel:type') || defaultSchemaType
   //console.log('configuring data', configData)
   var schemaData = new Schema(schemaDataType, configData)
-  if (schemaDataType === 'memory') {
+
+  if (schemaDataType.toLowerCase() === 'memory') {
     schemaData.adapter.update = memoryUpdate
+  } else if (schemaDataType.toLowerCase() === 'mysql') {
+    schemaData.adapter.toDatabase = mysqlToDatabase
   }
 
   /** set up where we're storing the tokens */
@@ -138,8 +222,10 @@ function start(nconf) {
   var schemaTokenType = nconf.get('database:tokenModel:type') || defaultSchemaType
   //console.log('configuring token', configData)
   var schemaToken = new Schema(schemaTokenType, configToken)
-  if (schemaTokenType === 'memory') {
+  if (schemaTokenType.toLowerCase() === 'memory') {
     schemaToken.adapter.update = memoryUpdate
+  } else if (schemaTokenType.toLowerCase() === 'mysql') {
+    schemaToken.adapter.toDatabase = mysqlToDatabase
   }
 
   if (schemaDataType==='mysql') {
@@ -516,6 +602,10 @@ function db_insert(rec, model, callback) {
 }
 
 function applyParams(query, params, callback) {
+  if (!callback || typeof(callback) !== 'function') {
+    console.trace('dataaccess.caminte.js::applyParams - no callback')
+    return
+  }
   // what if we want all, how do we ask for that if not zero?
   //if (!params.count) params.count=20
   // can't set API defaults here because the dispatch may operate outside the API limits
@@ -1078,152 +1168,7 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
           {"url":"/posts/stream/explore/moststarred", "description":"Posts that people have starred", "slug":"moststarred", "title":"Starred Posts"}
         ]
       }
-      callback(res.data, null, res.meta)
-    }
-  },
-  getExploreFeed: function(feed, params, callback) {
-    //console.log('dataaccess.camtinte.js::getExploreFeed(', feed, ',..., ...) - start')
-    if (this.next) {
-      this.next.getExploreFeed(feed, params, callback)
-    } else {
-      // get list of posts && return
-      var posts=[]
-      var ref=this
-      switch(feed) {
-        case 'photos':
-          annotationModel.find({ where: { idtype: 'post', type: 'net.app.core.oembed' }, order: 'typeid DESC' }, function(err, dbNotes) {
-            if (!dbNotes.length) callback(posts, null, { "code": 200 })
-            var posts = []
-            for(var i in dbNotes) {
-              posts.push(dbNotes[i].typeid)
-            }
-            var maxid=0
-            applyParams(postModel.find().where('id', { in: posts }), params, maxid, callback)
-          })
-        break
-        case 'checkins':
-          // we need to convert to applyParams
-          annotationModel.find({ where: { idtype: 'post', type: 'ohai' }, order: 'typeid DESC' }, function(err, dbNotes) {
-            if (!dbNotes.length) callback(posts, null, { "code": 200 })
-            for(var i in dbNotes) {
-              ref.getPost(dbNotes[i].typeid, function(post, err, meta) {
-                posts.push(post)
-                //console.log(posts.length, '/', dbNotes.length)
-                if (posts.length===dbNotes.length) {
-                  callback(posts, null, { "code": 200 })
-                }
-              })
-            }
-          })
-        break
-        case 'moststarred':
-          // so "conversations", is just going to be a list of any posts with a reply (latest at top)
-          // maybe the thread with the latest reply would be good
-          // params.generalParams.deleted <= defaults to true
-          var maxid=0
-          // get the highest post id in posts
-          postModel.all({ order: 'id DESC', limit: 1}, function(err, posts) {
-            //console.log('dataaccess.caminte.js::getUserPosts - back',posts)
-            if (posts.length) {
-              maxid=posts[0].id
-            }
-            console.log('dataaccess.caminte.js::moststarred - max', maxid)
-            // order is fucked here...
-            applyParams(postModel.find().where('num_stars', { ne: 0 }).order('num_stars DESC, id DESC'), params, maxid, function(dbPosts, err, meta) {
-              /*
-              if (!dbPosts.length) {
-                callback(dbPosts, null, { "code": 200 })
-              }
-              */
-              callback(dbPosts, null, { "code": 200 })
-            })
-          })
-        break
-        case 'conversations':
-          // so "conversations", is just going to be a list of any posts with a reply (latest at top)
-          // maybe the thread with the latest reply would be good
-          // params.generalParams.deleted <= defaults to true
-          var maxid=0
-          // get the highest post id in posts
-          postModel.all({ order: 'id DESC', limit: 1}, function(err, posts) {
-            //console.log('dataaccess.caminte.js::getUserPosts - back',posts)
-            if (posts.length) {
-              maxid=posts[0].id
-            }
-            console.log('dataaccess.caminte.js::conversations - max', maxid)
-            // this alone makes the order much better but not perfect
-            applyParams(postModel.find().where('reply_to', { ne: 0}).order('thread_id DESC'), params, maxid, function(dbPosts, err, meta) {
-            //postModel.find({ where: { reply_to: { ne: 0 } }, order: 'thread_id DESC' }, function(err, dbPosts) {
-              if (!dbPosts.length) callback(dbPosts, null, { "code": 200 })
-              var started={}
-              var starts=0
-              var dones=0
-              for(var i in dbPosts) {
-                if (started[dbPosts[i].thread_id]) continue
-                started[dbPosts[i].thread_id]=true
-                starts++
-                ref.getPost(dbPosts[i].thread_id, function(post, err, meta) {
-                  posts.push(post)
-                  dones++
-                  //console.log(posts.length, '/', dbNotes.length)
-                  //if (posts.length===dbPosts.length) {
-                  if (starts===dones) {
-                    // FIXME: order
-                    callback(posts, null, { "code": 200 })
-                  }
-                })
-              }
-            })
-          })
-        break
-        case 'trending':
-          // so "trending" will be posts with hashtags created in the last 48 hours, sorted by most replies
-          entityModel.find({ where: { idtype: 'post', type: 'hashtag' }, order: 'typeid DESC' }, function(err, dbEntities) {
-            if (!dbEntities.length) callback(posts, null, { "code": 200 })
-            var posts = []
-            for(var i in dbEntities) {
-              posts.push(dbEntities[i].typeid)
-            }
-            var maxid=0
-            applyParams(postModel.find().where('id', { in: posts }), params, maxid, callback)
-            /*
-            var started={}
-            var starts=0
-            var dones=0
-            for(var i in dbEntities) {
-              if (started[dbEntities[i].typeid]) continue
-              started[dbEntities[i].typeid]=true
-              starts++
-              ref.getPost(dbEntities[i].typeid, function(post, err, meta) {
-                posts.push(post)
-                dones++
-                if (starts===dones) {
-                  callback(posts, null, { "code": 200 })
-                }
-              })
-            }
-            */
-          })
-        break
-        case 'subtweets':
-          postModel.find({ where: { text: { like: '%drybones%' } }, order: 'id DESC' }, function(err, dbPosts) {
-            if (!dbPosts.length) callback(posts, null, { "code": 200 })
-            for(var i in dbPosts) {
-              ref.getPost(dbPosts[i].id, function(post, err, meta) {
-                posts.push(post)
-                //console.log(posts.length, '/', dbNotes.length)
-                if (posts.length===dbPosts.length) {
-                  callback(posts, null, { "code": 200 })
-                }
-              })
-            }
-          })
-        break
-        default:
-          console.log('dataaccess.caminte.js::getExploreFeed(', feed, ') - No such feed (write it?)')
-          callback(posts, null, { "code": 200 })
-        break
-      }
+      callback(false, res.data, res.meta)
     }
   },
   // user: userid
