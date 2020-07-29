@@ -61,7 +61,7 @@ module.exports = {
       },file, function(err, ofile) {
         //ofile.type=ofile.type.replace(new RegExp('_', 'g'), '.')
         if (callback) {
-          callback(ofile, err)
+          callback(err, ofile)
         }
       })
     }
@@ -83,7 +83,7 @@ module.exports = {
           return
         }
       }
-      callback(file, err)
+      callback(err, file)
     })
   },
   getFiles: function(userid, params, callback) {
