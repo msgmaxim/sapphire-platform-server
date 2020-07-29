@@ -64,7 +64,8 @@ var authmakecallback=function(type, app) {
     resp.cookie('altapi', ses.code);
     //console.log('server name test: '+req.headers.host);
     //console.log('client_id: '+this.auth_client_id);
-    var url='http://'+req.headers.host+'/oauth/redirect_uri';
+    //var url='http://'+req.headers.host+'/oauth/redirect_uri';
+    var url = module.exports.auth_callback
     //console.log('redirect url: '+url);
     console.log('routes.oauth.proxy::authmakecallback - sending out to '+module.exports.auth_base+type+'?respone_type=code&scope='+ses.requested_scopes+'&redirect_uri='+encodeURIComponent(url)+'&client_id='+app.auth_client_id);
     //resp.redirect(module.exports.auth_base+type+'?response_type=code&scope='+ses.requested_scopes+'&redirect_uri='+encodeURIComponent(url)+'&client_id='+app.auth_client_id);
@@ -137,7 +138,7 @@ module.exports.setupoauthroutes=function(app, db) {
       client_id: app.auth_client_id, // upstream
       client_secret: app.auth_client_secret, // upstream
       grant_type: 'authorization_code',
-      redirect_uri: 'http://'+req.headers.host+'/oauth/redirect_uri',
+      redirect_uri: module.exports.auth_callback,
       code: req.query.code
     };
     //console.log('redirect url: '+data.redirect_uri);
@@ -292,7 +293,8 @@ module.exports.setupoauthroutes=function(app, db) {
       // code is valid
       // return token object
       // and what if user dne?
-      app.dispatcher.getToken(ses.userid, ses.client_id, function(tokenobj, err) {
+      // 3rd param is params for getUser...
+      app.dispatcher.getToken(ses.userid, ses.client_id, {}, function(tokenobj, err) {
         if (tokenobj==null) {
           console.log('routes.oauth.proxy::OauthAccess_Token - no token for userid,clientid ',ses,'err: ',err);
         } else {
