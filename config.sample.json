@@ -5,7 +5,7 @@
     "client_secret": "secret"
   },
   "uplink": {
-    "apiroot": "https://api.app.net",
+    "apiroot": "NotSet",
     "client_id": "",
     "client_secret": "",
     "silent": false
