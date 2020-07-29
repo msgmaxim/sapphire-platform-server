@@ -40,7 +40,7 @@ module.exports = {
     }, false) // don't need to add if d.n.e.
   },
   getFile: function(fileid, params, callback) {
-    console.log('dispatcher.js::getFile - write me!')
+    console.log('files.controller.js::getFile - write me!')
     callback(null, null)
   },
   getFiles: function(userid, params, callback) {
