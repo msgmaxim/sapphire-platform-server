@@ -379,15 +379,13 @@ module.exports = {
   getPost: function(id, callback) {
     //console.log('dataaccess.caminte.js::getPost - id', id)
     if (id === undefined) {
-      callback('dataaccess.caminte.js::getPost - id is undefined', false, false)
+      callback('posts.model.js::getPost - id is undefined', false, false)
       return
     }
     var ref=this
     postModel.findById(id, function(err, post) {
-      //console.log('dataaccess.caminte.js::getPost - post, err',post,err)
-      if (err) {
-        console.error('dataaccess.caminte.js::getPost - post, err', post, err)
-      }
+      if (err) console.error('posts.model.js::getPost - err', err)
+      //console.log('posts.model.js::getPost - post', post)
       if (post==null && err==null) {
         //console.log('dataaccess.caminte.js::getPost - next?',ref.next)
         if (ref.next) {
@@ -631,7 +629,7 @@ module.exports = {
               // get a list of posts where their reposts of reposts
               //postModel.find({ where: { thread_id: { in: notRepostsOf }, repost_of: { ne: 0  } } }, function(err, repostsOfRepostsOfFollowingPosts) {
               //console.log('notRepostsOf', notRepostsOf)
-              //applyParams(query, params, maxid, callback)
+              //applyParams(query, params, callback)
               //})
             })
           //})
@@ -769,7 +767,7 @@ module.exports = {
       }
       console.log('dataaccess.caminte.js::getUserPosts - max', maxid)
       // .where('is_deleted', 0) set params doesn't need this
-      applyParams(postModel.find().where('userid', userid), params, maxid, function(posts, err, meta) {
+      applyParams(postModel.find().where('userid', userid), params, function(posts, err, meta) {
       })
     })
     */
@@ -830,8 +828,8 @@ module.exports = {
       } else {
         applyParams(query, params, callback)
       }
-      //applyParams(query, params, maxid, callback)
-      //applyParams(postModel.find().where('repost_of', 0), params, maxid, callback)
+      //applyParams(query, params, callback)
+      //applyParams(postModel.find().where('repost_of', 0), params, callback)
       // this optimized gets a range
       /*
       if (posts.length) {
@@ -931,5 +929,149 @@ module.exports = {
     applyParams(postModel.find().where('text', { like: '%'+query+'%' }), params, function(posts, err, meta) {
       callback(posts, err, meta)
     })
+  },
+  getExploreFeed: function(feed, params, callback) {
+    //console.log('dataaccess.camtinte.js::getExploreFeed(', feed, ',..., ...) - start')
+    if (this.next) {
+      this.next.getExploreFeed(feed, params, callback)
+    } else {
+      // get list of posts && return
+      var posts=[]
+      var ref=this
+      switch(feed) {
+        case 'photos':
+          //annotationModel.find({ where: { idtype: 'post', type: 'net.app.core.oembed' }, order: 'typeid DESC' }, function(err, dbNotes) {
+          ref.searchAnnotationByType('post', 'net.app.core.oembed', 'typeid DESC', function(err, dbNotes) {
+            if (!dbNotes.length) callback(false, posts, { "code": 200 })
+            var posts = []
+            for(var i in dbNotes) {
+              posts.push(dbNotes[i].typeid)
+            }
+            var maxid=0
+            applyParams(postModel.find().where('id', { in: posts }), params, callback)
+          })
+        break
+        case 'checkins':
+          // we need to convert to applyParams
+          annotationModel.find({ where: { idtype: 'post', type: 'ohai' }, order: 'typeid DESC' }, function(err, dbNotes) {
+            if (!dbNotes.length) callback(posts, null, { "code": 200 })
+            for(var i in dbNotes) {
+              ref.getPost(dbNotes[i].typeid, function(post, err, meta) {
+                posts.push(post)
+                //console.log(posts.length, '/', dbNotes.length)
+                if (posts.length===dbNotes.length) {
+                  callback(false, posts, { "code": 200 })
+                }
+              })
+            }
+          })
+        break
+        case 'moststarred':
+          // so "conversations", is just going to be a list of any posts with a reply (latest at top)
+          // maybe the thread with the latest reply would be good
+          // params.generalParams.deleted <= defaults to true
+          /*
+          var maxid=0
+          // get the highest post id in posts
+          postModel.all({ order: 'id DESC', limit: 1}, function(err, posts) {
+            //console.log('dataaccess.caminte.js::getUserPosts - back',posts)
+            if (posts.length) {
+              maxid=posts[0].id
+            }
+            console.log('dataaccess.caminte.js::moststarred - max', maxid)
+            */
+            // order is fucked here... this still valid?
+            applyParams(postModel.find().where('num_stars', { ne: 0 }).order('num_stars DESC, id DESC'), params, callback)
+          //})
+        break
+        case 'conversations':
+          // so "conversations", is just going to be a list of any posts with a reply (latest at top)
+          // maybe the thread with the latest reply would be good
+          // params.generalParams.deleted <= defaults to true
+          var maxid=0
+          // get the highest post id in posts
+          /*
+          postModel.all({ order: 'id DESC', limit: 1}, function(err, posts) {
+            //console.log('dataaccess.caminte.js::getUserPosts - back',posts)
+            if (posts.length) {
+              maxid=posts[0].id
+            }
+            */
+            //console.log('posts.model.js::conversations - max', maxid)
+            // this alone makes the order much better but not perfect
+          applyParams(postModel.find().where('reply_to', { ne: 0}).order('thread_id DESC'), params, function(err, dbPosts, meta) {
+          //postModel.find({ where: { reply_to: { ne: 0 } }, order: 'thread_id DESC' }, function(err, dbPosts) {
+            if (!dbPosts.length) callback(false, dbPosts, { "code": 200 })
+            var started={}
+            var starts=0
+            var dones=0
+            for(var i in dbPosts) {
+              if (started[dbPosts[i].thread_id]) continue
+              started[dbPosts[i].thread_id]=true
+              starts++
+              ref.getPost(dbPosts[i].thread_id, function(err, post, meta) {
+                posts.push(post)
+                dones++
+                //console.log(posts.length, '/', dbNotes.length)
+                //if (posts.length===dbPosts.length) {
+                if (starts===dones) {
+                  // FIXME: order
+                  callback(false, posts, { "code": 200 })
+                }
+              })
+            }
+          })
+          //})
+        break
+        case 'trending':
+          // so "trending" will be posts with hashtags created in the last 48 hours, sorted by most replies
+          ref.getHashtaggedPosts(function(err, dbEntities) {
+          //entityModel.find({ where: { idtype: 'post', type: 'hashtag' }, order: 'typeid DESC' }, function(err, dbEntities) {
+            if (!dbEntities.length) callback(posts, null, { "code": 200 })
+            var posts = []
+            for(var i in dbEntities) {
+              posts.push(dbEntities[i].typeid)
+            }
+            //var maxid=0
+            applyParams(postModel.find().where('id', { in: posts }), params, callback)
+            /*
+            var started={}
+            var starts=0
+            var dones=0
+            for(var i in dbEntities) {
+              if (started[dbEntities[i].typeid]) continue
+              started[dbEntities[i].typeid]=true
+              starts++
+              ref.getPost(dbEntities[i].typeid, function(post, err, meta) {
+                posts.push(post)
+                dones++
+                if (starts===dones) {
+                  callback(false, posts, { "code": 200 })
+                }
+              })
+            }
+            */
+          })
+        break
+        case 'subtweets':
+          postModel.find({ where: { text: { like: '%drybones%' } }, order: 'id DESC' }, function(err, dbPosts) {
+            if (!dbPosts.length) callback(posts, null, { "code": 200 })
+            for(var i in dbPosts) {
+              ref.getPost(dbPosts[i].id, function(post, err, meta) {
+                posts.push(post)
+                //console.log(posts.length, '/', dbNotes.length)
+                if (posts.length===dbPosts.length) {
+                  callback(false, posts, { "code": 200 })
+                }
+              })
+            }
+          })
+        break
+        default:
+          console.log('dataaccess.caminte.js::getExploreFeed(', feed, ') - No such feed (write it?)')
+          callback(false, posts, { "code": 200 })
+        break
+      }
+    }
   },
 }
