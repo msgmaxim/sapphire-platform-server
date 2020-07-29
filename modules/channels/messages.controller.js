@@ -508,9 +508,10 @@ module.exports = {
       if (channelErr) console.error('messages.controller.js::getChannelMessages - getChannel err', channelErr)
       //console.log('dispatcher.js:getChannelMessages - check', channel)
       if (!channel) {
-        console.error('messages.controller.js::getChannelMessages - no such channel ' + cid)
-        callback('no such channel', [], {
+        console.warn('messages.controller.js::getChannelMessages - no such channel ' + cid)
+        callback(false, [], {
           code: 404,
+          error: 'no such channel'
         })
         return
       }
