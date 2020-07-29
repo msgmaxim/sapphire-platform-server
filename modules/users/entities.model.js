@@ -174,6 +174,9 @@ module.exports = {
     // sorted by post created date...., well we have post id we can use
     entityModel.find({ where: { type: 'hashtag', text: hashtag }, order: 'typeid DESC' }, callback)
   },
+  getHashtaggedPosts: function(callback) {
+    entityModel.find({ where: { idtype: 'post', type: 'hashtag' }, order: 'typeid DESC' }, callback)
+  },
   getMentions: function(user, params, callback) {
     if (user=='me') {
       callback([], 'cant pass me to dataaccess.getMentions')
