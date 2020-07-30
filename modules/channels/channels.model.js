@@ -60,7 +60,7 @@ module.exports = {
       ownerid: userid,
       created_at: now,
       last_updated: now,
-      inactive: new Date(0),
+      inactive: null,
       type: channel.type,
       reader: channel.reader,
       writer: channel.writer,
@@ -82,7 +82,7 @@ module.exports = {
     // not sure create works with memory driver...
     channelModel.create(obj, function(err, ochnl) {
       if (err) console.error('channels.model.js::addChannel - create err', err)
-      console.log('channels.model.js::addChannel - final obj', ochnl)
+      //console.log('channels.model.js::addChannel - final obj', ochnl)
       ref.addSubscription(ochnl.id, userid, function(sErr, subs, meta) {
         if (err) console.error('channels.model.js::addChannel - addSubscription err', sErr)
         if (callback) callback(err || sErr, ochnl)
