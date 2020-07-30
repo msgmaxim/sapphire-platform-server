@@ -508,7 +508,7 @@ module.exports = {
       if (channelErr) console.error('messages.controller.js::getChannelMessages - getChannel err', channelErr)
       //console.log('dispatcher.js:getChannelMessages - check', channel)
       if (!channel) {
-        console.warn('messages.controller.js::getChannelMessages - no such channel ' + cid)
+        console.warn('messages.controller.js::getChannelMessages - no such channel', cid)
         callback(false, [], {
           code: 404,
           error: 'no such channel'
@@ -595,7 +595,7 @@ module.exports = {
   getChannelMessage: function(cid, mids, params, callback) {
     //console.log('dispatcher.js::getChannelMessage - start')
     if (mids === 'undefined') {
-      console.trace('messages.controller.js::getChannelMessage - message id ID is string undefined', cid, mids)
+      console.trace('messages.controller.js::getChannelMessage - message ids are string undefined', cid, mids)
       callback('undefined message ID')
       return
     }
