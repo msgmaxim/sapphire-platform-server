@@ -94,8 +94,8 @@ if (!upstream_client_id || upstream_client_id!=='NotSet' || auth_base!=='https:/
   console.log('router.public - upstream_client_id', upstream_client_id)
   var obj = require('./lib/lib.platform');
   var oauthproxy=require('./routes.oauth.proxy.js');
-  console.log('rouer.public - auth_base     :', auth_base)
-  console.log('rouer.public - auth_callback :', auth_callback)
+  console.log('router.public - auth_base     :', auth_base)
+  console.log('router.public - auth_callback :', auth_callback)
   oauthproxy.auth_callback = auth_callback;
   oauthproxy.auth_base     = auth_base;
   oauthproxy.setupoauthroutes(app, obj.cache);
