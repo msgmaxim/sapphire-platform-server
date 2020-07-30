@@ -401,7 +401,7 @@ module.exports={
         ref.cache.addChannel(token.userid, channel, function(createErr, channelRes, createMeta) {
           if (err) console.error('channels.controller.js::addChannel - err', createErr)
           // console.log('channel.controller::addChannel - created channel ID', channelRes.id)
-          console.log('channel.controller.js::addChannel - created channel', channelRes)
+          //console.log('channel.controller.js::addChannel - created channel', channelRes)
           ref.setAnnotations('channel', channelRes.id, api.annotations, function() {
             ref.channelToAPI(channelRes, params, token, callback, createMeta)
           })
