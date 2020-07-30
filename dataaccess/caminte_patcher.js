@@ -38,7 +38,7 @@ const utilParseCond = function(val, conds) {
               outs = true;
             }
           } else {
-            arr.forEach(function(cval) {
+            conds[condType].forEach(function(cval) {
               if (val === cval) {
                 outs = true;
               }
