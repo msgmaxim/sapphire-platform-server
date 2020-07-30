@@ -275,8 +275,8 @@ module.exports={
           api.recent_message_id = messages[0].id
         }
         api.recent_message = messages[0]
-      } else {
-        console.log('channel.controller.js::channelToAPI - no messages in channel', channel.id)
+      //} else {
+        //console.log('channel.controller.js::channelToAPI - no messages in channel', channel.id)
       }
       setDone('messages')
     })
