@@ -269,16 +269,15 @@ module.exports={
     //getChannelMessages function(cid, params, callback) {
     var mParams={ pageParams: { count: 1 }, generalParams: {}, tokenobj: tokenObj }
     this.getChannelMessages(channel.id, mParams, function(messageErr, messages, messageMeta) {
-      if (messageErr) {
-        console.log('channel.controller::channelToAPI - getChannelMessages', messageErr, 'channel', channel.id)
+      if (messageErr) console.error('channel.controller::channelToAPI - getChannelMessages', messageErr, 'channel', channel.id)
+      if (messages.length) {
+        if (messages[0]) {
+          api.recent_message_id = messages[0].id
+        }
+        api.recent_message = messages[0]
+      } else {
+        console.log('channel.controller.js::channelToAPI - no messages in channel', channel.id)
       }
-      if (!messages.length) {
-        //console.log('channel.controller::channelToAPI - last message for', channel.id, 'is', messages)
-      }
-      if (messages[0]) {
-        api.recent_message_id = messages[0].id
-      }
-      api.recent_message = messages[0]
       setDone('messages')
     })
   },
@@ -402,6 +401,7 @@ module.exports={
         ref.cache.addChannel(token.userid, channel, function(createErr, channelRes, createMeta) {
           if (err) console.error('channels.controller.js::addChannel - err', createErr)
           // console.log('channel.controller::addChannel - created channel ID', channelRes.id)
+          console.log('channel.controller.js::addChannel - created channel', channelRes)
           ref.setAnnotations('channel', channelRes.id, api.annotations, function() {
             ref.channelToAPI(channelRes, params, token, callback, createMeta)
           })
