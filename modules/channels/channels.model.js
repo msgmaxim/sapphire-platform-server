@@ -49,7 +49,7 @@ module.exports = {
     channelModel.update({ id: channelid }, chnl, function(err, channel) {
       if (err) console.error('channels.model.js::updateChannel - err', err)
       if (callback) {
-        callback(channel, err)
+        callback(err, channel)
       }
     })
   },
