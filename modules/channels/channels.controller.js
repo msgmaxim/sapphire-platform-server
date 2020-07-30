@@ -65,7 +65,7 @@ module.exports={
       has_unread: false,
       id: channel.id,
       //owner: {},
-      is_inactive: false,
+      is_inactive: !!channel.inactive,
       readers: {
         any_user: channel.reader==1?true:false,
         immutable: channel.readedit?false:true,
@@ -429,10 +429,17 @@ module.exports={
     }
   },
   deactiveChannel: function(channelid, params, token, callback) {
-    //console.log('channel.controller::deactiveChannel', channelid, params, token)
+    var id = parseInt(channelid)
+    if (isNaN(id)) {
+      console.trace('channels.controller::deactiveChannel - isNaN', channelid, params, token)
+      callback('channels.controller::deactiveChannel - isNaN', false)
+      return
+    }
+    //console.log('channels.controller::deactiveChannel', channelid, params, token)
     var ref=this
     // only the owner can deactivate
     this.getChannel(channelid, params, function(err, channel, meta) {
+      if (err) console.error('channels.controller::deactiveChannel - getChannel err', err)
       //console.log('ownerid', channel.owner.id, 'token', token.userid, 'channel', channel)
       if (!token.userid || (channel && channel.owner && channel.owner.id != token.userid)) {
         callback({}, 'access denied to channel', {
@@ -445,6 +452,7 @@ module.exports={
       }
       //console.log('channel.controller::deactiveChannel', channelid, params, token)
       ref.cache.updateChannel(channelid, chnl, function(err2, success, meta2) {
+        if (err2) console.error('channels.controller::deactiveChannel - err', err2)
         //channel.is_deleted = true
         channel.is_inactive = true
         callback(false, channel, meta)
@@ -625,12 +633,13 @@ module.exports={
           }
           //console.log('channel.controller.js::getChannel array - channel', channels[i])
           // channel, params, tokenObj, callback, meta
-          ref.channelToAPI(channels[i], params, params.tokenobj?params.tokenobj:{}, function(api, cErr) {
+          ref.channelToAPI(channels[i], params, params.tokenobj?params.tokenobj:{}, function(cErr, api) {
+            if (cErr) console.error('channels.controller::getChannel - channelToAPI err', cErr)
             apis.push(api)
             //console.log('channel.controller.js::getChannel - ', channels.length, '/', apis.length)
             if (channels.length == apis.length) {
               //console.log('channel.controller.js::getChannel - returning array')
-              callback(err || cErr, apis)
+              callback(cErr, apis)
             }
           })
         }
