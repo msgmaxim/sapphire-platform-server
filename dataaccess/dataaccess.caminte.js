@@ -63,136 +63,10 @@ if (configUtil.moduleEnabled('markers')) {
 // memory mode is only good for dev, after buckets get big the API stops responding
 // in sqlite3 mode, 50mb of diskspace holds 3736U 1582F 15437P 0C 0M 0s 175i 14239a 29922e
 
-var Schema = require('caminte').Schema
+const caminte = require('./caminte_patcher.js')
 
 var upstreamUserTokenModel, localUserTokenModel, oauthAppModel,
 annotationValuesModel, noticeModel, emptyModel
-
-memoryUpdate = function (model, filter, data, callback) {
-  'use strict'
-  if ('function' === typeof filter) {
-    return filter(new Error('Get parametrs undefined'), null)
-  }
-  if ('function' === typeof data) {
-    return data(new Error('Set parametrs undefined'), null)
-  }
-  filter = filter.where ? filter.where : filter
-  var mem = this
-  //console.log('memoryUpdate - model', model, 'filter', filter, 'data', data, 'callback', callback)
-
-  // filter input to make sure it only contains valid fields
-  var cleanData = this.toDatabase(model, data)
-
-  if (filter.id) {
-    // should find one and only one
-    this.exists(model, filter.id, function (err, exists) {
-      if (err) console.error('memoryUpdate exists err', err)
-      if (exists) {
-        mem.save(model, Object.assign(mem.cache[model][filter.id], cleanData), callback)
-      } else {
-        callback(err, cleanData)
-      }
-    })
-  } else {
-    //console.log('memoryUpdate - not implemented, search by?', filter, data)
-    this.all(model, filter, function(err, nodes) {
-      //console.log('memoryUpdate - records', nodes)
-      if (err) console.error('memoryUpdate all err', err)
-      var count = nodes.length
-      if (!count) {
-        return callback(false, cleanData)
-      }
-      nodes.forEach(function(node) {
-        mem.cache[model][node.id] = Object.assign(node, cleanData)
-        if (--count === 0) {
-          callback(false, cleanData)
-        }
-      })
-    })
-  }
-}
-
-// MySQL.prototype.toDatabase
-function dateToMysql(val) {
-    'use strict';
-    return val.getUTCFullYear() + '-' +
-        fillZeros(val.getUTCMonth() + 1) + '-' +
-        fillZeros(val.getUTCDate()) + ' ' +
-        fillZeros(val.getUTCHours()) + ':' +
-        fillZeros(val.getUTCMinutes()) + ':' +
-        fillZeros(val.getUTCSeconds());
-
-    function fillZeros(v) {
-        'use strict';
-        return v < 10 ? '0' + v : v;
-    }
-}
-
-mysqlToDatabase = function (prop, val) {
-    'use strict';
-    if (val === null) {
-        return 'NULL';
-    }
-    if (val.constructor.name === 'Object') {
-        var operator = Object.keys(val)[0];
-        val = val[operator];
-        if (operator === 'between') {
-            if (prop.type.name === 'Date') {
-                return 'STR_TO_DATE(' + this.toDatabase(prop, val[0]) + ', "%Y-%m-%d %H:%i:%s")' +
-                    ' AND STR_TO_DATE(' +
-                    this.toDatabase(prop, val[1]) + ', "%Y-%m-%d %H:%i:%s")';
-            } else {
-                return this.toDatabase(prop, val[0]) +
-                    ' AND ' +
-                    this.toDatabase(prop, val[1]);
-            }
-        } else if (operator === 'in' || operator === 'inq' || operator === 'nin') {
-            if (!(val.propertyIsEnumerable('length')) && typeof val === 'object' && typeof val.length === 'number') { //if value is array
-                // if it's an array of strings, no need to quote
-                //   but why? maybe it's already escaped...
-                // if it's an array of ints, no need to quote
-                // when do we need to escape an array?
-                /*
-                for (var i = 0; i < val.length; i++) {
-                    console.log('escaping [' + val[i] + ']')
-                    val[i] = this.client.escape(val[i]);
-                }
-                console.log('returning', val.join(','))
-                */
-                return val.join(',');
-            } else {
-                return val;
-            }
-        }
-    }
-    if (!prop) {
-        return val;
-    }
-    if (prop.type.name === 'Number') {
-        return val;
-    }
-    if (prop.type.name === 'Date') {
-        if (!val) {
-            return 'NULL';
-        }
-        if (typeof val === 'string') {
-            val = val.split('.')[0].replace('T', ' ');
-            val = Date.parse(val);
-        }
-        if (typeof val === 'number') {
-            val = new Date(val);
-        }
-        if (val instanceof Date) {
-            val = '"' + dateToMysql(val) + '"';
-        }
-        return val;
-    }
-    if (prop.type.name === "Boolean") {
-        return val ? 1 : 0;
-    }
-    return this.client.escape(val.toString());
-};
-
 
 // set up the configureable model pools
 function start(nconf) {
@@ -201,80 +75,94 @@ function start(nconf) {
   // reconfigure path
 
   /** schema data backend type */
-  var defaultSchemaType = nconf.get('database:default:type') || 'memory'
-  var defaultOptions = nconf.get('database:default:options')
+  const defaultSchemaType = nconf.get('database:default:type') || 'memory'
+  const defaultOptions = nconf.get('database:default:options')
   //console.log('default type', defaultSchemaType)
 
   /** set up where we're storing the "network data" */
-  var configData = nconf.get('database:dataModel:options') || defaultOptions
-  var schemaDataType = nconf.get('database:dataModel:type') || defaultSchemaType
+  const configData = nconf.get('database:dataModel:options') || defaultOptions
+  const schemaDataType = nconf.get('database:dataModel:type') || defaultSchemaType
   //console.log('configuring data', configData)
-  var schemaData = new Schema(schemaDataType, configData)
-
-  if (schemaDataType.toLowerCase() === 'memory') {
-    schemaData.adapter.update = memoryUpdate
-  } else if (schemaDataType.toLowerCase() === 'mysql') {
-    schemaData.adapter.toDatabase = mysqlToDatabase
-  }
+  //var schemaData = new Schema(schemaDataType, configData)
+  const schemaData = caminte.cfgCaminteConn(schemaDataType, configData)
 
   /** set up where we're storing the tokens */
-  var configToken = nconf.get('database:tokenModel:options') || defaultOptions
-  var schemaTokenType = nconf.get('database:tokenModel:type') || defaultSchemaType
+  const configToken = nconf.get('database:tokenModel:options') || defaultOptions
+  const schemaTokenType = nconf.get('database:tokenModel:type') || defaultSchemaType
   //console.log('configuring token', configData)
-  var schemaToken = new Schema(schemaTokenType, configToken)
-  if (schemaTokenType.toLowerCase() === 'memory') {
-    schemaToken.adapter.update = memoryUpdate
-  } else if (schemaTokenType.toLowerCase() === 'mysql') {
-    schemaToken.adapter.toDatabase = mysqlToDatabase
+  const schemaToken = new Schema(schemaTokenType, configToken)
+
+  if (schemaTokenType==='mysql') {
+    console.log('MySQL detected on Token')
+    schemaToken.client.changeUser({ charset: 'utf8mb4' }, function(err) {
+      if (err) console.error('Couldnt set UTF8mb4', err)
+      //console.log('Set charset to utf8mb4 on Token')
+      // create any tables that don't exist
+      schemaToken.autoupdate(function() {
+        console.log('MySQL Token ready')
+      })
+    })
   }
 
   if (schemaDataType==='mysql') {
-    console.log('MySQL detected')
+    console.log('MySQL detected on Data')
     //charset: "utf8_general_ci" / utf8mb4_general_ci
     // run a query "set names utf8"
     schemaData.client.changeUser({ charset: 'utf8mb4' }, function(err) {
       if (err) console.error('Couldnt set UTF8mb4', err)
       //console.log('Set charset to utf8mb4 on Data')
-    })
-    schemaToken.client.changeUser({ charset: 'utf8mb4' }, function(err) {
-      if (err) console.error('Couldnt set UTF8mb4', err)
-      //console.log('Set charset to utf8mb4 on Token')
-    })
-    schemaData.autoupdate(function() {
-      // FIXME: avoid doing these each start up
-      schemaToken.client.query('alter table post MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
-        if (error) console.error('emoji upgrade error', error)
-        console.log('post emoji enabled')
-      })
-      schemaToken.client.query('alter table post MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
-        if (error) console.error('emoji upgrade error', error)
-        console.log('post emoji enabled')
-      })
-      schemaToken.client.query('alter table message MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
-        if (error) console.error('emoji upgrade error', error)
-        console.log('message emoji enabled')
-      })
-      schemaToken.client.query('alter table message MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
-        if (error) console.error('emoji upgrade error', error)
-        console.log('message emoji enabled')
-      })
-      schemaToken.client.query('alter table annotation MODIFY `value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
-        if (error) console.error('emoji upgrade error', error)
-        console.log('annotation emoji enabled')
-      })
-      schemaToken.client.query('alter table user MODIFY `name` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
-        if (error) console.error('emoji upgrade error', error)
-        console.log('user name emoji enabled')
-      })
-    })
+      // create any tables that don't exist
+      schemaData.autoupdate(function() {
+        console.log('MySQL Data ready')
 
-    // to enable emojis we need to run these
-    // alter table post MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
-    // alter table post MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
-    // alter table message MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
-    // alter table message MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
-    // alter table annotation MODIFY `value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
-    // alter table user MODIFY `name` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+        // to enable emojis we need to run these
+        // alter table post MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+        // alter table post MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+        // alter table message MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+        // alter table message MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+        // alter table annotation MODIFY `value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+        // alter table user MODIFY `name` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+
+        // FIXME: avoid doing these each start up
+        if (configUtil.moduleEnabled('posts')) {
+          schemaData.client.query('alter table post MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+            if (error) console.error('emoji upgrade error', error)
+            console.log('post text emoji enabled')
+          })
+          schemaData.client.query('alter table post MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+            if (error) console.error('emoji upgrade error', error)
+            console.log('post html emoji enabled')
+          })
+        }
+        if (configUtil.moduleEnabled('channels')) {
+          schemaData.client.query('alter table message MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+            if (error) console.error('emoji upgrade error', error)
+            console.log('message text emoji enabled')
+          })
+          schemaData.client.query('alter table message MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+            if (error) console.error('emoji upgrade error', error)
+            console.log('message html emoji enabled')
+          })
+
+          // convert zeroDates into null dates
+          // users.deleted is a datetime...
+          schemaData.client.query('update channel set inactive = null where inactive = FROM_UNIXTIME(0)', function (error, results, fields) {
+            if (error) console.error('channel null date error', error)
+            console.log('channel zero date reverted')
+          })
+        }
+        schemaData.client.query('alter table annotation MODIFY `value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+          if (error) console.error('emoji upgrade error', error)
+          console.log('annotation emoji enabled')
+        })
+        if (configUtil.moduleEnabled('users')) {
+          schemaData.client.query('alter table user MODIFY `name` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+            if (error) console.error('emoji upgrade error', error)
+            console.log('user name emoji enabled')
+          })
+        }
+      })
+    })
   }
 
   // Auth models and accessors can be moved into own file?
