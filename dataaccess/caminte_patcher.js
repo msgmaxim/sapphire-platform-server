@@ -31,6 +31,7 @@ const utilParseCond = function(val, conds) {
           break;
       case 'inq':
       case 'in':
+          console.log('utilParseCond in', conds, conds[condType])
           conds[condType].forEach(function(cval) {
               if (val === cval) {
                   outs = true;
