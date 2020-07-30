@@ -31,19 +31,32 @@ const utilParseCond = function(val, conds) {
           break;
       case 'inq':
       case 'in':
-          console.log('utilParseCond in', conds, conds[condType])
-          conds[condType].forEach(function(cval) {
+          // sometimes we just pass a value not an array
+          // not sure why the mysql driver allows this...
+          if (!conds[condType].forEach) {
+            if (conds[condType] === val) {
+              outs = true;
+            }
+          } else {
+            arr.forEach(function(cval) {
               if (val === cval) {
-                  outs = true;
+                outs = true;
               }
-          });
+            });
+          }
           break;
       case 'nin':
-          conds[condType].forEach(function(cval) {
-              if (val === cval) {
-                  outs = false;
-              }
-          });
+          if (!conds[condType].forEach) {
+            if (conds[condType] === val) {
+              outs = false;
+            }
+          } else {
+            conds[condType].forEach(function(cval) {
+                if (val === cval) {
+                    outs = false;
+                }
+            });
+          }
           break;
       case 'neq':
       case 'ne':
