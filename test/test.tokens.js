@@ -2,10 +2,10 @@ const assert = require('assert')
 
 module.exports = {
   runTests: function(platformApi) {
-    it('read token', async () => {
+    it('read token', async() => {
       const res = await platformApi.serverRequest('token')
       assert.equal(200, res.statusCode)
-/*
+      /*
 res {
   app: {
     client_id: 'mocha_platform_test',
@@ -38,26 +38,26 @@ res {
 */
       //console.log('res', res.response.data)
     })
-    it('read config', async () => {
+    it('read config', async() => {
       const configRes = await platformApi.serverRequest('config')
       assert.equal(200, configRes.statusCode)
     })
-    it('read oembed', async () => {
+    it('read oembed', async() => {
       const oembedRes = await platformApi.serverRequest('oembed', {
         params: {
-          url: '',
+          url: ''
         }
       })
       assert.equal(200, oembedRes.statusCode)
     })
-    it('process text', async () => {
+    it('process text', async() => {
       const textRes = await platformApi.serverRequest('text/process', {
         method: 'POST',
         objBody: {
-          text: "This is #awesome tell @voidfiles about http://google.com",
+          text: 'This is #awesome tell @voidfiles about http://google.com'
         }
       })
       assert.equal(200, textRes.statusCode)
     })
-  },
+  }
 }

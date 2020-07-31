@@ -10,7 +10,7 @@ module.exports = {
       return
     }
     let fileRes
-/*
+    /*
 {
   complete: true,
   created_at: '2019-12-30T04:06:05.060Z',
@@ -47,14 +47,14 @@ module.exports = {
   }
 }
 */
-    it('10mb-ish file upload', async () => {
+    it('10mb-ish file upload', async() => {
       const formData = new FormData()
       const readStream = Buffer.from('0'.repeat(10 * 1000 * 1000))
       formData.append('type', 'moe.sapphire.unittests.zerofile')
       formData.append('content', readStream, {
         contentType: 'application/octet-stream',
         name: 'content',
-        filename: 'attachment',
+        filename: 'attachment'
       })
       const res = await platformApi.serverRequest('files', {
         method: 'POST',
@@ -120,5 +120,5 @@ module.exports = {
       assert.equal(200, delFileRes.statusCode)
     })
     */
-  },
+  }
 }

@@ -22,7 +22,7 @@ cache.dispatcher = {
   // ignore local user updates
   updateUser: (user, ts, cb) => { cb(false, user) },
   // ignore local message updates
-  setMessage: (message, cb) => { if (cb) cb(message) },
+  setMessage: (message, cb) => { if (cb) cb(message) }
 }
 
 const ifToHostname = iface => (!iface || iface === '0.0.0.0') ? '127.0.0.1' : iface
@@ -46,7 +46,6 @@ const adminApi    = new adnServerAPI(platform_admin_url, nconf.get('admin:modKey
 function findOrCreateUser(username) {
   if (!username) return false
   return new Promise((resolve, rej) => {
-
     // does our test user exist?
     cache.getUserID(username, function(err, user) {
       if (err) {
@@ -120,22 +119,21 @@ const ensureServer = () => {
 
 const testConfig = {
   platformApi,
-  testUsername: 'test',
+  testUsername: 'test'
   //testUserid set in setupTesting()
 }
 
 //const nodeFetch = require('node-fetch')
 
 async function setupTesting() {
-
-  describe('ensureServer', async () => {
-    it('make sure we have something to test', async () => {
+  describe('ensureServer', async() => {
+    it('make sure we have something to test', async() => {
       await ensureServer()
       //console.log('platform ready')
     })
     // need the following in an `it` to make sure it only happens after the server is set up
 
-    it('setting up token to use with testing', async () => {
+    it('setting up token to use with testing', async() => {
       testConfig.testUserid = await findOrCreateUser('test')
       if (testConfig.testUserid === undefined) {
         console.error('Couldnt create/find user to test with')
@@ -153,7 +151,7 @@ async function setupTesting() {
       // only on file-server rn
       //const res = await platformApi.serverRequest('loki/v1/config')
       const res = await platformApi.serverRequest('loki/v1/user_info', {
-        noJson: true,
+        noJson: true
       })
       console.log('loki test', res.statusCode)
       if (res.statusCode === 403) {
@@ -196,7 +194,7 @@ async function setupTesting() {
               platformApi.token = usertoken.token
               // whitelist @test
               const result = await platformApi.serverRequest('loki/v1/moderation/whitelist/@test', {
-                method: 'POST',
+                method: 'POST'
               })
               console.log('whitelist result', result)
               // no we need to run tests as user 1
@@ -215,7 +213,6 @@ async function setupTesting() {
       console.log('using @' + testConfig.testUsername + '(' + testConfig.testUserid + ')')
     })
   })
-
 }
 
 setupTesting()
@@ -230,38 +227,38 @@ setupTesting()
 // MySQL may need --timeout 5000
 
 function runIntegrationTests() {
-  describe('#token', async () => {
+  describe('#token', async() => {
     require('./test.tokens').runTests(platformApi)
   })
-    describe('#users', async () => {
-      require('./test.users').runTests(platformApi, {})
+  describe('#users', async() => {
+    require('./test.users').runTests(platformApi, {})
+  })
+  if (configUtil.moduleEnabled('files')) {
+    describe('#files', async() => {
+      require('./test.files').runTests(platformApi, nconf)
     })
-      if (configUtil.moduleEnabled('files')) {
-        describe('#files', async () => {
-          require('./test.files').runTests(platformApi, nconf)
-        })
-      }
-      describe('#mutes', async () => {
-        require('./test.mutes').runTests(platformApi)
-      })
-      if (configUtil.moduleEnabled('posts')) {
-        describe('#posts', async () => {
-          require('./test.posts').runTests(platformApi)
-        })
-          describe('#interactions', async () => {
-            require('./test.interactions').runTests(platformApi)
-          })
-      }
-        if (configUtil.moduleEnabled('markers')) {
-          describe('#markers', async () => {
-            require('./test.markers').runTests(platformApi)
-          })
-        }
-      if (configUtil.moduleEnabled('channels')) {
-        describe('#channels', async () => {
-          require('./test.channels').runTests(platformApi, testConfig)
-        })
-      }
+  }
+  describe('#mutes', async() => {
+    require('./test.mutes').runTests(platformApi)
+  })
+  if (configUtil.moduleEnabled('posts')) {
+    describe('#posts', async() => {
+      require('./test.posts').runTests(platformApi)
+    })
+    describe('#interactions', async() => {
+      require('./test.interactions').runTests(platformApi)
+    })
+  }
+  if (configUtil.moduleEnabled('markers')) {
+    describe('#markers', async() => {
+      require('./test.markers').runTests(platformApi)
+    })
+  }
+  if (configUtil.moduleEnabled('channels')) {
+    describe('#channels', async() => {
+      require('./test.channels').runTests(platformApi, testConfig)
+    })
+  }
 }
 
 runIntegrationTests()

@@ -8,26 +8,26 @@ const configUtil = require('../lib/lib.config.js')
 const zeroDate = new Date(0)
 
 function runSchemaTest(Test) {
-  it('create records', async () => {
+  it('create records', async() => {
     await Test.create({ inactive: zeroDate })
     await Test.create({ inactive: zeroDate.getTime() })
     await Test.create({ inactive: null })
     await Test.create({ inactive: new Date() })
   })
   it('counts', () => {
-    Test.count({ where: { inactive: null }}, function(err, count) {
+    Test.count({ where: { inactive: null } }, function(err, count) {
       // console.log('Nulls', count)
       assert.equal(1, count)
     })
-    Test.count({ where: { inactive: zeroDate }}, function(err, count) {
+    Test.count({ where: { inactive: zeroDate } }, function(err, count) {
       // console.log('Zeros', count)
       assert.equal(1, count)
     })
-    Test.count({ where: { inactive: zeroDate.getTime() }}, function(err, count) {
+    Test.count({ where: { inactive: zeroDate.getTime() } }, function(err, count) {
       // console.log('Zeros', count)
       assert.equal(1, count)
     })
-    Test.count({ where: { inactive: { ne: null } }}, function(err, count) {
+    Test.count({ where: { inactive: { ne: null } } }, function(err, count) {
       assert.equal(3, count)
     })
   })
@@ -39,16 +39,16 @@ function runSchemaTest(Test) {
   })
   it('find', () => {
     // this tries to cast null to date and fails...
-    Test.find({ where: { inactive: null }}, function(err, tests) {
+    Test.find({ where: { inactive: null } }, function(err, tests) {
       assert.equal(1, tests.length)
     })
-    Test.find({ where: { inactive: zeroDate }}, function(err, tests) {
+    Test.find({ where: { inactive: zeroDate } }, function(err, tests) {
       assert.equal(1, tests.length)
     })
-    Test.find({ where: { inactive: zeroDate.getTime() }}, function(err, tests) {
+    Test.find({ where: { inactive: zeroDate.getTime() } }, function(err, tests) {
       assert.equal(1, tests.length)
     })
-    Test.find({ where: { inactive: { ne: null } }}, function(err, tests) {
+    Test.find({ where: { inactive: { ne: null } } }, function(err, tests) {
       //console.log('find ne null', tests)
       assert.equal(3, tests.length)
     })
@@ -60,7 +60,7 @@ describe('test caminte memory patches', () => {
   schema = caminte.cfgCaminteConn('memory')
   Test = schema.define('test', {
     inactive: { type: schema.Date }
-  });
+  })
   runSchemaTest(Test)
 })
 

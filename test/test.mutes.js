@@ -2,19 +2,19 @@ const assert = require('assert')
 
 module.exports = {
   runTests: function(platformApi) {
-    it('get user mutes', async () => {
+    it('get user mutes', async() => {
       const res = await platformApi.serverRequest('users/@test/muted')
       assert.equal(200, res.statusCode)
       // { meta: { code: 200 }, data: [] }
       //console.log('user mutes', res.response.data)
     })
-    it('mute self', async () => {
+    it('mute self', async() => {
       const res = await platformApi.serverRequest('users/@test/mute', {
         method: 'POST'
       })
       assert.equal(200, res.statusCode)
       assert.equal('test', res.response.data.username)
-/*
+      /*
  {
   id: 234,
   username: 'test',
@@ -30,7 +30,7 @@ module.exports = {
 */
       //console.log('user muted', res.response.data)
     })
-    it('unmute self', async () => {
+    it('unmute self', async() => {
       const res = await platformApi.serverRequest('users/@test/mute', {
         method: 'DELETE'
       })
@@ -38,5 +38,5 @@ module.exports = {
       // []
       //console.log('user muted', res.response.data)
     })
-  },
+  }
 }
