@@ -65,8 +65,8 @@ if (configUtil.moduleEnabled('markers')) {
 
 const caminte = require('./caminte_patcher.js')
 
-var upstreamUserTokenModel, localUserTokenModel, oauthAppModel,
-annotationValuesModel, noticeModel, emptyModel
+let UpstreamUserTokenModel, LocalUserTokenModel, oauthAppModel,
+  noticeModel, emptyModel, oauthCallbackModel
 
 // set up the configureable model pools
 function start(nconf) {
@@ -84,15 +84,15 @@ function start(nconf) {
   const schemaDataType = nconf.get('database:dataModel:type') || defaultSchemaType
   //console.log('configuring data', configData)
   //var schemaData = new Schema(schemaDataType, configData)
-  const schemaData = caminte.cfgCaminteConn(schemaDataType, configData)
+  let schemaData = caminte.cfgCaminteConn(schemaDataType, configData)
 
   /** set up where we're storing the tokens */
   const configToken = nconf.get('database:tokenModel:options') || defaultOptions
   const schemaTokenType = nconf.get('database:tokenModel:type') || defaultSchemaType
   //console.log('configuring token', configData)
-  const schemaToken = new Schema(schemaTokenType, configToken)
+  let schemaToken = caminte.cfgCaminteConn(schemaTokenType, configToken)
 
-  if (schemaTokenType==='mysql') {
+  if (schemaTokenType === 'mysql') {
     console.log('MySQL detected on Token')
     schemaToken.client.changeUser({ charset: 'utf8mb4' }, function(err) {
       if (err) console.error('Couldnt set UTF8mb4', err)
@@ -104,7 +104,7 @@ function start(nconf) {
     })
   }
 
-  if (schemaDataType==='mysql') {
+  if (schemaDataType === 'mysql') {
     console.log('MySQL detected on Data')
     //charset: "utf8_general_ci" / utf8mb4_general_ci
     // run a query "set names utf8"
@@ -125,38 +125,38 @@ function start(nconf) {
 
         // FIXME: avoid doing these each start up
         if (configUtil.moduleEnabled('posts')) {
-          schemaData.client.query('alter table post MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+          schemaData.client.query('alter table post MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function(error, results, fields) {
             if (error) console.error('emoji upgrade error', error)
             console.log('post text emoji enabled')
           })
-          schemaData.client.query('alter table post MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+          schemaData.client.query('alter table post MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function(error, results, fields) {
             if (error) console.error('emoji upgrade error', error)
             console.log('post html emoji enabled')
           })
         }
         if (configUtil.moduleEnabled('channels')) {
-          schemaData.client.query('alter table message MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+          schemaData.client.query('alter table message MODIFY `text` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function(error, results, fields) {
             if (error) console.error('emoji upgrade error', error)
             console.log('message text emoji enabled')
           })
-          schemaData.client.query('alter table message MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+          schemaData.client.query('alter table message MODIFY `html` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function(error, results, fields) {
             if (error) console.error('emoji upgrade error', error)
             console.log('message html emoji enabled')
           })
 
           // convert zeroDates into null dates
           // users.deleted is a datetime...
-          schemaData.client.query('update channel set inactive = null where inactive = FROM_UNIXTIME(0)', function (error, results, fields) {
+          schemaData.client.query('update channel set inactive = null where inactive = FROM_UNIXTIME(0)', function(error, results, fields) {
             if (error) console.error('channel null date error', error)
             console.log('channel zero date reverted')
           })
         }
-        schemaData.client.query('alter table annotation MODIFY `value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+        schemaData.client.query('alter table annotation MODIFY `value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function(error, results, fields) {
           if (error) console.error('emoji upgrade error', error)
           console.log('annotation emoji enabled')
         })
         if (configUtil.moduleEnabled('users')) {
-          schemaData.client.query('alter table user MODIFY `name` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function (error, results, fields) {
+          schemaData.client.query('alter table user MODIFY `name` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin', function(error, results, fields) {
             if (error) console.error('emoji upgrade error', error)
             console.log('user name emoji enabled')
           })
@@ -173,7 +173,7 @@ function start(nconf) {
   var modelOptions = {
     schemaData: schemaData,
     // we could also just put it in the exports...
-    applyParams: applyParams,
+    applyParams: applyParams
   }
   funcs.forEach((func) => {
     func.start(modelOptions)
@@ -184,22 +184,22 @@ function start(nconf) {
    */
 
   /** upstreamUserToken storage model */
-  upstreamUserTokenModel = schemaToken.define('upstreamUserToken', {
+  UpstreamUserTokenModel = schemaToken.define('upstreamUserToken', {
     userid: { type: Number, index: true },
     /** comma separate list of scopes. Available scopes:
       'basic','stream','write_post','follow','update_profile','public_messages','messages','files' */
     scopes: { type: String, length: 255 },
-    token: { type: String, length: 98, index: true },
+    token: { type: String, length: 98, index: true }
   })
   // scopes 'public_messages','messages','files':*
   // but we can be multiple, not just one...
   //localUserTokenModel.validatesInclusionOf('scopes', { in: ['basic','stream','write_post','follow','update_profile','public_messages','messages','files']})
-  upstreamUserTokenModel.validatesUniquenessOf('token', { message:'token is not unique'})
+  UpstreamUserTokenModel.validatesUniquenessOf('token', { message: 'token is not unique' })
 
   // localTokens
   // we could add created_at,updated_at,last_used
   // move out scopes to grant and link to grants
-  localUserTokenModel = schemaToken.define('localUserToken', {
+  LocalUserTokenModel = schemaToken.define('localUserToken', {
     userid: { type: Number, index: true },
     token: { type: String, length: 98, index: true },
     client_id: { type: String, length: 32, index: true },
@@ -207,7 +207,7 @@ function start(nconf) {
       'basic','stream','write_post','follow','update_profile','public_messages','messages','files' */
     scopes: { type: String, length: 255 },
     created_at: { type: Date },
-    expires_at: { type: Date },
+    expires_at: { type: Date }
   })
   //  code: { type: String, length: 255 },
   //  grantid: { type: Number, index: true },
@@ -270,12 +270,15 @@ function start(nconf) {
 
   // maybe not needed with JSON type
   /** annotation values storage model */
+  // internally we never need to dig through the json blobs
+  /*
   annotationValuesModel = schemaData.define('annotationvalues', {
     annotationid: { type: Number, index: true },
     key: { type: String, length: 255, index: true },
     value: { type: schemaData.Text }, // kind of want to index this
     memberof: { type: Number, index: true }
   })
+  */
 
   // intermediate cache table for querying (a view of interactionModel)
   // we have to denormalize this for performance
@@ -286,7 +289,7 @@ function start(nconf) {
     actionuserid: { type: Number }, // who took an action (star)
     type: { type: String, length: 18 }, // welcome,star,repost,reply,follow,broadcast_create,broadcast_subscribe,broadcast_unsubscribe
     typeid: { type: Number }, // postid(star,respot,reply),userid(follow)
-    altnum: { type: Number }, // postid(star,respot,reply),userid(follow)
+    altnum: { type: Number } // postid(star,respot,reply),userid(follow)
   })
 
   // kind of a proxy cache
@@ -298,11 +301,11 @@ function start(nconf) {
   emptyModel = schemaData.define('empty', {
     type: { type: String, length: 16, index: true }, // repost, replies
     typeid: { type: Number, index: true }, // postid
-    last_updated: { type: Date },
+    last_updated: { type: Date }
   })
 
   //if firstrun (for sqlite3, mysql)
-  if (schemaDataType=='mysql' || schemaDataType=='sqlite3') {
+  if (schemaDataType === 'mysql' || schemaDataType === 'sqlite3') {
     //schemaData.automigrate(function() {})
     //schemaToken.automigrate(function() {})
     // don't lose data
@@ -330,20 +333,20 @@ function start(nconf) {
   }, 60000)
   */
 
-  var db_monitor=function () {
+  var db_monitor = function() {
     if (schemaDataType === 'mysql') {
-      schemaData.client.ping(function (err) {
+      schemaData.client.ping(function(err) {
         if (err) {
           console.log('trying to reconnect to data db')
-          schemaData = new Schema(schemaDataType, configData)
+          schemaData = caminte.cfgCaminteConn(schemaDataType, configData)
         }
       })
     }
     if (schemaTokenType === 'mysql') {
-      schemaToken.client.ping(function (err) {
+      schemaToken.client.ping(function(err) {
         if (err) {
           console.log('trying to reconnect to token db')
-          schemaToken = new Schema(schemaDataType, configToken)
+          schemaToken = caminte.cfgCaminteConn(schemaTokenType, configToken)
         }
       })
     }
@@ -357,8 +360,8 @@ function start(nconf) {
   if (configUtil.getLoggingPeridoticReports()) {
     /** minutely status report */
     // @todo name function and call it on startup
-    var statusmonitor=function () {
-      var ts=new Date().getTime()
+    const statusmonitor = function() {
+      //const ts = new Date().getTime()
       // this is going to be really slow on innodb
       /*
       userModel.count({}, function(err, userCount) {
@@ -419,11 +422,11 @@ function start(nconf) {
 
 // Not Cryptographically safe
 function generateToken(string_length) {
-  var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz"
+  var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz'
   var randomstring = ''
-  for (var x=0; x<string_length; x++) {
+  for (var x = 0; x < string_length; x++) {
     var letterOrNumber = Math.floor(Math.random() * 2)
-    if (letterOrNumber == 0) {
+    if (letterOrNumber === 0) {
       var newNum = Math.floor(Math.random() * 9)
       randomstring += newNum
     } else {
@@ -434,19 +437,18 @@ function generateToken(string_length) {
   return randomstring
 }
 
-
 // cheat macros
-function db_insert(rec, model, callback) {
+function db_insert(rec, Model, callback) {
   //console.log('dataaccess.caminte.js::db_insert - start')
   if (!rec) {
     if (callback) {
-      callback('no record', false, false)
+      callback(new Error('no record'), false, false)
     }
     return
   }
   if (!rec.isValid) {
     var old = rec
-    rec = new model(old)
+    rec = new Model(old)
     /*
     for(var i in old) {
       rec[i] = old[i]
@@ -461,10 +463,10 @@ function db_insert(rec, model, callback) {
       //console.log('dataaccess.caminte.js::db_insert - Valid', rec, typeof(model))
       // sometimes model.create doesn't return...
       // maybe a timer to detect this (timeout) and callback
-      model.create(rec, function(err) {
+      Model.create(rec, function(err) {
         //console.log('dataaccess.caminte.js::db_insert - created')
         if (err) {
-          console.log(typeof(model)+" insert Error ", err)
+          console.log(typeof (Model) + ' insert Error ', err)
         }
         if (callback) {
           //console.log('dataaccess.caminte.js::db_insert - callingback')
@@ -479,7 +481,7 @@ function db_insert(rec, model, callback) {
         }
       })
     } else {
-      console.log(typeof(model)+" validation failure")
+      console.log(typeof (Model) + ' validation failure')
       console.dir(rec.errors)
       if (callback) {
         // can we tell the different between string and array?
@@ -490,7 +492,7 @@ function db_insert(rec, model, callback) {
 }
 
 function applyParams(query, params, callback) {
-  if (!callback || typeof(callback) !== 'function') {
+  if (!callback || typeof (callback) !== 'function') {
     console.trace('dataaccess.caminte.js::applyParams - no callback')
     return
   }
@@ -532,18 +534,18 @@ function applyParams(query, params, callback) {
   // redis maybe need the limit to be performant
   //console.log('test',query.model.modelName)
   // not all objects have id linked to their chronology
-  var idfield='id'
-  if (query.model.modelName==='entity') {
+  var idfield = 'id'
+  if (query.model.modelName === 'entity') {
     // typeid is usually the post
     //query=query.order('typeid', 'DESC').limit(params.count)
-    idfield='typeid'
+    idfield = 'typeid'
   }
   //if (query.debug) {
-    //console.log('dataaccess.caminte::applyParams - model', query.model.modelName)
+  //console.log('dataaccess.caminte::applyParams - model', query.model.modelName)
   //}
-  if (query.model.modelName==='post' || query.model.modelName==='message') {
+  if (query.model.modelName === 'post' || query.model.modelName === 'message') {
     //if (query.debug) {
-      //console.log('dataaccess.caminte::applyParams - params', params.generalParams)
+    //console.log('dataaccess.caminte::applyParams - params', params.generalParams)
     //}
     // Remember this defaults to show deleted
     if (!params.generalParams || !params.generalParams.deleted) {
@@ -558,7 +560,7 @@ function applyParams(query, params, callback) {
   //console.log('applyParams params', params)
   var count = 20
   if (params.pageParams) {
-    if (params.pageParams.count!==undefined) {
+    if (params.pageParams.count !== undefined) {
       count = params.pageParams.count
     }
   } else {
@@ -570,19 +572,19 @@ function applyParams(query, params, callback) {
     //console.log('applyParams count', count)
     //console.log('applyParams params.count', params.count)
     //if (count>0) {
-      //console.log('applyParams sorting', idfield, 'desc')
-      query=query.order(idfield, 'DESC')
+    //console.log('applyParams sorting', idfield, 'desc')
+    query = query.order(idfield, 'DESC')
     //}
     //if (count<0) {
-      //console.log('applyParams sorting', idfield, 'asc')
-      //query=query.order(idfield, 'ASC')
+    //console.log('applyParams sorting', idfield, 'asc')
+    //query=query.order(idfield, 'ASC')
     //}
   }
 
   // add one at the end to check if there's more
-  var queryCount=Math.abs(count) + 1
+  var queryCount = Math.abs(count) + 1
   //console.log('count', count, 'queryCount', queryCount)
-  query=query.limit(queryCount)
+  query = query.limit(queryCount)
 
   // this count system only works if we're asking for global
   // and there's not garuntee we have all the global data locally
@@ -629,12 +631,12 @@ function applyParams(query, params, callback) {
   // it's not inclusive
   if (params.pageParams) {
     if (params.pageParams.since_id) {
-      query=query.gt(idfield, params.pageParams.since_id)
+      query = query.gt(idfield, params.pageParams.since_id)
     }
     if (params.pageParams.before_id) {
       // if not before end
-      if (params.pageParams.before_id!=-1) {
-        query=query.lt(idfield, params.pageParams.before_id)
+      if (parseInt(params.pageParams.before_id) !== -1) {
+        query = query.lt(idfield, params.pageParams.before_id)
       }
     }
   }
@@ -650,8 +652,8 @@ function applyParams(query, params, callback) {
   if (query.debug) {
     console.log('dataaccess.caminte.js::applyParams query', query.q)
   }
-  var min_id=Number.MAX_SAFE_INTEGER, max_id=0
-  query.run({},function(err, objects) {
+  var min_id = Number.MAX_SAFE_INTEGER; var max_id = 0
+  query.run({}, function(err, objects) {
     if (err) {
       console.error('dataaccess.caminte.js::applyParams - err', err)
     }
@@ -660,13 +662,13 @@ function applyParams(query, params, callback) {
     // if got less than what we requested, we may not have it cached
     // we'll have to rely on meta to know if it's proxied or not
     //console.log('dataaccess.caminte.js::applyParams - got', objects.length, 'queried', queryCount, 'asked_for', count)
-    var more = objects.length==queryCount
+    var more = objects.length === queryCount
     // restore object result set
     // which end to pop, well depends on count
     if (more) {
       // if we get 21 and we ask for 20
       //if (count>0) { // id desc
-        objects.pop()
+      objects.pop()
       /*
       }
       if (count<0) { // id asc
@@ -679,16 +681,16 @@ function applyParams(query, params, callback) {
     }
     //console.log('dataaccess.caminte.js::applyParams - resultset got', objects.length, 'range:', min_id, 'to', max_id, 'more:', more)
     // generate meta, find min/max in set
-    for(var i in objects) {
-      var obj=objects[i]
+    for (var i in objects) {
+      var obj = objects[i]
       //console.log('dataaccess.caminte.js::applyParams - idx', obj[idfield], 'min', min_id, 'max', max_id)
       if (obj[idfield]) {
-        min_id=Math.min(min_id, obj[idfield])
-        max_id=Math.max(max_id, obj[idfield])
+        min_id = Math.min(min_id, obj[idfield])
+        max_id = Math.max(max_id, obj[idfield])
       }
     }
-    if (min_id==Number.MAX_SAFE_INTEGER) min_id=0
-    var imeta={
+    if (min_id === Number.MAX_SAFE_INTEGER) min_id = 0
+    var imeta = {
       code: 200,
       min_id: min_id,
       max_id: max_id,
@@ -710,9 +712,9 @@ let functions = {
    * oauth local apps / callbacks
    */
   getAppCallbacks: function(client_id, client_secret, callback) {
-    if (client_id===undefined) {
+    if (client_id === undefined) {
       console.log('dataaccess.caminte::getAppCallbacks - no client_id passed in')
-      callback('no client_id')
+      callback(new Error('no client_id'))
       return
     }
     if (!client_secret) {
@@ -720,7 +722,7 @@ let functions = {
       oauthAppModel.findOne({ where: { client_id: client_id } }, function(err, oauthApp) {
         if (err || !oauthApp) {
           console.log('getAppCallbacks - err', err)
-          callback('err or app not found')
+          callback(new Error('err or app not found'))
           return
         }
         oauthCallbackModel.find({ where: { appid: oauthApp.id } }, function(err, callbacks) {
@@ -735,7 +737,7 @@ let functions = {
     oauthAppModel.findOne({ where: { client_id: client_id, secret: client_secret } }, function(err, oauthApp) {
       if (err || !oauthApp) {
         if (err) console.log('getAppCallbacks - err', err)
-        callback('err or app not found')
+        callback(new Error('err or app not found'))
         return
       }
       oauthCallbackModel.find({ where: { appid: oauthApp.id } }, callback)
@@ -749,42 +751,43 @@ let functions = {
   // probably need a set
   // probably should check scopes
   addAPIUserToken: function(userid, client_id, scopes, token, callback) {
-    if (scopes===undefined) scopes=''
+    if (scopes === undefined) scopes = ''
     // this function is really a set atm
     // FIXME: does this user already have a token?
     // every client will now have a unique token
     // so we're just checking to see if we need to update the token or create it
     //, client_id: client_id
-    localUserTokenModel.findOne({ where: { token: token }}, function(err, tokenUnique) {
+    LocalUserTokenModel.findOne({ where: { token: token } }, function(err, tokenUnique) {
       if (err) {
-        console.log('caminte.js::addAPIUserToken - token lookup', err)
+        console.error('dataaccess.caminte.js::addAPIUserToken - token lookup', err)
         callback(null, 'token_lookup')
         return
       }
-      if (tokenUnique==null) {
+      if (tokenUnique === null) {
         // try and make sure we don't already have a token for this userid/clientid
-        localUserTokenModel.findOne({ where: { userid: userid, client_id: client_id }}, function(err, usertoken) {
-          if (usertoken==null) {
-            var usertoken=new localUserTokenModel
-            usertoken.userid=userid
-            usertoken.client_id=client_id
-            usertoken.scopes=scopes
-            usertoken.token=token
-            usertoken.created_at=new Date()
+        LocalUserTokenModel.findOne({ where: { userid: userid, client_id: client_id } }, function(err, usertoken) {
+          if (err) console.error('dataaccess.caminte.js::addAPIUserToken - token lookup2', err)
+          if (usertoken === null) {
+            usertoken = new LocalUserTokenModel()
+            usertoken.userid = userid
+            usertoken.client_id = client_id
+            usertoken.scopes = scopes
+            usertoken.token = token
+            usertoken.created_at = new Date()
             // this doesn't output anything useful at all
             //console.log('creating localUserToken', usertoken)
             /*usertoken.save(function() {
               callback(usertoken, null)
             })*/
             // this will call callback if set
-            db_insert(usertoken, localUserTokenModel, callback)
+            db_insert(usertoken, LocalUserTokenModel, callback)
           } else {
             console.log('Already have token')
             //usertoken.userid=userid
             //usertoken.client_id=client_id
             // update scopes and token
-            usertoken.scopes=scopes
-            usertoken.token=token
+            usertoken.scopes = scopes
+            usertoken.token = token
             usertoken.save()
             // check scopes
             // do we auto upgrade scopes?
@@ -798,12 +801,12 @@ let functions = {
         //console.log('already had token on file', tokenUnique)
         //console.log('compare against', userid, client_id)
         // probably should check scopes
-        if (userid==tokenUnique.userid && client_id==tokenUnique.client_id) {
+        if (userid === tokenUnique.userid && client_id === tokenUnique.client_id) {
           callback(tokenUnique, null)
         } else {
           console.log('already had token on file', tokenUnique)
           console.log('compare against', userid, client_id)
-          console.log('tests', userid==tokenUnique.userid, client_id==tokenUnique.client_id)
+          console.log('tests', userid === tokenUnique.userid, client_id === tokenUnique.client_id)
           callback(null, 'token_inuse')
         }
       }
@@ -812,7 +815,7 @@ let functions = {
   // allow a user to have more than one token
   addUnconstrainedAPIUserToken: function(userid, client_id, scopes, token, expireInMins, callback) {
     // make sure this token is not in use
-    localUserTokenModel.findOne({ where: { token: token }}, function(err, tokenUnique) {
+    LocalUserTokenModel.findOne({ where: { token: token } }, function(err, tokenUnique) {
       if (err) {
         console.log('caminte.js::addAPIUserToken - token lookup', err)
         callback(null, 'token_lookup')
@@ -820,14 +823,14 @@ let functions = {
       }
       //console.log('userid', userid)
       // token is not in use, please create it
-      var usertoken=new localUserTokenModel
-      usertoken.userid=userid
-      usertoken.client_id=client_id
-      usertoken.scopes=scopes
-      usertoken.token=token
-      usertoken.created_at=new Date()
+      var usertoken = new LocalUserTokenModel()
+      usertoken.userid = userid
+      usertoken.client_id = client_id
+      usertoken.scopes = scopes
+      usertoken.token = token
+      usertoken.created_at = new Date()
       if (expireInMins) {
-        usertoken.expires_at=new Date(Date.now() + expireInMins * 60 * 1000)
+        usertoken.expires_at = new Date(Date.now() + expireInMins * 60 * 1000)
       }
       //expireInSecs
       //console.log('addUnconstrainedAPIUserToken creating localUserToken', JSON.parse(JSON.stringify(usertoken)))
@@ -835,23 +838,24 @@ let functions = {
         callback(usertoken, null)
       })*/
       // this will call callback if set
-      db_insert(usertoken, localUserTokenModel, callback)
+      db_insert(usertoken, LocalUserTokenModel, callback)
     })
   },
   createOrFindUserToken: function(userid, client_id, scopes, callback) {
     //console.log('createOrFindUserToken', userid, client_id, scopes)
     if (userid === undefined) {
-      return callback(false, 'no userid')
+      return callback(null, 'no userid')
     }
     if (client_id === undefined) {
-      return callback(false, 'no client_id')
+      return callback(null, 'no client_id')
     }
-    if (scopes===undefined) scopes=''
-    localUserTokenModel.findOne({ where: { userid: userid, client_id: client_id }}, function(err, usertoken) {
+    if (scopes === undefined) scopes = ''
+    LocalUserTokenModel.findOne({ where: { userid: userid, client_id: client_id } }, function(err, usertoken) {
+      if (err) console.error('dataaccess.caminte.js::createOrFindUserToken - LocalUserTokenModel find err', err, 'userid', userid, 'client_id', client_id)
       if (usertoken) {
         //console.log('createOrFindUserToken found token', usertoken)
         // maybe a timestamp of lastIssued
-        usertoken.scopes=scopes
+        usertoken.scopes = scopes
         //usertoken.token=token
         usertoken.save()
         // check scopes
@@ -865,11 +869,11 @@ let functions = {
       // no token
       //console.log('no token')
       function genCheckToken(cb) {
-        var token=generateToken(98)
+        var token = generateToken(98)
         // console.log('is', token, 'used')
         // console.log('genCheckToken token', token)
-        localUserTokenModel.findOne({ where: { token: token }}, function(err, tokenUnique) {
-          if (err) console.error('localUserTokenModel find', token, 'err', err)
+        LocalUserTokenModel.findOne({ where: { token: token } }, function(err, tokenUnique) {
+          if (err) console.error('LocalUserTokenModel find', token, 'err', err)
           if (tokenUnique) {
             // try again
             genCheckToken(cb)
@@ -881,32 +885,33 @@ let functions = {
       }
       genCheckToken(function(err, token) {
         if (err) console.error('dataaccess.caminte.js::createOrFindUserToken - genCheckToken err', err)
-        var usertoken=new localUserTokenModel
-        usertoken.userid=userid
-        usertoken.client_id=client_id
-        usertoken.scopes=scopes
-        usertoken.token=token
+        var usertoken = new LocalUserTokenModel()
+        usertoken.userid = userid
+        usertoken.client_id = client_id
+        usertoken.scopes = scopes
+        usertoken.token = token
         // console.log('dataaccess.caminte.js::createOrFindUserToken - creating localUserToken', JSON.parse(JSON.stringify(usertoken)))
         /*usertoken.save(function() {
           callback(usertoken, null)
         })*/
         //console.log('createOrFindUserToken made token', usertoken)
         // this will call callback if set
-        db_insert(usertoken, localUserTokenModel, callback)
+        db_insert(usertoken, LocalUserTokenModel, callback)
       })
     })
   },
   delAPIUserToken: function(token, callback) {
-    localUserTokenModel.findOne({ where: { token: token } }, function(err, usertoken) {
-      localUserTokenModel.destroyById(usertoken.id, callback)
+    LocalUserTokenModel.findOne({ where: { token: token } }, function(err, usertoken) {
+      if (err) console.error('dataaccess.caminte.js::delAPIUserToken - err', err)
+      LocalUserTokenModel.destroyById(usertoken.id, callback)
     })
   },
   // should only be used by the admin API
   getAPITokenByUsername: function(username, callback) {
     //console.log('dataaccess.camintejs.js::getAPITokenByUsername - username:', username)
-    if (username==undefined) {
+    if (username === undefined) {
       console.trace('dataaccess.camintejs.js::getAPITokenByUsername - username not defined')
-      if (callback) callback('username undefined')
+      if (callback) callback(new Error('username undefined'))
       return
     }
     this.getUserID(username, function(err, user) {
@@ -914,7 +919,7 @@ let functions = {
       if (!user) {
         return callback(err, false)
       }
-      localUserTokenModel.findOne({ where: { userid: user.id }, limit: 1 }, function(err, usertoken) {
+      LocalUserTokenModel.findOne({ where: { userid: user.id }, limit: 1 }, function(err, usertoken) {
         if (err) {
           console.log('dataaccess.camintejs.js::getAPITokenByUsername - err', err, 'usertoken', usertoken)
         }
@@ -925,16 +930,16 @@ let functions = {
   },
   getAPIUserToken: function(token, callback) {
     // console.log('dataaccess.camintejs.js::getAPIUserToken - Token:', token)
-    if (token==undefined) {
+    if (token === undefined) {
       //console.log('dataaccess.camintejs.js::getAPIUserToken - Token not defined')
       // we shouldn't need to return here
       // why doesn't mysql handle this right? bad driver
-      callback(false, 'token undefined')
+      callback(null, 'token undefined')
       return
     }
     //console.log('dataaccess.camintejs.js::getAPIUserToken - token:', token)
     // error but must have been connected because it could still get counts
-/*
+    /*
 dispatcher @1494199287183 Memory+[803.9 k] Heap[23.44 M] uptime: 298756.005
 dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
 TypeError: Cannot read property 'model' of undefined
@@ -963,14 +968,14 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
 */
     // what if there more than one?
     // if we get more than one, than we callback multiple times?
-    localUserTokenModel.findOne({ where: { token: token }, limit: 1 }, function(err, usertoken) {
+    LocalUserTokenModel.findOne({ where: { token: token }, limit: 1 }, function(err, usertoken) {
       if (err) console.error('dataaccess.camintejs.js::getAPIUserToken - err', err, 'usertoken', usertoken)
       // console.log('dataaccess.camintejs.js::getAPIUserToken - found:', usertoken)
       callback(err, usertoken)
     })
   },
   getApiTokens: function(token_strings_arr, callback) {
-    localUserTokenModel.find({ where: { id: { in: token_strings_arr } } }, function(err, tokens) {
+    LocalUserTokenModel.find({ where: { id: { in: token_strings_arr } } }, function(err, tokens) {
       if (err) console.error('dataaccess.camintejs.js::getApiTokens - err', err)
       callback(err, tokens)
     })
@@ -979,28 +984,28 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
    * user upstream tokens
    */
   setUpstreamUserToken: function(userid, token, scopes, callback) {
-    upstreamUserTokenModel.findOne({ where: { userid: userid } }, function(err, upstreamToken) {
+    UpstreamUserTokenModel.findOne({ where: { userid: userid } }, function(err, upstreamToken) {
       if (err) {
-        console.log('dataaccess.camintejs.js::setUpstreamUserToken - upstreamUserTokenModel err', err)
+        console.log('dataaccess.camintejs.js::setUpstreamUserToken - UpstreamUserTokenModel err', err)
         if (callback) {
           callback(upstreamToken, err)
           return
         }
       }
       if (upstreamToken) {
-        if (upstreamToken.token!=token) {
+        if (upstreamToken.token !== token) {
           console.log('dataaccess.camintejs.js::setUpstreamUserToken - new token?', token, 'old', upstreamToken.token)
         }
       } else {
-        upstreamToken=new upstreamUserTokenModel
-        upstreamToken.userid=userid
+        upstreamToken = new UpstreamUserTokenModel()
+        upstreamToken.userid = userid
       }
       // update token and scopes for this user
-      upstreamToken.scopes=scopes
-      upstreamToken.token=token
+      upstreamToken.scopes = scopes
+      upstreamToken.token = token
       upstreamToken.save(function() {
         if (callback) {
-          callback(upstreamToken, user)
+          callback(null, upstreamToken)
         }
       })
     })
@@ -1009,15 +1014,15 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     console.log('dataaccess.camintejs.js::delUpstreamUserToken - write me!')
   },
   getUpstreamUserToken: function(userid, callback) {
-    upstreamUserTokenModel.findOne({ where: { userid: userid } }, function(err, upstreamToken) {
+    UpstreamUserTokenModel.findOne({ where: { userid: userid } }, function(err, upstreamToken) {
       if (err) {
-        console.log('dataaccess.camintejs.js::setUpstreamUserToken - upstreamUserTokenModel err', err)
+        console.log('dataaccess.camintejs.js::setUpstreamUserToken - UpstreamUserTokenModel err', err)
         if (callback) {
           callback(upstreamToken, err)
           return
         }
       }
-      callback(upstreamToken, null)
+      callback(null, upstreamToken)
     })
   },
   /* client (app) tokens */
@@ -1046,17 +1051,18 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       this.next.getExplore(params, callback)
     } else {
       //console.log('dataaccess.base.js::getExplore - write me!')
-      var res={"meta":{"code":200},
-        "data":[
-          {"url":"/posts/stream/explore/conversations", "description":"New conversations just starting on App.net", "slug":"conversations", "title":"Conversations"},
-          {"url":"/posts/stream/explore/photos", "description":"Photos uploaded to App.net", "slug":"photos", "title":"Photos"},
-          {"url":"/posts/stream/explore/trending", "description":"Posts trending on App.net", "slug":"trending", "title":"Trending"},
+      var res = {
+        meta: { code: 200 },
+        data: [
+          { url: '/posts/stream/explore/conversations', description: 'New conversations just starting on App.net', slug: 'conversations', title: 'Conversations' },
+          { url: '/posts/stream/explore/photos', description: 'Photos uploaded to App.net', slug: 'photos', title: 'Photos' },
+          { url: '/posts/stream/explore/trending', description: 'Posts trending on App.net', slug: 'trending', title: 'Trending' },
           //{"url":"/posts/stream/explore/checkins", "description":"App.net users in interesting places", "slug":"checkins", "title":"Checkins"}
           //{"url":"/posts/stream/explore/subtweets", "description":"memes", "slug":"subtweets", "title":"Drybones Subtweets"}
-          {"url":"/posts/stream/explore/moststarred", "description":"Posts that people have starred", "slug":"moststarred", "title":"Starred Posts"}
+          { url: '/posts/stream/explore/moststarred', description: 'Posts that people have starred', slug: 'moststarred', title: 'Starred Posts' }
         ]
       }
-      callback(false, res.data, res.meta)
+      callback(null, res.data, res.meta)
     }
   },
   // user: userid
@@ -1065,9 +1071,11 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
   },
   delNotice: function(query, callback) {
     noticeModel.find(query, function(err, noticies) {
-      for(var i in noticies) {
-        var notice=noticies[i]
+      if (err) console.error('dataaccess.camintejs.js::delNotice - find err', err)
+      for (var i in noticies) {
+        var notice = noticies[i]
         notice.destroy(function(err) {
+          if (err) console.error('dataaccess.camintejs.js::delNotice - err', err)
         })
       }
       if (callback) callback()
@@ -1086,7 +1094,8 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
       var query = noticeModel.find().where('notifyuserid', userid)
       if (tokenObj.userid) {
         ref.getAllMutesForUser(tokenObj.userid, function(err, mutedUserIDs) {
-          query=query.where('actionuserid', { nin: mutedUserIDs })
+          if (err) console.error('dataaccess.camintejs.js::delNotice - err', err)
+          query = query.where('actionuserid', { nin: mutedUserIDs })
           //console.log('getChannelMessages - params', params)
           applyParams(query, params, callback)
         })
@@ -1110,13 +1119,14 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
     }
 
     // FIXME: move this shit into the dispatcher
-    if (user=='me') {
+    if (user === 'me') {
       //this.getAPIUserToken(tokenStr, function(tokenobj, err) {
       finalfunc(tokenObj.userid)
       //})
-    } else if (user[0]=='@') {
+    } else if (user[0] === '@') {
       // uhm I don't think posts has a username field...
       this.getUserID(user.substr(1), function(err, userobj) {
+        if (err) console.error('dataaccess.caminte::getNotices - getUserID err', err)
         finalfunc(userobj.id)
       })
     } else {
@@ -1131,106 +1141,103 @@ dataaccess.caminte.js::status 19U 44F 375P 0C 0M 0s 77/121i 36a 144e
   },
   getOEmbed: function(url, callback) {
     if (this.next) {
-      this.next.getOEmbed(url, callback)
-    } else {
-      var info = {
-        meta: {
-          code: 200
-        },
-        data: {}
-      }
-
-      var ref = this
-      // A URL for a post or photo on App.net.
-      var alpha = url.match(/alpha.tavrn.gg/i)
-      if (alpha) {
-        var parts = url.split('/')
-        // post vs photo?
-        var type = 'post'
-        if (url.match(/\/photo\//)) {
-          type = 'photo'
-          var postid = parts[parts.length - 3]
-          var photoid = parts[parts.length - 1]
-          console.log('dataaccess.camtine.js::getOEmbed -photo mode', postid, photoid)
-          this.getAnnotations('post', postid, function(notes, err) {
-            //console.log('post info', notes)
-            var c = 0
-            for(var i in notes) {
-              var note = notes[i]
-              if (note.type == 'net.app.core.oembed') {
-                console.log('dataaccess.camtine.js::getOEmbed - found our info', note.value)
-                c ++
-                if (c == photoid) {
-                  info.data = JSON.parse(note.value)
-                  break
-                }
-              }
-            }
-            callback(info, null)
-          })
-          return
-        }
-        var postid = parts[parts.length - 1]
-        console.log('dataaccess.camtine.js::getOEmbed - postid', postid)
-        this.getPost(postid, function(post, err) {
-          //console.log('post info', post)
-          info.data = {
-            provider_url: "https://tavrn.gg",
-            version: "1.0",
-            author_url: "https://tavrn.gg/u/"+post.userid,
-            title: post.text,
-            url: "https://tavrn.gg/u/"+post.userid+"/post/"+post.userid,
-            provider_name: "Tavrn.gg",
-            type: "link",
-            html: post.html,
-            author_name: post.userid
-          }
-          callback(info, null)
-        })
-      } else {
-        callback(null, null)
-      }
-      //callback(null, null)
-      //console.log('dataaccess.caminte.js::getOEmbed - write me!')
-      // <link rel="alternate" type="application/json+oembed"
-      // href="http://example.com/services/oembed?url=http%3A%2F%2Fexample.com%2Ffoo%2F&amp;format=json"
-      // title="oEmbed Profile: JSON">
-      // <link rel="alternate" type="application/json+oembed" href="http://api.sapphire.moe/oembed?url=http://alpha.tavrn.gg/marcodiazclone/post/607" title="App.net oEmbed" />
-      /*
-      request(url, function(err, resp, body) {
-        var linkFilter = new RegExp('<link([^>]+)>','img')
-        var links = body.match(linkFilter)
-        if (links) {
-          for(var i=0,imax=links.length; i<imax; i++) {
-            var link = links[i]
-            //console.log('link', link)
-            if (link.match(/type=['"]application\/json\+oembed['"]/i)) {
-              //console.log('oembed link', link)
-              if (link.match(/rel=['"]alternate["']/i)) {
-                //console.log('alt oembed link', link)
-                var href = link.match(/href=["']([^"']+)["']/i)
-                var oembedUrl = href[1]
-                console.log('href', oembedUrl)
-                request(oembedUrl, function(err, resp, body) {
-                  console.log('body', body)
-                  callback(JSON.parse(body), null)
-                })
-              }
-            }
-          }
-        }
-      })
-      */
-      /*
-      oembedTools.extract(url).then((data) => {
-        console.log('url', url, 'data', data)
-        callback(data, null)
-      }).catch((err) => {
-        console.log('oembed err', err)
-        callback('', 'no provider')
-      })
-      */
+      return this.next.getOEmbed(url, callback)
     }
+    const info = {
+      meta: {
+        code: 200
+      },
+      data: {}
+    }
+
+    // A URL for a post or photo on App.net.
+    const alpha = url.match(/alpha.tavrn.gg/i)
+    if (!alpha) {
+      return callback(null, null)
+    }
+    const parts = url.split('/')
+    // post vs photo?
+    //let type = 'post'
+    if (url.match(/\/photo\//)) {
+      //type = 'photo'
+      const postid = parseInt(parts[parts.length - 3])
+      const photoid = parts[parts.length - 1]
+      console.log('dataaccess.camtine.js::getOEmbed -photo mode', postid, photoid)
+      this.getAnnotations('post', postid, function(notes, err) {
+        //console.log('post info', notes)
+        var c = 0
+        for (var i in notes) {
+          var note = notes[i]
+          if (note.type === 'net.app.core.oembed') {
+            console.log('dataaccess.camtine.js::getOEmbed - found our info', note.value)
+            c++
+            if (c === photoid) {
+              info.data = JSON.parse(note.value)
+              break
+            }
+          }
+        }
+        callback(info, null)
+      })
+      return
+    }
+    const postid = parts[parts.length - 1]
+    console.log('dataaccess.camtine.js::getOEmbed - postid', postid)
+    this.getPost(postid, function(post, err) {
+      //console.log('post info', post)
+      info.data = {
+        provider_url: 'https://tavrn.gg',
+        version: '1.0',
+        author_url: 'https://tavrn.gg/u/' + post.userid,
+        title: post.text,
+        url: 'https://tavrn.gg/u/' + post.userid + '/post/' + post.userid,
+        provider_name: 'Tavrn.gg',
+        type: 'link',
+        html: post.html,
+        author_name: post.userid
+      }
+      callback(info, null)
+    })
+    //callback(null, null)
+    //console.log('dataaccess.caminte.js::getOEmbed - write me!')
+    // <link rel="alternate" type="application/json+oembed"
+    // href="http://example.com/services/oembed?url=http%3A%2F%2Fexample.com%2Ffoo%2F&amp;format=json"
+    // title="oEmbed Profile: JSON">
+    // <link rel="alternate" type="application/json+oembed" href="http://api.sapphire.moe/oembed?url=http://alpha.tavrn.gg/marcodiazclone/post/607" title="App.net oEmbed" />
+    /*
+    request(url, function(err, resp, body) {
+      var linkFilter = new RegExp('<link([^>]+)>','img')
+      var links = body.match(linkFilter)
+      if (links) {
+        for(var i=0,imax=links.length; i<imax; i++) {
+          var link = links[i]
+          //console.log('link', link)
+          if (link.match(/type=['"]application\/json\+oembed['"]/i)) {
+            //console.log('oembed link', link)
+            if (link.match(/rel=['"]alternate["']/i)) {
+              //console.log('alt oembed link', link)
+              var href = link.match(/href=["']([^"']+)["']/i)
+              var oembedUrl = href[1]
+              console.log('href', oembedUrl)
+              request(oembedUrl, function(err, resp, body) {
+                console.log('body', body)
+                callback(JSON.parse(body), null)
+              })
+            }
+          }
+        }
+      }
+    })
+    */
+    /*
+    oembedTools.extract(url).then((data) => {
+      console.log('url', url, 'data', data)
+      callback(data, null)
+    }).catch((err) => {
+      console.log('oembed err', err)
+      callback('', 'no provider')
+    })
+    */
   }
 }
 
