@@ -2,28 +2,28 @@ const userRoutes = require('./modules/users/users.routes')
 
 function sendresponse(json, resp) {
   var ts = new Date().getTime()
-  var diff = ts-resp.start
+  var diff = ts - resp.start
   if (diff > 1000) {
     // this could be to do the client's connection speed
     // how because we stop the clock before we send the response...
-    console.log(resp.path+' served in '+(ts-resp.start)+'ms')
+    console.log(resp.path + ' served in ' + (ts - resp.start) + 'ms')
   }
   if (resp.prettyPrint) {
-    json = JSON.stringify(JSON.parse(json),null,4)
+    json = JSON.stringify(JSON.parse(json), null, 4)
   }
-  //resp.set('Content-Type', 'text/javascript')
+  // resp.set('Content-Type', 'text/javascript')
   resp.type('application/json')
-  resp.setHeader("Access-Control-Allow-Origin", "*")
+  resp.setHeader('Access-Control-Allow-Origin', '*')
   resp.send(json)
 }
 
 function sendObject(obj, resp) {
   var ts = new Date().getTime()
-  var diff = ts-resp.start
+  var diff = ts - resp.start
   if (diff > 1000) {
     // this could be to do the client's connection speed
     // how because we stop the clock before we send the response...
-    console.log(resp.path+' served in '+(ts-resp.start)+'ms')
+    console.log(resp.path + ' served in ' + (ts - resp.start) + 'ms')
   }
 
   if (obj.meta === undefined) {
@@ -35,23 +35,23 @@ function sendObject(obj, resp) {
   }
 
   resp.type('application/json')
-  resp.setHeader("Access-Control-Allow-Origin", "*")
+  resp.setHeader('Access-Control-Allow-Origin', '*')
 
   resp.send(JSON.stringify(obj, null, resp.prettyPrint ? 4 : null))
 }
 
 function ISODateString(d) {
   if (!d || !d.getUTCFullYear) {
-    //console.log('created_at is type (!date): ',d,typeof(d))
+    // console.log('created_at is type (!date): ',d,typeof(d))
     return d
   }
-  function pad(n){return n<10 ? '0'+n : n}
-  return d.getUTCFullYear()+'-'
-    + pad(d.getUTCMonth()+1)+'-'
-    + pad(d.getUTCDate())+'T'
-    + pad(d.getUTCHours())+':'
-    + pad(d.getUTCMinutes())+':'
-    + pad(parseInt(d.getUTCSeconds()))+'Z'
+  function pad(n) { return n < 10 ? '0' + n : n }
+  return d.getUTCFullYear() + '-' +
+    pad(d.getUTCMonth() + 1) + '-' +
+    pad(d.getUTCDate()) + 'T' +
+    pad(d.getUTCHours()) + ':' +
+    pad(d.getUTCMinutes()) + ':' +
+    pad(parseInt(d.getUTCSeconds())) + 'Z'
 }
 
 function formattoken(token) {
@@ -86,8 +86,6 @@ function formattoken(token) {
   return token
 }
 
-
-
 function formatpost(post, token) {
   // cast fields to make sure they're the correct type
 
@@ -97,18 +95,18 @@ function formatpost(post, token) {
     post.num_replies = parseInt(0 + post.num_replies) // cast to Number
     post.num_reposts = parseInt(0 + post.num_reposts) // cast to Number
     post.num_stars = parseInt(0 + post.num_stars) // cast to Number
-    post.machine_only = post.machine_only ? true : false
-    post.is_deleted = post.is_deleted ? true : false
-    post.thread_id = ''+post.thread_id // cast to String (Number is too big for js?)
+    post.machine_only = !!post.machine_only
+    post.is_deleted = !!post.is_deleted
+    post.thread_id = '' + post.thread_id // cast to String (Number is too big for js?)
     if (post.reply_to) {
-      post.reply_to = ''+post.reply_to // cast to String (Number is too big for js?)
+      post.reply_to = '' + post.reply_to // cast to String (Number is too big for js?)
     }
     // remove microtime
     post.created_at = ISODateString(post.created_at)
     if (token) {
       // boolean (and what about the non-existent state?)
-      post.you_reposted = post.you_reposted ? true : false
-      post.you_starred = post.you_starred ? true : false
+      post.you_reposted = !!post.you_reposted
+      post.you_starred = !!post.you_starred
     }
   }
   return post
@@ -121,28 +119,28 @@ module.exports = {
   postsCallback: function(resp, token) {
     return function(err, posts, meta) {
       if (err) console.error('dialect_adn_cbs::postsCallback - err', err)
-      //console.log('dialect.appdotnet_official.callback.js::postsCallback - in posts callback', posts.length, 'posts', posts)
-      for(var i in posts) {
+      // console.log('dialect.appdotnet_official.callback.js::postsCallback - in posts callback', posts.length, 'posts', posts)
+      for (var i in posts) {
         var post = posts[i]
         if (!post) {
           console.trace('dialect_adn_cbs::postsCallback - posts', posts)
           continue
         }
-        //console.log('dialect.appdotnet_official.callback.js::postsCallback - looking at ', post, post.id, post.created_at, post.userid)
+        // console.log('dialect.appdotnet_official.callback.js::postsCallback - looking at ', post, post.id, post.created_at, post.userid)
         posts[i] = formatpost(post, token)
         if (post.repost_of) {
           // this is an object...
           post.repost_of.user = userRoutes.formatuser(post.repost_of.user, token)
           post.repost_of = formatpost(post.repost_of, token)
         }
-        if (typeof(post.user)=='undefined') {
-          console.log('dialect.appdotnet_official.callback.js::postsCallback - missing user for post '+i)
+        if (typeof (post.user) === 'undefined') {
+          console.log('dialect.appdotnet_official.callback.js::postsCallback - missing user for post ' + i)
           posts[i].user = {}
         } else {
           posts[i].user = userRoutes.formatuser(post.user, token)
         }
       }
-      //console.log('dialect.appdotnet_official.callback.js::postsCallback - sending', posts.length, 'posts')
+      // console.log('dialect.appdotnet_official.callback.js::postsCallback - sending', posts.length, 'posts')
       // meta order: min_id, code, max_id, more
       var res = {
         meta: meta,
@@ -159,10 +157,10 @@ module.exports = {
       if (err) console.error('dialect_adn_cbs::posts2usersCallback - err', err)
       var users = []
       // if any return fucking nothing (null) kill them (don't push them)
-      for(var i in posts) {
+      for (var i in posts) {
         users.push(userRoutes.formatuser(posts[i].user, token))
       }
-      //console.log('returning', users)
+      // console.log('returning', users)
       // meta order: min_id, code, max_id, more
       var res = {
         meta: meta,
@@ -195,7 +193,7 @@ module.exports = {
       if (err) console.error('dialect_adn_cbs::tokenCallback - err', err)
       err = typeof err !== 'undefined' ? err : undefined
       meta = typeof meta !== 'undefined' ? meta : undefined
-      var res={
+      var res = {
         meta: meta,
         data: formattoken(data)
       }
@@ -209,7 +207,7 @@ module.exports = {
       if (err) console.error('dialect_adn_cbs::dataCallback - err', err)
       err = typeof err !== 'undefined' ? err : undefined
       meta = typeof meta !== 'undefined' ? meta : undefined
-      var res={
+      var res = {
         meta: meta,
         data: data
       }
@@ -219,11 +217,11 @@ module.exports = {
 
   fileCallback: function(resp, token) {
     return function(err, data, meta) {
-      //console.log('fileCallback', data, 'err', err, 'meta', meta)
+      // console.log('fileCallback', data, 'err', err, 'meta', meta)
       if (err) console.error('dialect_adn_cbs::fileCallback - err', err)
       err = typeof err !== 'undefined' ? err : undefined
       meta = typeof meta !== 'undefined' ? meta : undefined
-      var res={
+      var res = {
         meta: meta,
         data: data
       }
@@ -235,8 +233,8 @@ module.exports = {
     return function(err, oembed) {
       if (err) console.error('dialect_adn_cbs::oembedCallback - err', err)
       // there's no data/meta envelope for oembed
-      //console.log('ADNO::oembed got ',oembed)
+      // console.log('ADNO::oembed got ',oembed)
       sendresponse(JSON.stringify(oembed), resp)
     }
-  },
+  }
 }

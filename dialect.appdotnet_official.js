@@ -5,51 +5,26 @@ this file is responsible for the dialect for the associate mountpoint
 
 we're responsible for filteirng models to make sure we only return what matches the dialect's spec
 */
-const callbacks   = require('./dialect.appdotnet_official.callbacks.js');
-const ratelimiter = require('./ratelimiter.js');
-const configUtil  = require('./lib/lib.config.js')
-
-// post structure, good enough to fool alpha
-const notimplemented=[{
-  id: 0,
-  text: 'not implemented',
-  created_at: '2014-10-24T17:04:48Z',
-  source: {
-
-  },
-  user: {
-    id: 0,
-    username: 'notimplemented',
-    created_at: '2014-10-24T17:04:48Z',
-    avatar_image: {
-      url: 'https://d2rfichhc2fb9n.cloudfront.net/image/5/OhYk4yhX3u0PFdMTqIrtTF6SgOB7InMiOiJzMyIsImIiOiJhZG4tdXNlci1hc3NldHMiLCJrIjoiYXNzZXRzL3VzZXIvZTEvMzIvMjAvZTEzMjIwMDAwMDAwMDAwMC5wbmciLCJvIjoiIn0?h=80&w=80'
-    },
-    cover_image: {
-      url: 'https://d2rfichhc2fb9n.cloudfront.net/image/5/sz0h_gbdbxI14RcO12FPxO5nSbt7InMiOiJzMyIsImIiOiJhZG4tdXNlci1hc3NldHMiLCJrIjoiYXNzZXRzL3VzZXIvNjIvMzIvMjAvNjIzMjIwMDAwMDAwMDAwMC5wbmciLCJvIjoiIn0?w=862'
-    },
-    counts: {
-      following: 0,
-    }
-  }
-}]
+const callbacks = require('./dialect.appdotnet_official.callbacks.js')
+const ratelimiter = require('./ratelimiter.js')
+const configUtil = require('./lib/lib.config.js')
 
 /**
  * Set up defined API routes at prefix
  */
 module.exports = function(app, prefix) {
-  const dispatcher = app.dispatcher;
-  app.callbacks    = callbacks
-  app.ratelimiter  = ratelimiter
-  var nconf      = app.nconf;
+  const dispatcher = app.dispatcher
+  app.callbacks = callbacks
+  app.ratelimiter = ratelimiter
 
   /*
    * Authenticated endpoints
    */
-  app.get(prefix+'/config', function(req, resp) {
+  app.get(prefix + '/config', function(req, resp) {
     // just call the callback directly. err and meta are optional params
     callbacks.dataCallback(resp)(false, dispatcher.getConfig())
   })
-  app.get(prefix+'/oembed', function(req, resp) {
+  app.get(prefix + '/oembed', function(req, resp) {
     // never any meta
     dispatcher.getOEmbed(req.query.url, callbacks.oembedCallback(resp))
   })

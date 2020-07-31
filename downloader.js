@@ -6,39 +6,40 @@ const configUtil = require('./lib/lib.config.js')
 // backwards compatibility to allow us to do the right thing
 // this doesn't give us QoS but does allow us to say put in the background
 // does defer to immediate IO
-//require('setimmediate')
+// require('setimmediate')
 
 // remove 5 connections to upstream at a time
 // we definitely want to burst when we need it
 // though should set some type of limit, like the max ADN resets
 // for what time period though? one frequency?
-//require('http').globalAgent.maxSockets = Infinity
-//require('https').globalAgent.maxSockets = Infinity
+// require('http').globalAgent.maxSockets = Infinity
+// require('https').globalAgent.maxSockets = Infinity
 
 /** @todo make count configureable, low latency=20count, aggressive cache=200count */
 
-var proxycalls=0
-var proxywrites=0
-var lcalls=0
+let proxycalls = 0
+// var proxywrites = 0
+let lcalls = 0
 
 if (configUtil.getLoggingPeridoticReports()) {
   // minutely status report
-  setInterval(function () {
-    var ts=Date.now()
-    console.log('downloader report '+(proxycalls-lcalls)+' proxy recent calls. '+proxycalls+' overall')
+  setInterval(function() {
+    console.log('downloader report ' + (proxycalls - lcalls) + ' proxy recent calls. ' + proxycalls + ' overall')
     // just need a redis info call to pull memory and keys stats
-    lcalls=proxycalls
-  }, 60*1000)
+    lcalls = proxycalls
+  }, 60 * 1000)
 }
 
-var path = require('path')
-var nconf = require('nconf')
+const path = require('path')
+
+// FIXME: use lib.config
+const nconf = require('nconf')
 // Look for a config file
-var config_path = path.join(__dirname, '/config.json')
+const config_path = path.join(__dirname, '/config.json')
 // and a model file
-var config_model_path = path.join(__dirname, '/config.models.json')
-nconf.argv().env('__').file({file: config_path}).file('model', {file: config_model_path})
-var upstream_client_id=nconf.get('uplink:client_id') || 'NotSet'
+const config_model_path = path.join(__dirname, '/config.models.json')
+nconf.argv().env('__').file({ file: config_path }).file('model', { file: config_model_path })
+// const upstream_client_id = nconf.get('uplink:client_id') || 'NotSet'
 
 // pass in proxy settings or just conf it?
 module.exports = {
@@ -51,39 +52,39 @@ module.exports = {
   // we need a start point and a false to recurse the pages or not
   downloadThread: function(postid, token, callback) {
     if (this.disabled()) {
-      if (callback) callback(false, [])
+      if (callback) callback(null, [])
       return
     }
-    var ref=this
-    console.log('downloader.js::downloadThread - proxying posts replies '+postid)
+    var ref = this
+    console.log('downloader.js::downloadThread - proxying posts replies ' + postid)
     proxycalls++
-    rateLimiter.rateLimit(token?1:0, 0, function() {
+    rateLimiter.rateLimit(token ? 1 : 0, 0, function() {
       request.get({
-        url: ref.apiroot+'/posts/'+postid+'/replies?count=200',
+        url: ref.apiroot + '/posts/' + postid + '/replies?count=200',
         headers: {
-          "Authorization": "Bearer "+token,
+          Authorization: 'Bearer ' + token
         }
       }, function(e, r, body) {
-        rateLimiter.logRequest(token?1:0, 0)
-        if (!e && r && r.statusCode == 200) {
-          var res=JSON.parse(body)
-          for(var i in res.data) {
-            var post=res.data[i]
-            console.log('downloader.js::downloadThread - got',post.id,'of',postid)
+        rateLimiter.logRequest(token ? 1 : 0, 0)
+        if (!e && r && r.statusCode === 200) {
+          var res = JSON.parse(body)
+          for (var i in res.data) {
+            var post = res.data[i]
+            console.log('downloader.js::downloadThread - got', post.id, 'of', postid)
             ref.dispatcher.setPost(post)
             // hrm... if we have multiple at this level...
-            //ref.downloadReplies(post.id, token, callback)
+            // ref.downloadReplies(post.id, token, callback)
           }
-          //if (res.meta.more) {
-            // starting point?
-            //ref.downloadThread()
-          //} else {
-            if (callback) {
-              // will be call per post ugh
-              // what about conversion back??
-              callback(false, res.data, res.meta)
-            }
-          //}
+          // if (res.meta.more) {
+          // starting point?
+          // ref.downloadThread()
+          // } else {
+          if (callback) {
+            // will be call per post ugh
+            // what about conversion back??
+            callback(null, res.data, res.meta)
+          }
+          // }
         } else {
           console.log('downloader.js:downloadThread - request failure')
           console.log('error', e)
@@ -100,13 +101,13 @@ module.exports = {
   },
   downloadMentions: function(userid, params, token, callback) {
     if (this.disabled()) {
-      if (callback) callback(false, [])
+      if (callback) callback(null, [])
       return
     }
-    //console.log('dataaccess.proxy.js::getGlobal - write me')
-    var ref=this
+    // console.log('dataaccess.proxy.js::getGlobal - write me')
+    var ref = this
     proxycalls++
-    var querystring=''
+    var querystring = ''
     /*
     if (params.count || params.since_id || params.before_id) {
       // convert to array/loop
@@ -122,26 +123,26 @@ module.exports = {
       }
     }
     */
-    querystring+='&count=200'
-    console.log('proxying users/'+userid+'/mentions?'+querystring)
-    rateLimiter.rateLimit(token?1:0, 0, function() {
+    querystring += '&count=200'
+    console.log('proxying users/' + userid + '/mentions?' + querystring)
+    rateLimiter.rateLimit(token ? 1 : 0, 0, function() {
       request.get({
-        url: ref.apiroot+'/users/'+userid+'/mentions?'+querystring,
+        url: ref.apiroot + '/users/' + userid + '/mentions?' + querystring,
         headers: {
-          "Authorization": "Bearer "+token,
+          Authorization: 'Bearer ' + token
         }
       }, function(e, r, body) {
-        rateLimiter.logRequest(token?1:0, 0)
-        if (!e && r && r.statusCode == 200) {
-          var res=JSON.parse(body)
-          //console.dir(res)
-          for(var i in res.data) {
-            var post=res.data[i]
-            //console.log('Processing post '+post.id)
+        rateLimiter.logRequest(token ? 1 : 0, 0)
+        if (!e && r && r.statusCode === 200) {
+          var res = JSON.parse(body)
+          // console.dir(res)
+          for (var i in res.data) {
+            var post = res.data[i]
+            // console.log('Processing post '+post.id)
             ref.dispatcher.setPost(post)
           }
           if (callback) {
-            callback(false, res.data, res.meta)
+            callback(null, res.data, res.meta)
           }
         } else {
           console.log('downloader.js:downloadMentions - request failure')
@@ -155,30 +156,31 @@ module.exports = {
   },
   downloadStars: function(userid, callback) {
     if (this.disabled()) {
-      if (callback) callback(false, [])
+      if (callback) callback(null, [])
       return
     }
-    var ref=this
-    var ts=Date.now()
-    console.log('proxying user/stars '+userid)
+    var ref = this
+    var ts = Date.now()
+    console.log('proxying user/stars ' + userid)
     proxycalls++
     rateLimiter.rateLimit(1, 0, function() {
       request.get({
-        url: ref.apiroot+'/users/'+userid+'/stars?count=200'
+        url: ref.apiroot + '/users/' + userid + '/stars?count=200'
       }, function(e, r, body) {
         rateLimiter.logRequest(1, 0)
-        if (!e && r && r.statusCode == 200) {
-          var res=JSON.parse(body)
+        if (!e && r && r.statusCode === 200) {
+          var res = JSON.parse(body)
           // returns a list of posts but not what this function normally returns
           // a list of interactions
-          //console.log(res)
-          var actions=[]
-          for(var i in res.data) {
-            var post=res.data[i]
-            //ref.dispatcher.setPost(post)
+          // console.log(res)
+          var actions = []
+          for (var i in res.data) {
+            var post = res.data[i]
+            // ref.dispatcher.setPost(post)
             if (post.user) {
               // is this right?
               ref.dispatcher.apiToPost(post, res.meta, function(err, apipost) {
+                if (err) console.error('downloader.js::downloadStars - apiToPost err', err)
                 if (apipost.user) {
                   // unfortunately we won't have a true time when something is starred
                   ref.dispatcher.setStar({
@@ -190,8 +192,8 @@ module.exports = {
                 } else {
                   // most no users are deleted users
                   if (!apipost.deleted && !apipost.is_deleted) {
-                    console.log('downloader.js::downloadStars - no user in apipost',apipost.id,'post',apipost)
-                    //console.log('downloader.js::downloadStars - deleted',apipost.deleted,'is_deleted',apipost.is_deleted)
+                    console.log('downloader.js::downloadStars - no user in apipost', apipost.id, 'post', apipost)
+                    // console.log('downloader.js::downloadStars - deleted',apipost.deleted,'is_deleted',apipost.is_deleted)
                   }
                 }
               })
@@ -200,21 +202,21 @@ module.exports = {
               // and/or the user is deleted too
               if (!post.deleted && !post.is_deleted) {
                 // only really interesting if the post isn't deleted
-                console.log('downloader.js::downloadStars - no user in post',post.id,'post',post)
+                console.log('downloader.js::downloadStars - no user in post', post.id, 'post', post)
               }
             }
-            var action={
+            var action = {
               userid: userid,
               type: 'star',
               datetime: post.created_at,
               idtype: 'post',
               typeid: post.id,
-              asthisid: 0, // meta.id
+              asthisid: 0 // meta.id
             }
             actions.push(action)
           }
           if (callback) {
-            callback(false, actions, res.meta)
+            callback(null, actions, res.meta)
           }
         } else {
           console.log('downloader.js:getUserStars - request failure')
@@ -228,52 +230,52 @@ module.exports = {
   },
   downloadFollowing: function(user, token, callback) {
     if (this.disabled()) {
-      if (callback) callback(false, [])
+      if (callback) callback(null, [])
       return
     }
-    //console.log('dataaccess.proxy.js::getUserStream - write me!')
-    var ref=this
-    var ts=Date.now()
-    /** @todo async processing needed, so we don't lock the API. This all could be sent to a background thread*/
+    // console.log('dataaccess.proxy.js::getUserStream - write me!')
+    var ref = this
+    var ts = Date.now()
+    /** @todo async processing needed, so we don't lock the API. This all could be sent to a background thread */
     // after the fact processing
     // assuming this proxy trigger means we don't have any followers for user
     // let's get some users
-    var need = 0, added = 0
+    var need = 0; var added = 0
     var downloadfollowings = function(start, ts, self) {
-      console.log('proxying user '+user+' following before '+start)
+      console.log('proxying user ' + user + ' following before ' + start)
       proxycalls++
-      var str=''
+      var str = ''
       if (start) {
-        str+='&before_id='+start
+        str += '&before_id=' + start
       }
-      var startdelay=0
-      var startdelay2=0
-      var counter=0
+      //var startdelay = 0
+      var startdelay2 = 0
+      var counter = 0
       // if we lower the count, we maybe more responsive...
-      //console.log('apitroot', ref.apiroot)
-      rateLimiter.rateLimit(token?1:0, 0, function() {
+      // console.log('apitroot', ref.apiroot)
+      rateLimiter.rateLimit(token ? 1 : 0, 0, function() {
         request.get({
-          url: ref.apiroot+'/users/'+user+'/following?count=200'+str,
+          url: ref.apiroot + '/users/' + user + '/following?count=200' + str,
           headers: {
-            "Authorization": "Bearer "+token,
+            Authorization: 'Bearer ' + token
           }
         }, function(e, r, body) {
-          rateLimiter.logRequest(token?1:0, 0)
-          if (!e && r && r.statusCode == 200) {
-            var res=JSON.parse(body)
-            console.log('retrieved followings '+res.data.length)
+          rateLimiter.logRequest(token ? 1 : 0, 0)
+          if (!e && r && r.statusCode === 200) {
+            var res = JSON.parse(body)
+            console.log('retrieved followings ' + res.data.length)
             // post process
             // 200 setFollow subprocess takes a huge toll on node
             // really slows the whole thing down...
             // this can lock for more than 35s
             // and then events/triggers really pile up
-            for(var i in res.data) {
-              var follow={
+            for (var i in res.data) {
+              var follow = {
                 user: self,
                 follows_user: res.data[i]
               }
-              //console.log('follow is ',follow)
-              //ref.dispatcher.setPost(post)
+              // console.log('follow is ',follow)
+              // ref.dispatcher.setPost(post)
               // ok, let's not spam our workers, we'll slowly deal out this work.
               // 100 is too slow on my machine
               // 200 is fine
@@ -284,8 +286,8 @@ module.exports = {
               // if we move to a fork then there is no reason to background
               // the downloading but until we do, we need to yeild
               // and let getUserStream process while we do our thing
-              startdelay2+=200
-              var func2=function(follow) {
+              startdelay2 += 200
+              var func2 = function(follow) {
                 // this put it high on the QoS list but delayed...
                 // so we get some what of a medium priority (not current but not low)
                 // doesn't the delay cancel whether it's high or low?
@@ -296,14 +298,14 @@ module.exports = {
                   process.stdout.write(' ')
                   counter++
                   added++
-                  if (counter==res.data.length) {
-                    console.log('Following batch complete',counter,added+'/'+need)
-                    if (added==need) {
+                  if (counter === res.data.length) {
+                    console.log('Following batch complete', counter, added + '/' + need)
+                    if (added === need) {
                       console.log('downloader.js::downloadFollowing - done')
                       ref.dispatcher.getFollowings(user, null, function(followings, err) {
-                        console.log('getFollowing',followings.length)
+                        console.log('getFollowing', followings.length)
                         if (callback) {
-                          callback(false, [])
+                          callback(null, [])
                         }
                       })
                     }
@@ -331,27 +333,27 @@ module.exports = {
               func(userid)
               */
             }
-            console.log('Processed all '+res.data.length+' followings in this batch')
-            need+=res.data.length
+            console.log('Processed all ' + res.data.length + ' followings in this batch')
+            need += res.data.length
 
             // dispatcher next io call asap
             // need to page results too...
             if (res.meta && res.meta.more) {
               // in 1s
-              console.log('downloader.js::downloadFollowing - getting more followings',res.meta.min_id,res.meta.max_id)
+              console.log('downloader.js::downloadFollowing - getting more followings', res.meta.min_id, res.meta.max_id)
               // in one second continue
-              //setTimeout(function() {
+              // setTimeout(function() {
               // should help the stack, right? we don't need to return any faster here
               // lets block until we're done
               // but it does yeild for a second
               // doesn't work like that in v10
               // we don't want to yeild, it's a high priority we get all these
-              //setImmediate(function() {
-                downloadfollowings(res.meta.min_id, ts, self)
-              //})
-              //}, 1000)
+              // setImmediate(function() {
+              downloadfollowings(res.meta.min_id, ts, self)
+              // })
+              // }, 1000)
             } else {
-              console.log('downloader.js::downloadFollowing - retrieved all followings',res.meta)
+              console.log('downloader.js::downloadFollowing - retrieved all followings', res.meta)
             }
           } else {
             console.log('downloader.js:downloadFollowing followings download - request failure')
@@ -375,11 +377,12 @@ module.exports = {
     setTimeout(function() {
       // we don't have any params... maybe we should use the dataaccess layer directly?
       ref.dispatcher.getUser(user, {}, function(err, userSelf) {
-        //console.log('self', userSelf)
+        if (err) console.error('downloader.js::downloadFollowing - getUser err', err)
+        // console.log('self', userSelf)
         downloadfollowings(0, ts, userSelf)
       })
     }, 0)
-  },
+  }
 }
 /*
 download - request failure
