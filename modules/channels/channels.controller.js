@@ -209,7 +209,7 @@ module.exports = {
         //console.log('channel.controller.js::channelToAPI - are you subscribed?', tokenObj.userid)
         channelDone.subscribed = false
         ref.cache.getSubscription(api.id, tokenObj.userid ? tokenObj.userid : 0, function(err, subed) {
-          if (err) console.err('channel.controller.js::channelToAPI - tokenOpt getSubscription err', err)
+          if (err) console.error('channel.controller.js::channelToAPI - tokenOpt getSubscription err', err)
           //console.log('channel.controller.js::channelToAPI - are you subscribed?', subed)
           api.you_subscribed = false
           if (subed) {
