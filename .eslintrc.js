@@ -19,5 +19,7 @@ module.exports = {
       "no-multi-spaces": "off",
       "spaced-comment": "off",
       "space-before-function-paren": ["error", "never"],
+      "no-var": "error",
+      "no-constant-condition": "off",
     }
 };
