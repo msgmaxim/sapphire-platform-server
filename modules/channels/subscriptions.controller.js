@@ -10,7 +10,7 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   setChannelSubscription: function(data, deleted, ts, callback) {
-    //console.log('dispatcher::setChannelSubscription - data', data, 'del', del)
+    //console.log('subscriptions.controller::setChannelSubscription - data', data, 'del', del)
     // update user object
     if (data.user) {
       this.updateUser(data.user, ts)
@@ -20,25 +20,27 @@ module.exports = {
     // update subscription
     this.cache.setSubscription(data.channel.id, data.user.id, deleted, ts, callback)
     if (this.notsilent) {
-      process.stdout.write(deleted?'s':'S')
+      process.stdout.write(deleted ? 's' : 'S')
     }
   },
   addChannelSubscription: function(tokenobj, channel_id, params, callback) {
-    //console.log('dispatcher::addChannelSubscription - channel', channel_id)
+    //console.log('subscriptions.controller::addChannelSubscription - channel', channel_id)
 
     //If a user has muted this Channel, this call will automatically unmute the Channel
-    var ref=this
+    const ref = this
     //addSubscription: function (channel_id, userid, callback) {
     this.cache.addSubscription(channel_id, tokenobj.userid, function(err, subscription) {
+      if (err) console.error('subscriptions.controller.js::addChannelSubscription - err', err)
       params.subscribedOpt = true
       ref.getChannel(channel_id, params, callback)
     })
   },
   delChannelSubscription: function(tokenobj, channel_id, params, callback) {
-    //console.log('dispatcher::delChannelSubscription - channel', channel_id)
-    var ref=this
+    //console.log('subscriptions.controller::delChannelSubscription - channel', channel_id)
+    const ref = this
     //channel_id, userid, del, ts, callback
     this.cache.setSubscription(channel_id, tokenobj.userid, true, new Date(), function(err, subscription) {
+      if (err) console.error('subscriptions.controller.js::setSubscription - err', err)
       //delSubscription: function (channel_id, userid, callback) {
       //this.cache.delSubscription(channel_id, tokenobj.userid, function(subscription, err) {
       params.unsubscribedOpt = true
@@ -52,15 +54,15 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getUserSubscriptions: function(userid, params, callback) {
-    //console.log('dispatcher.js::getUserSubscriptions -', userid)
+    //console.log('subscriptions.controller.js::getUserSubscriptions -', userid)
     // include_recent messages
     // channel_types filter
-    var ref=this
+    const ref = this
 
     /*
-    //console.log('dispatcher.js::getUserSubscriptions - params', params)
+    //console.log('subscriptions.controller.js::getUserSubscriptions - params', params)
     var nParams = params.pageParams
-    //console.log('dispatcher.js::getUserSubscriptions - nParams', nParams)
+    //console.log('subscriptions.controller.js::getUserSubscriptions - nParams', nParams)
     if (nParams.count===undefined) nParams.count=20
     if (nParams.before_id===undefined) nParams.before_id=-1 // -1 being the very end
     var oldcount=nParams.count
@@ -78,59 +80,59 @@ module.exports = {
     */
 
     this.cache.getUserSubscriptions(userid, params, function(subsErr, subs, subsMeta) {
-      //console.log('dispatcher.js::getUserSubscriptions - ', userid, 'has', subs.length)
+      //console.log('subscriptions.controller.js::getUserSubscriptions - ', userid, 'has', subs.length)
       if (subsErr) console.error('subscriptions.controller.js::getUserSubscriptions - err', subsErr)
       if (!subs.length) {
-        callback(subsErr, [], { code: 200, more: false})
+        callback(subsErr, [], { code: 200, more: false })
         return
       }
-      var channelids=[]
-      for(var i in subs) {
-        var sub=subs[i]
+      const channelids = []
+      for (const i in subs) {
+        const sub = subs[i]
         channelids.push(sub.channelid)
       }
       if (!channelids.length) {
-        callback(err, [], { code: 200, more: false})
+        callback(subsErr, [], { code: 200, more: false })
         return
       }
       //getChannel: function(ids, params, callback) {
-      params.tokenobj.subscribedOpt=true
-      var result_recent_messages=params.generalParams.recent_messages
-      params.generalParams.recent_messages=true
+      params.tokenobj.subscribedOpt = true
+      const result_recent_messages = params.generalParams.recent_messages
+      params.generalParams.recent_messages = true
       //params.channelParams.types=
       ref.getChannel(channelids, params, function(apiErr, apis, apiMeta) {
         if (apiErr) console.error('subscriptions.controller.js::getUserSubscriptions - getChannel err', apiErr)
-        //console.log('dispatcher.js::getUserSubscriptions - got apis', apis.length)
+        //console.log('subscriptions.controller.js::getUserSubscriptions - got apis', apis.length)
         // sort by the "most recent post first"
-        var list=[]
-        for(var i in apis) {
-          var api=apis[i]
-          var ts=0
+        let list = []
+        for (const i in apis) {
+          const api = apis[i]
+          let ts = 0
           if (api.recent_message) {
-            ts=new Date(api.recent_message.created_at).getTime()
+            ts = new Date(api.recent_message.created_at).getTime()
           }
-          //console.log('dispatcher.js::getUserSubscriptions - presort list', api.id)
+          //console.log('subscriptions.controller.js::getUserSubscriptions - presort list', api.id)
           list.push([i, ts])
         }
-        //console.log('dispatcher.js::getUserSubscriptions - presort list', list)
+        //console.log('subscriptions.controller.js::getUserSubscriptions - presort list', list)
         // sort list (ts desc (highest first))
-        list=list.sort(function(a, b) {
+        list = list.sort(function(a, b) {
           if (a[1] < b[1]) return 1
           if (a[1] > b[1]) return -1
           return 0
         })
-        //console.log('dispatcher.js::getUserSubscriptions - postsort list', list)
-        var nlist=[]
-        for(var i in list) {
+        //console.log('subscriptions.controller.js::getUserSubscriptions - postsort list', list)
+        const nlist = []
+        for (const i in list) {
           // strip out the recent_messages?
           if (result_recent_messages) {
             //
           }
-          var api=apis[list[i][0]]
-          //console.log('dispatcher.js::getUserSubscriptions - post list', api.id)
+          const api = apis[list[i][0]]
+          //console.log('subscriptions.controller.js::getUserSubscriptions - post list', api.id)
           nlist.push(api)
         }
-        //console.log('dispatcher.js::getUserSubscriptions - final count', nlist.length)
+        //console.log('subscriptions.controller.js::getUserSubscriptions - final count', nlist.length)
         // we actually want the count from subsMeta
         callback(apiErr, nlist, subsMeta)
       })
@@ -152,7 +154,7 @@ module.exports = {
       var max_id = 0
       for(var i in channels) {
         var channel_id=channels[i].id
-        console.log('dispatcher.js::getUserSubscriptions - in order', channel_id)
+        console.log('subscriptions.controller.js::getUserSubscriptions - in order', channel_id)
         min_id=Math.min(channel_id, min_id)
         max_id=Math.max(channel_id, max_id)
         params.tokenobj.subscribedOpt=true
@@ -164,7 +166,7 @@ module.exports = {
           if (count == channels.length) {
             var nlist=[]
             for(var i in channels) {
-              //console.log('dispatcher.js::getUserSubscriptions - out order', channels[i].id)
+              //console.log('subscriptions.controller.js::getUserSubscriptions - out order', channels[i].id)
               nlist.push(apis[channels[i].id])
             }
             callback(nlist, err || cErr, { code: 200, min_id: min_id,
@@ -182,28 +184,29 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getChannelSubscriptions: function(channelid, params, callback) {
-    var ref = this
-    //console.log('dispatcher.js::getChannelSubscriptions - start', channelid)
+    const ref = this
+    //console.log('subscriptions.controller.js::getChannelSubscriptions - start', channelid)
     this.cache.getChannelSubscriptionsPaged([channelid], params, function(err, subs, meta) {
-      //console.log('dispatcher.js::getChannelSubscriptions - ', channelid, 'has', subs.length, 'subs');
+      if (err) console.error('subscriptions.controller.js::getChannelSubscriptions - err', err)
+      //console.log('subscriptions.controller.js::getChannelSubscriptions - ', channelid, 'has', subs.length, 'subs');
       if (!subs.length) {
-        return callback(false, [], meta)
+        return callback(null, [], meta)
       }
-      var userIDs = subs.map(sub => sub.userid);
-      //console.log('dispatcher.js::getChannelSubscriptions - userIDs', userIDs);
+      const userIDs = subs.map(sub => sub.userid)
+      //console.log('subscriptions.controller.js::getChannelSubscriptions - userIDs', userIDs);
       ref.getUsers(userIDs, params, function(uErr, users, uMeta) {
-        if (uErr) console.error('dispatcher.js::getChannelSubscriptions - err', uErr);
-        callback(uErr, users, uMeta);
-      });
+        if (uErr) console.error('subscriptions.controller.js::getChannelSubscriptions - getUsers err', uErr)
+        callback(uErr, users, uMeta)
+      })
       /*
       var list = []
       for(var i in subs) {
         var sub = subs[i].userid
         // FIXME: remove N+1
-        //console.log('dispatcher.js::getChannelSubscriptions - user', sub)
+        //console.log('subscriptions.controller.js::getChannelSubscriptions - user', sub)
         ref.getUser(sub, params, function(user, uErr, uMeta) {
           list.push(user)
-          //console.log('dispatcher.js::getChannelSubscriptions -', list.length, subs.length)
+          //console.log('subscriptions.controller.js::getChannelSubscriptions -', list.length, subs.length)
           if (list.length == subs.length) {
             callback(list, '', meta)
           }
@@ -213,24 +216,22 @@ module.exports = {
     })
   },
   getChannelsSubscriptionIds: function(ids, params, token, callback) {
-    var ref = this
-    //console.log('dispatcher.js::getChannelsSubscriptionIds - start', ids)
+    //console.log('subscriptions.controller.js::getChannelsSubscriptionIds - start', ids)
     this.cache.getChannelSubscriptions(ids, params, function(err, subs, meta) {
-      //console.log('dispatcher.js::getChannelsSubscriptionIds - ', ids, 'has', subs.length, 'subs');
-      if (err) console.error('dispatcher.js::getChannelsSubscriptionIds - err', err)
+      //console.log('subscriptions.controller.js::getChannelsSubscriptionIds - ', ids, 'has', subs.length, 'subs');
+      if (err) console.error('subscriptions.controller.js::getChannelsSubscriptionIds - err', err)
       if (!subs.length) {
-        return callback(false, [], meta)
+        return callback(null, [], meta)
       }
-      var result = {}
-      for(var i in subs) {
-        var chanId = parseInt(subs[i].channelid)
+      const result = {}
+      for (const i in subs) {
+        const chanId = parseInt(subs[i].channelid)
         // console.log('channel', chanId, 'has', subs[i].userid)
         if (result[chanId] === undefined) {
-          result[chanId] = [subs[i].userid];
-        } else
-          result[chanId].push(subs[i].userid);
+          result[chanId] = [subs[i].userid]
+        } else { result[chanId].push(subs[i].userid) }
       }
-      callback(false, result, meta)
+      callback(null, result, meta)
     })
-  },
+  }
 }

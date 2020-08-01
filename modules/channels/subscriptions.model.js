@@ -1,18 +1,17 @@
-var subscriptionModel
+let SubscriptionModel
 let applyParams
 
 function start(options) {
   const schemaData = options.schemaData
   applyParams = options.applyParams
   /** subscription storage model */
-  subscriptionModel = schemaData.define('subscriptions', {
+  SubscriptionModel = schemaData.define('subscriptions', {
     channelid: { type: Number, index: true },
     userid: { type: Number, index: true },
     created_at: { type: Date },
     active: { type: Boolean, index: true },
-    last_updated: { type: Date },
+    last_updated: { type: Date }
   })
-
 }
 
 module.exports = {
@@ -26,69 +25,71 @@ module.exports = {
     active: { type: Boolean, index: true },
     last_updated: { type: Date },
   */
-  addSubscription: function (channel_id, userid, callback) {
-    //console.log('dataaccess.camintejs::addSubscription - channel_id', channel_id, 'userid', userid);
-    subscriptionModel.findOne({ where : {
-      channelid: parseInt(channel_id),
-      userid: parseInt(userid),
-    } }, function(err, subscription) {
-      if (err) {
-        console.log('dataaccess.camintejs::addSubscription - err', err);
+  addSubscription: function(channel_id, userid, callback) {
+    //console.log('subscriptions.model::addSubscription - channel_id', channel_id, 'userid', userid);
+    SubscriptionModel.findOne({
+      where: {
+        channelid: parseInt(channel_id),
+        userid: parseInt(userid)
       }
-      //console.log('dataaccess.camintejs::addSubscription - subscription', subscription);
+    }, function(err, subscription) {
+      if (err) {
+        console.log('subscriptions.model::addSubscription - err', err)
+      }
+      //console.log('subscriptions.model::addSubscription - subscription', subscription);
       // if you have a null created_at, we'll just keep making new records with this
       // || !subscription.created_at
       if (!subscription) {
-        subscription = new subscriptionModel
-        subscription.created_at = new Date();
-        subscription.channelid  = parseInt(channel_id);
-        subscription.userid     = parseInt(userid);
+        subscription = new SubscriptionModel()
+        subscription.created_at = new Date()
+        subscription.channelid  = parseInt(channel_id)
+        subscription.userid     = parseInt(userid)
       }
-      if (subscription.created_at == null) {
-        subscription.created_at = new Date();
+      if (subscription.created_at === null) {
+        subscription.created_at = new Date()
       }
-      subscription.active = 1;
-      subscription.last_updated = new Date();
+      subscription.active = 1
+      subscription.last_updated = new Date()
       subscription.save(function() {
         if (callback) {
-          //console.log('dataaccess.camintejs::addSubscription result', subscription);
-          callback(err, subscription);
+          //console.log('subscriptions.model::addSubscription result', subscription);
+          callback(err, subscription)
         }
-      });
-    });
+      })
+    })
   },
-  setSubscription: function (channel_id, userid, del, ts, callback) {
-    //console.log('dataaccess.camintejs::setSubscription - channel_id', channel_id, 'userid', userid);
-    subscriptionModel.updateOrCreate({
+  setSubscription: function(channel_id, userid, del, ts, callback) {
+    //console.log('subscriptions.model::setSubscription - channel_id', channel_id, 'userid', userid);
+    SubscriptionModel.updateOrCreate({
       channelid: parseInt(channel_id),
       userid: parseInt(userid)
     }, {
       active: del ? 0 : 1,
       last_updated: ts
     }, function(err, subscription) {
-      //console.log('dataaccess.camintejs::setSubscription result', subscription);
+      //console.log('subscriptions.model::setSubscription result', subscription);
       if (err) {
-        console.error('dataaccess.camintejs::setSubscription err', err)
+        console.error('subscriptions.model::setSubscription err', err)
       }
       if (callback) {
-        callback(subscription, err);
+        callback(subscription, err)
       }
-    });
+    })
   },
   getSubscription: function(channel_id, user_id, callback) {
-    user_id=parseInt(user_id); // ensure it's a number at this point
+    user_id = parseInt(user_id) // ensure it's a number at this point
     if (isNaN(user_id)) {
-      console.log('dataaccess.caminte.js::getSubscription - userid is NaN');
-      callback([], 'userid is NaN');
-      return;
+      console.log('dataaccess.caminte.js::getSubscription - userid is NaN')
+      callback(new Error('userid is NaN'), [])
+      return
     }
-    subscriptionModel.findOne({ where: { active: 1, userid: user_id, channelid: channel_id } }, function(err, subscription) {
-      callback(subscription, err);
+    SubscriptionModel.findOne({ where: { active: 1, userid: user_id, channelid: channel_id } }, function(err, subscription) {
+      callback(subscription, err)
     })
   },
   /*
   delSubscription: function (channel_id, userid, callback) {
-    subscriptionModel.remove({
+    SubscriptionModel.remove({
       channelid: channel_id,
       userid: userid,
     }, function(err, subscription) {
@@ -100,36 +101,35 @@ module.exports = {
   */
   getUserSubscriptions: function(userid, params, callback) {
     //console.log('dataaccess.caminte.js::getUserSubscriptions - userid is', userid);
-    if (userid==undefined) {
-      console.log('dataaccess.caminte.js::getUserSubscriptions - userid is undefined');
-      callback([], 'userid is undefined');
-      return;
+    if (userid === undefined) {
+      console.log('dataaccess.caminte.js::getUserSubscriptions - userid is undefined')
+      callback(new Error('userid is undefined'), [])
+      return
     }
-    if (userid=='') {
-      console.log('dataaccess.caminte.js::getUserSubscriptions - userid is empty');
-      callback([], 'userid is empty');
-      return;
+    if (userid === '') {
+      console.log('dataaccess.caminte.js::getUserSubscriptions - userid is empty')
+      callback(new Error('userid is empty'), [])
+      return
     }
-    var ref=this;
-    userid=parseInt(userid); // ensure it's a number at this point
+    userid = parseInt(userid) // ensure it's a number at this point
     if (isNaN(userid)) {
-      console.log('dataaccess.caminte.js::getUserSubscriptions - userid is NaN');
-      callback([], 'userid is NaN');
-      return;
+      console.log('dataaccess.caminte.js::getUserSubscriptions - userid is NaN')
+      callback(new Error('userid is NaN'), [])
+      return
     }
     //console.log('dataaccess.caminte.js::getUserSubscriptions - userid', userid);
 
     // we actually not sort by id but by the "most recent post first"
 
     //applyParams(query, params, callback)
-    var query=subscriptionModel.find().where('userid', userid).where('active', 1);
-    applyParams(query, params, callback);
+    const query = SubscriptionModel.find().where('userid', userid).where('active', 1)
+    applyParams(query, params, callback)
 
     /*function(subs, err, meta) {
     //applyParams(postModel.find().where('id', { nin: ourRepostIds }).where('userid',{ in: userids }), params, maxid, callback);
-    //subscriptionModel.find({ where: { userid: userid, active: 1 } }, function(err, subs) {
+    //SubscriptionModel.find({ where: { userid: userid, active: 1 } }, function(err, subs) {
       callback(subs, err, meta); */
-      /*
+    /*
       // FIXME: lookup should be in dispatcher for caching reasons
       // and that means we need to do the sorting in dispatcher
       var channelids=[];
@@ -156,34 +156,34 @@ module.exports = {
     //});
   },
   getChannelSubscriptionCount: function(channelids, callback) {
-    if (channelids==undefined) {
-      console.log('dataaccess.caminte.js::getChannelSubscriptionCount - channel id is undefined');
-      callback(null, 'dataaccess.caminte.js::getChannelSubscriptionCount - channel id is undefined');
-      return;
+    if (channelids === undefined) {
+      console.log('dataaccess.caminte.js::getChannelSubscriptionCount - channel id is undefined')
+      callback(null, 'dataaccess.caminte.js::getChannelSubscriptionCount - channel id is undefined')
+      return
     }
     // FIXME: how slow is this on innodb...
-    subscriptionModel.count({ where: { 'channelid': { in: channelids }, 'active': 1 } }, callback);
+    SubscriptionModel.count({ where: { channelid: { in: channelids }, active: 1 } }, callback)
   },
   // get all subscription records
   getChannelSubscriptions: function(channelids, params, callback) {
-    if (channelids==undefined) {
-      console.log('dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined');
-      callback(null, 'dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined');
-      return;
+    if (channelids === undefined) {
+      console.log('dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined')
+      callback(null, 'dataaccess.caminte.js::getChannelSubscriptions - channel id is undefined')
+      return
     }
 
     // make memory driver happy
-    for(var i in channelids) {
-      channelids[i] = parseInt(channelids[i]);
+    for (const i in channelids) {
+      channelids[i] = parseInt(channelids[i])
     }
 
     //console.log('dataaccess.caminte.js::getChannelSubscriptions - channelids', channelids);
     /*
-    var query=subscriptionModel.find().where('channelid', { in: channelids }).where('active', 1);
+    var query=SubscriptionModel.find().where('channelid', { in: channelids }).where('active', 1);
     //console.log('dataaccess.caminte.js::getChannelSubscriptions - query', query);
     applyParams(query, params, callback);
     */
-    subscriptionModel.find({ where: { channelid: { in: channelids }, active: 1 } }, callback);
+    SubscriptionModel.find({ where: { channelid: { in: channelids }, active: 1 } }, callback)
     /*
     if (this.next) {
       this.next.getChannelSubscriptions(channelid, params, callback);
@@ -194,21 +194,21 @@ module.exports = {
   },
   // paged version for public usage
   getChannelSubscriptionsPaged: function(channelids, params, callback) {
-    if (channelids==undefined) {
-      console.log('dataaccess.caminte.js::getChannelSubscriptionsPaged - channel id is undefined');
-      callback(null, 'dataaccess.caminte.js::getChannelSubscriptionsPaged - channel id is undefined');
-      return;
+    if (channelids === undefined) {
+      console.log('dataaccess.caminte.js::getChannelSubscriptionsPaged - channel id is undefined')
+      callback(null, 'dataaccess.caminte.js::getChannelSubscriptionsPaged - channel id is undefined')
+      return
     }
 
     // make memory driver happy
-    for(var i in channelids) {
-      channelids[i] = parseInt(channelids[i]);
+    for (const i in channelids) {
+      channelids[i] = parseInt(channelids[i])
     }
 
     //console.log('dataaccess.caminte.js::getChannelSubscriptions - channelids', channelids);
-    var query=subscriptionModel.find().where('channelid', { in: channelids }).where('active', 1);
+    const query = SubscriptionModel.find().where('channelid', { in: channelids }).where('active', 1)
     //console.log('dataaccess.caminte.js::getChannelSubscriptions - query', query);
-    applyParams(query, params, callback);
+    applyParams(query, params, callback)
     /*
     if (this.next) {
       this.next.getChannelSubscriptions(channelid, params, callback);
@@ -216,5 +216,5 @@ module.exports = {
     }
     callback(null, null);
     */
-  },
+  }
 }

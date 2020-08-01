@@ -1,4 +1,4 @@
-var streamMarkersModel
+let streamMarkersModel
 
 function start(options) {
   const schemaData = options.schemaData
@@ -9,7 +9,7 @@ function start(options) {
     name: { type: String, length: 32 },
     percentage: { type: Number },
     last_updated: { type: Date },
-    version: { type: Number },
+    version: { type: Number }
   })
 }
 
@@ -22,37 +22,36 @@ module.exports = {
   getStreamMarker: function(userid, name, callback) {
     streamMarkersModel.find({ where: { user_id: userid, name: name } }, function(err, markers) {
       if (err) console.log('dataaccess.camintejs.js::getStreamMarker - err', err)
-      var marker = markers[0]
-      callback(marker, err);
-    });
+      callback(markers[0], err)
+    })
   },
   setStreamMarker: function(userid, name, id, percentage, params, callback) {
-    var updObj = {
+    const updObj = {
       top_id: id,
       last_updated: new Date()
-    };
+    }
     if (percentage !== undefined) {
-      updObj.percentage = percentage;
+      updObj.percentage = percentage
     }
     streamMarkersModel.updateOrCreate({
       user_id: userid,
-      name: name,
+      name: name
     }, updObj, function(err, marker) {
       if (err || !marker) console.log('dataaccess.camintejs.js::setStreamMarker - err', err)
       if (marker.version === undefined) {
-        marker.version = 0;
+        marker.version = 0
       }
       if (marker.last_read_id === undefined) {
-        marker.last_read_id = 0;
+        marker.last_read_id = 0
       }
       if (marker.last_read_id < marker.top_id) {
-        marker.last_read_id = marker.top_id;
+        marker.last_read_id = marker.top_id
       }
-      marker.version++;
+      marker.version++
       marker.save(function() {
         //console.log('dataaccess.camintejs.js::setStreamMarker - marker', marker);
-        callback(err, marker);
+        callback(err, marker)
       })
     })
-  },
+  }
 }

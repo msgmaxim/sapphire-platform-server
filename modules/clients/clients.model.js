@@ -1,16 +1,16 @@
-var clientModel
+let ClientModel
 
 function start(options) {
   const schemaData = options.schemaData
   // local clients (upstream is set in config and we can only have one upstream)
   /** client storage model */
-  clientModel = schemaData.define('client', {
+  ClientModel = schemaData.define('client', {
     client_id: { type: String, limit: 32, index: true }, // probably should be client_id
     secret: { type: String, limit: 32 },
     userid: { type: Number },
     name: { type: String, limit: 255 },
     link: { type: String, limit: 255 },
-    accountid: { type: Number, index: true },
+    accountid: { type: Number, index: true }
   })
   /*
     client_id: { type: String, length: 32, index: true },
@@ -18,7 +18,7 @@ function start(options) {
     shortname: { type: String, length: 255 },
     displayname: { type: String, length: 255 },
   */
-  clientModel.validatesUniquenessOf('client_id', {message:'client_id is not unique'})
+  ClientModel.validatesUniquenessOf('client_id', { message: 'client_id is not unique' })
 }
 
 module.exports = {
@@ -28,24 +28,24 @@ module.exports = {
    * network clients?
    */
   addSource: function(client_id, name, link, callback) {
-    var client=new clientModel;
-    client.client_id=client_id;
-    client.name=name;
-    client.link=link;
+    const client = new ClientModel()
+    client.client_id = client_id
+    client.name = name
+    client.link = link
     client.save(function(err) {
-      callback(err, client);
+      callback(err, client)
     })
   },
   getClient: function(client_id, callback) {
-    clientModel.findOne({ where: {client_id: client_id} }, function(err, client) {
+    ClientModel.findOne({ where: { client_id: client_id } }, function(err, client) {
       if (client) {
-        delete client.secret;
+        delete client.secret
       }
-      callback(err, client);
-    });
+      callback(err, client)
+    })
   },
   setSource: function(source, callback) {
-    clientModel.findOrCreate({
+    ClientModel.findOrCreate({
       client_id: source.client_id
     }, {
       name: source.name,
@@ -54,7 +54,7 @@ module.exports = {
       if (client) {
         delete client.secret
       }
-      callback(err, client);
-    });
-  },
+      callback(err, client)
+    })
+  }
 }

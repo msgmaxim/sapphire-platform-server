@@ -23,9 +23,11 @@ module.exports = {
       //console.log('dispatcher.js::setFollows - has data', data.user.id, data.follows_user.id, 'id', id, 'deleted', deleted, 'ts', ts)
       // probably dont' need this first one but we're an internal API
       // maybe something will need it eventually
-      var ref = this
+      const ref = this
       this.normalizeUserID(data.user.id, {}, function(err, normalUserId) {
+        if (err) console.error('follows.controller.js::setFollows - normalizeUserID err', err)
         ref.normalizeUserID(data.follows_user.id, {}, function(err, normalFollowId) {
+          if (err) console.error('follows.controller.js::setFollows - normalizeUserID2 err', err)
           ref.cache.setFollow(normalUserId, normalFollowId, id, deleted, ts)
         })
       })
@@ -34,7 +36,7 @@ module.exports = {
       this.cache.setFollow(0, 0, id, deleted, ts)
     }
     if (this.notsilent) {
-      process.stdout.write(deleted?'f':'F')
+      process.stdout.write(deleted ? 'f' : 'F')
     }
     if (callback) {
       callback()
@@ -42,27 +44,29 @@ module.exports = {
   },
   getFollowings: function(user, params, tokenObj, callback) {
     //console.log('dispatcher.js::getFollowing - for', userid)
-    var ref=this
+    const ref = this
     this.normalizeUserID(user, tokenObj, function(err, userid) {
+      if (err) console.error('follows.controller.js::getFollowings - normalizeUserID err', err)
       ref.cache.getFollowing(userid, params, function(err, follows, meta) {
         if (err || !follows || !follows.length) {
           callback(err, [])
           return
         }
-        var users=[]
+        const users = []
         //console.log('dispatcher.js::getFollowing', follows.length)
-        var min_id = 9999
-        var max_id = 0
-        for(var i in follows) {
-          min_id=Math.min(min_id, follows[i].id)
-          max_id=Math.max(max_id, follows[i].id)
-          var scope=function(i) {
+        let min_id = 9999
+        let max_id = 0
+        for (const i in follows) {
+          min_id = Math.min(min_id, follows[i].id)
+          max_id = Math.max(max_id, follows[i].id)
+          ;
+          (function(i) {
             ref.getUser(follows[i].followsid, { tokenobj: tokenObj }, function(err, user) {
               if (err) {
-                console.error('dispatcher.js::getFollowers - err', err)
+                console.error('follows.controller.js::getFollowers - err', err)
               }
               if (!user) {
-                console.log('dispatcher.js::getFollowers - empty user gotten for', follows[i].userid)
+                console.log('follows.controller.js::getFollowers - empty user gotten for', follows[i].userid)
                 user = {} // fix it so setting pagination doesn't crash
               }
               /*
@@ -76,7 +80,7 @@ module.exports = {
               // alpha needs this dummy wrapper
               // but it's against spec
               /*
-              var obj={
+              const obj={
                 id: 0,
                 text: 'alpha hack',
                 created_at: '2014-10-24T17:04:48Z',
@@ -88,47 +92,48 @@ module.exports = {
               */
               user.pagination_id = follows[i].id
               users.push(user)
-              if (users.length==follows.length) {
+              if (users.length === follows.length) {
                 // supposed to return meta too
-                var imeta={
+                const imeta = {
                   code: 200,
                   min_id: min_id,
                   max_id: max_id,
-                  more: users.length==params.count
+                  more: users.length === parseInt(params.count)
                 }
                 callback(err, users, imeta)
               }
             })
-          }(i)
+          }(i))
         }
       })
     })
   },
   getFollowers: function(user, params, tokenObj, callback) {
     //console.log('dispatcher.js::getFollowers - for', userid)
-    var ref=this
+    const ref = this
     this.normalizeUserID(user, tokenObj, function(err, userid) {
+      if (err) console.error('follows.controller.js::getFollowers - normalizeUserID err', err)
       ref.cache.getFollows(userid, params, function(err, follows, meta) {
         if (err || !follows || !follows.length) {
-          if (err) console.error('dispatcher::getFollowers', err)
+          if (err) console.error('follows.controller.js::getFollowers', err)
           callback(err, [])
           return
         }
-        var users=[]
+        const users = []
         //console.log('dispatcher.js::getFollowers', follows.length)
-        for(var i in follows) {
+        for (const i in follows) {
           ref.getUser(follows[i].userid, { tokenobj: tokenObj }, function(err, user) {
             if (err) {
-              console.error('dispatcher.js::getFollowers - err', err)
+              console.error('follows.controller.js::getFollowers - err', err)
             }
             if (!user) {
-              console.log('dispatcher.js::getFollowers - empty user gotten for', follows[i].userid)
+              console.log('follows.controller.js::getFollowers - empty user gotten for', follows[i].userid)
             }
-            //console.log('dispatcher.js::getFollowers - adding user', user)
+            //console.log('follows.controller.js::getFollowers - adding user', user)
             // alpha needs this dummy wrapper
             // but it's against spec
             /*
-            var obj={
+            const obj={
               id: 0,
               text: 'alpha hack',
               created_at: '2014-10-24T17:04:48Z',
@@ -140,7 +145,7 @@ module.exports = {
             */
             users.push(user)
             //console.log('dispatcher.js::getFollowers - users', users.length, 'follows', follows.length)
-            if (users.length==follows.length) {
+            if (users.length === follows.length) {
               // supposed to return meta too
               callback(err, users, meta)
             }
@@ -148,5 +153,5 @@ module.exports = {
         }
       })
     })
-  },
+  }
 }

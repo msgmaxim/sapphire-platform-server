@@ -1,4 +1,4 @@
-module.exports={
+module.exports = {
   //
   // stream_marker
   //
@@ -19,5 +19,5 @@ module.exports={
    */
   setStreamMarker: function(name, id, percentage, usertoken, params, callback) {
     this.cache.setStreamMarker(usertoken.userid, name, id, percentage, params, callback)
-  },
+  }
 }

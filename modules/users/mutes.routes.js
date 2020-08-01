@@ -5,65 +5,67 @@ module.exports = {
 
     // Token: Any, Scope: no specified
     // app tokens can use user_id query to specify which users
-    app.get(prefix+'/users/:user_id/muted', function(req, resp) {
+    app.get(prefix + '/users/:user_id/muted', function(req, resp) {
       // req.token
       // req.token convert into userid/sourceid
       dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
+        if (err) console.error('mutes.routes.js::getUSERSxMUTED - getUserClientByToken err', err)
         //console.log('usertoken', usertoken);
-        if (usertoken==null) {
+        if (usertoken == null) {
           // could be they didn't log in through a server restart
-          var res={
-            "meta": {
-              "code": 401,
-              "error_message": "Call requires authentication: Authentication required to fetch token."
+          const res = {
+            meta: {
+              code: 401,
+              error_message: 'Call requires authentication: Authentication required to fetch token.'
             }
-          };
-          resp.status(401).type('application/json').send(JSON.stringify(res));
+          }
+          resp.status(401).type('application/json').send(JSON.stringify(res))
         } else {
-          dispatcher.getMutes(req.params.user_id, req.apiParams, usertoken, callbacks.dataCallback(resp));
+          dispatcher.getMutes(req.params.user_id, req.apiParams, usertoken, callbacks.dataCallback(resp))
         }
-      });
-    });
+      })
+    })
 
-    app.post(prefix+'/users/:user_id/mute', function(req, resp) {
+    app.post(prefix + '/users/:user_id/mute', function(req, resp) {
       // req.token
       // req.token convert into userid/sourceid
       dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
+        if (err) console.error('mutes.routes.js::postUSERSxMUTE - getUserClientByToken err', err)
         //console.log('usertoken', usertoken);
-        if (usertoken==null) {
+        if (usertoken == null) {
           // could be they didn't log in through a server restart
-          var res={
-            "meta": {
-              "code": 401,
-              "error_message": "Call requires authentication: Authentication required to fetch token."
+          const res = {
+            meta: {
+              code: 401,
+              error_message: 'Call requires authentication: Authentication required to fetch token.'
             }
-          };
-          resp.status(401).type('application/json').send(JSON.stringify(res));
+          }
+          resp.status(401).type('application/json').send(JSON.stringify(res))
         } else {
-          dispatcher.addMute(req.params.user_id, req.apiParams, usertoken, callbacks.dataCallback(resp));
+          dispatcher.addMute(req.params.user_id, req.apiParams, usertoken, callbacks.dataCallback(resp))
         }
-      });
-    });
+      })
+    })
 
-
-    app.delete(prefix+'/users/:user_id/mute', function(req, resp) {
+    app.delete(prefix + '/users/:user_id/mute', function(req, resp) {
       // req.token
       // req.token convert into userid/sourceid
       dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
+        if (err) console.error('mutes.routes.js::deleteUSERSxMUTE - getUserClientByToken err', err)
         //console.log('usertoken', usertoken);
-        if (usertoken==null) {
+        if (usertoken == null) {
           // could be they didn't log in through a server restart
-          var res={
-            "meta": {
-              "code": 401,
-              "error_message": "Call requires authentication: Authentication required to fetch token."
+          const res = {
+            meta: {
+              code: 401,
+              error_message: 'Call requires authentication: Authentication required to fetch token.'
             }
-          };
-          resp.status(401).type('application/json').send(JSON.stringify(res));
+          }
+          resp.status(401).type('application/json').send(JSON.stringify(res))
         } else {
-          dispatcher.deleteMute(req.params.user_id, req.apiParams, usertoken, callbacks.dataCallback(resp));
+          dispatcher.deleteMute(req.params.user_id, req.apiParams, usertoken, callbacks.dataCallback(resp))
         }
-      });
-    });
+      })
+    })
   }
 }

@@ -13,10 +13,10 @@ function start(options) {
 module.exports = {
   next: null,
   start: start,
-  getMutes: function(userid, params, callback) {
-    var userid = parseInt(userid)
+  getMutes: function(pUserid, params, callback) {
+    const userid = parseInt(pUserid)
     if (isNaN(userid)) {
-      callback('invalid userid', false, false)
+      callback(new Error('invalid userid'), false, false)
       return
     }
     applyParams(muteModel.find().where('userid', { in: userid }), params, callback)
@@ -24,23 +24,23 @@ module.exports = {
   getAllMutesForUser: function(userid, callback) {
     if (!Array.isArray(userid)) userid = [userid]
     //console.log('mutes.model.js::getAllMutesForUser - userid', userid)
-    muteModel.find({ where: { 'userid': { in: userid } } }, function(err, mutes) {
+    muteModel.find({ where: { userid: { in: userid } } }, function(err, mutes) {
       if (err) console.error('mutes.model.js::getAllMutesForUser - err', err)
       //console.log('mutes.model.js::getAllMutesForUser - mutes', mutes)
       const mutedUserIDs = []
-      for(var i in mutes) {
+      for (const i in mutes) {
         if (mutes[i] && mutes[i].muteeid) {
           mutedUserIDs.push(mutes[i].muteeid)
         } else {
           // console.error('mutes.model.js::getAllMutesForUser - what is the driver doing', mutes, 'for', userid)
         }
       }
-      callback(false, mutedUserIDs)
+      callback(null, mutedUserIDs)
     })
   },
   addMute: function(userid, muteeid, params, callback) {
     //console.log('dataaccess.caminte::addMute', muteeid, 'for', userid, typeof(callback))
-    var crit = { userid: parseInt(userid), muteeid: muteeid }
+    const crit = { userid: parseInt(userid), muteeid: muteeid }
     muteModel.findOne({ where: crit }, function(err, mute) {
       //console.log('dataaccess.caminte::addMute - mute', mute)
       if (err) console.log('dataaccess.caminte::addMute - err', err, mute)
@@ -74,5 +74,5 @@ module.exports = {
         callback(err, mute)
       }
     })
-  },
+  }
 }

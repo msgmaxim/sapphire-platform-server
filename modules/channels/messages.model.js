@@ -1,4 +1,4 @@
-var messageModel
+let messageModel
 let applyParams
 
 function start(options) {
@@ -15,7 +15,7 @@ function start(options) {
     userid: { type: Number, index: true },
     reply_to: { type: Number }, // kind of want to index this
     is_deleted: { type: Boolean, index: true },
-    created_at: { type: Date },
+    created_at: { type: Date }
   })
 }
 
@@ -23,15 +23,17 @@ module.exports = {
   next: null,
   start: start,
   /** messages */
-  setMessage: function (msg, callback) {
+  setMessage: function(msg, callback) {
     // If a Message has been deleted, the text, html, and entities properties will be empty and may be omitted.
     //console.log('setMessage - id', msg.id, 'updates', msg)
     // findOrCreate didn't work
     // updateOrCreate expects a full object
     messageModel.findOne({ where: { id: msg.id } }, function(err, omsg) {
+      if (err) console.error('messages.model.js::setMessage - err', err)
+
       function doCallback(err, fMsg) {
         if (err) {
-          console.log('setMessage:::doCallback - err', err)
+          console.log('messages.model.js::setMessage:doCallback - err', err)
         }
         // if it's an update fMsg is number of rows affected
         //console.log('setMessage:::doCallback - ', fMsg)
@@ -54,35 +56,35 @@ module.exports = {
     // we can detect and handle certain errors
     messageModel.create(message, function(err, omsg) {
       if (err) {
-        console.error('dataaccess.camtine.js::addMessage - err', err)
+        console.error('messages.model.js::addMessage - err', err)
       }
       if (callback) {
         callback(err, omsg)
       }
     })
   },
-  deleteMessage: function (message_id, channel_id, callback) {
-    //console.log('dataaccess.camtine.js::deleteMessage - start', message_id, channel_id)
-    var ref = this
+  deleteMessage: function(message_id, channel_id, callback) {
+    //console.log('messages.model.js::deleteMessage - start', message_id, channel_id)
+    const ref = this
     if (!message_id) {
-      console.warn('dataaccess.camtine.js::deleteMessage -  no message_id')
+      console.warn('messages.model.js::deleteMessage -  no message_id')
       if (callback) {
-        callback('no message_id', false)
+        callback(new Error('no message_id'), false)
       }
       return
     }
     messageModel.update({ where: { id: parseInt(message_id) } }, { is_deleted: 1 }, function(err, omsg) {
       if (err) {
-        console.log('dataaccess.camtine.js::deleteMessage - err', err)
+        console.log('messages.model.js::deleteMessage - err', err)
       } else {
-        //console.log('dataaccess.camtine.js::deleteMessage - loggin interaction')
+        //console.log('messages.model.js::deleteMessage - loggin interaction')
         // log delete interaction
         ref.addInteraction('delete', parseInt(channel_id), 'message', parseInt(message_id))
         //ref.setInteraction(parseInt(channel_id), parseInt(message_id), 'delete', 0, 0, Date.now())
       }
-      //console.log('dataaccess.camtine.js::deleteMessage - check cb')
+      //console.log('messages.model.js::deleteMessage - check cb')
       if (callback) {
-        //console.log('dataaccess.camtine.js::deleteMessage - cb', omsg)
+        //console.log('messages.model.js::deleteMessage - cb', omsg)
         // omsg is the number of records updated
         // or just the fields changed...
         callback(err, omsg)
@@ -92,39 +94,39 @@ module.exports = {
   getMessage: function(id, callback) {
     if (id === undefined) {
       console.trace('messages.model.js::getMessage - id is undefined')
-      callback('id is undefined')
+      callback(new Error('id is undefined'))
       return
     }
     if (id === 'undefined') {
       console.trace('messages.model.js::getMessage - id is string undefined')
-      callback('id is undefined')
+      callback(new Error('id is undefined'))
       return
     }
     //console.log('dataaccess.caminte.js::getMessage - id', id)
-    var criteria={ where: { id: id, is_deleted: 0 } }
+    const criteria = { where: { id: id, is_deleted: 0 } }
     if (id instanceof Array) {
       // this wasn't necessary
-      var newList = []
-      for(var i in id) {
-        var val = parseInt(id[i])
+      const newList = []
+      for (const i in id) {
+        const val = parseInt(id[i])
         if (val) {
           newList.push(val)
         }
       }
       //console.log('dataaccess.caminte.js::getMessage - newList', newList);
-      criteria.where['id']={ in: newList };
+      criteria.where.id = { in: newList }
     }
     //if (params.channelParams && params.channelParams.inactive) {
-      //criteria.where['inactive']= { ne: null }
+    //criteria.where['inactive']= { ne: null }
     //}
-    var ref=this
+    const ref = this
     //console.log('messages.model.js::getMessage - criteria', criteria)
     messageModel.find(criteria, function(err, messages) {
       if (err) {
         console.log('dataaccess.caminte.js::getMessage - err', err)
       }
       // console.log('dataaccess.caminte.js::getMessage - messages', JSON.parse(JSON.stringify(messages)))
-      if (messages==null && err==null) {
+      if (messages == null && err == null) {
         if (ref.next) {
           ref.next.getMessage(id, callback)
           return
@@ -143,21 +145,20 @@ module.exports = {
     })
   },
   getChannelMessages: function(channelid, params, callback) {
-    var ref=this
-    var query=messageModel.find().where('channel_id', parseInt(channelid))
+    let query = messageModel.find().where('channel_id', parseInt(channelid))
     //console.log('dataaccess.caminte.js::getChannelMessages - params', params)
     if (params.generalParams.deleted) {
     } else {
-      query=query.where('is_deleted', 0)
+      query = query.where('is_deleted', 0)
     }
     //console.log('dataaccess.caminte.js::getChannelMessages - query', query)
     //console.log('dataaccess.camintejs::getChannelMessages - channelid', channelid, 'token', JSON.parse(JSON.stringify(params.tokenobj)))
     if (params.tokenobj && params.tokenobj.userid) {
-      var mutedUserIDs = []
+      const mutedUserIDs = []
       //muteModel.find({ where: { 'userid': { in: params.tokenobj.userid } } }, function(err, mutes) {
       this.getAllMutesForUser(params.tokenobj.userid, function(err, mutes) {
         if (err) console.error('messages.model.js::getChannelMessages - getAllMutesForUser err', err)
-        for(var i in mutes) {
+        for (const i in mutes) {
           if (!mutes[i].muteeid) {
             console.warn('messages.model.js::getChannelMessages - no muteeid', mutes[i])
           }
@@ -172,5 +173,5 @@ module.exports = {
     } else {
       applyParams(query, params, callback)
     }
-  },
+  }
 }

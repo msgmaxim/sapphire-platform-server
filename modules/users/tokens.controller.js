@@ -19,18 +19,19 @@ module.exports = {
     // we could lookup unique token by userid/client_id
     // dummy token
     this.getUser(userid, params, function(err, user) {
-      var token={
+      if (err) console.error('tokens.controller.js::getToken - getUser err', err)
+      const token = {
         app: {
           client_id: client_id,
-          link: "http://foo.example.com",
-          name: "Test app",
+          link: 'http://foo.example.com',
+          name: 'Test app'
         },
         scopes: [
-          "stream",
-          "messages",
-          "export",
-          "write_post",
-          "follow"
+          'stream',
+          'messages',
+          'export',
+          'write_post',
+          'follow'
         ],
         limits: {
           following: 40,
@@ -41,10 +42,10 @@ module.exports = {
           used: 1212520312
         },
         user: user,
-        invite_link: "https://join.app.net/from/notareallink"
+        invite_link: 'https://join.app.net/from/notareallink'
       }
       //console.log('dispatcher::getToken - ', token)
-      callback(false, token)
+      callback(null, token)
     })
   },
   getUserClientByToken: function(token, callback) {
@@ -69,5 +70,5 @@ module.exports = {
   },
   setUpstreamToken: function(userid, token, scopes, callback) {
     this.cache.setUpstreamUserToken(userid, token, scopes, callback)
-  },
+  }
 }

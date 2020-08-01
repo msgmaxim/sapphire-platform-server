@@ -1,7 +1,7 @@
 module.exports = {
   /** files */
   fileToAPI: function(file, params, token, callback) {
-    var api={
+    const api = {
       complete: file.complete, // only allow completed files atm
       created_at: file.created_at,
       derived_files: {},
@@ -19,7 +19,7 @@ module.exports = {
       //source (file.client_id
       total_size: file.size, // should include all derived_files
       type: file.type,
-      url: file.url,
+      url: file.url
       //url_expires
       //user
     }
@@ -45,14 +45,14 @@ module.exports = {
   },
   getFiles: function(userid, params, callback) {
     //console.log('dispatcher.js::getFiles - for user', userid, params)
-    var ref=this
+    const ref = this
     this.cache.getFiles(userid, params, function(err, dbFiles, meta) {
       if (err) console.error('files.controller.js::getFiles - err', err)
       if (!dbFiles.length) {
-        callback(false, [])
+        callback(null, [])
       }
-      var files=[]
-      for(var i in dbFiles) {
+      const files = []
+      for (const i in dbFiles) {
         ref.fileToAPI(dbFiles[i], params, { userid: userid }, function(err, api) {
           if (err) console.error('files.controller.js::getFiles - fileToAPI err', err)
           files.push(api)
@@ -65,13 +65,13 @@ module.exports = {
   },
   addFile: function(apiFile, tokenObj, params, callback) {
     // so translate ADN file object stuffs into fileModel
-    var file=apiFile
-    file.userid=tokenObj.userid
-    file.client_id=tokenObj.client_id
-    file.complete=true // very true if we have a url
-    file.total_size=file.size
-    file.created_at=new Date()
-    var ref=this
+    const file = apiFile
+    file.userid = tokenObj.userid
+    file.client_id = tokenObj.client_id
+    file.complete = true // very true if we have a url
+    file.total_size = file.size
+    file.created_at = new Date()
+    const ref = this
     this.cache.addFile(file, tokenObj, function(err, dbFile, meta) {
       if (err) console.error('files.controller.js::addFile - err', err)
       // and convert back
@@ -95,11 +95,11 @@ module.exports = {
     if (data.user) {
       this.updateUser(data.user)
     }
-    var file=data
+    const file = data
     if (deleted) {
-      file.id=id // we need this for delete
+      file.id = id // we need this for delete
     }
-    file.userid=data.user.id
+    file.userid = data.user.id
     // client_id?
     // data.source handling...
     this.cache.setFile(data, deleted, id, callback)
@@ -110,5 +110,5 @@ module.exports = {
         ref.setAnnotations('file', data.id, data.annotations)
       }
     */
-  },
+  }
 }

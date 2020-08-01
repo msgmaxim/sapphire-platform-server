@@ -8,7 +8,7 @@ module.exports = {
     if (!userids) {
       console.trace('mutes.controller.js::getMutes - no userIDs passsed in', userids)
     }
-    var ref = this
+    const ref = this
     // FIXME: handle arrays?
     this.normalizeUserID(userids, tokenObj, function(err, userid) {
       if (err) console.error('mutes.controller.js::getMutes - normalizeUserID err', err)
@@ -19,18 +19,18 @@ module.exports = {
           callback(err, [], meta)
           return
         }
-        var userMutes = []
-        for(var i in mutes) {
-          var userid = mutes[i].muteeid
+        const userMutes = []
+        for (const i in mutes) {
+          const userid = mutes[i].muteeid
           // strip paging out params but leave includes
           // FIXME: turn into function
-          var nParams = params
+          const nParams = params
           delete nParams.before_id
           delete nParams.since_id
           ref.getUser(userid, nParams, function(user, userErr, userMeta) {
             if (userErr) console.error('mutes.controller.js::getMutes - getUsers err', userErr)
             userMutes.push(user)
-            if (mutes.length == userMutes.length) {
+            if (mutes.length === userMutes.length) {
               callback(err, userMutes, meta)
             }
           })
@@ -39,30 +39,30 @@ module.exports = {
     })
   },
   addMute: function(userid, params, tokenObj, callback) {
-    var ref = this
+    const ref = this
     console.log('mutes.controller::addMute', userid, 'for', tokenObj.userid)
     this.cache.addMute(tokenObj.userid, userid, params, function(err, mute) {
       if (err) console.error('mutes.controller.js::addMute - err', err)
-      var nParams = params
+      const nParams = params
       delete nParams.before_id
       delete nParams.since_id
       ref.getUser(mute.muteeid, nParams, callback)
     })
   },
   deleteMute: function(userid, params, tokenObj, callback) {
-    var ref = this
+    const ref = this
     console.log('mutes.controller::deleteMute', userid, 'for', tokenObj.userid)
     this.cache.delMute(tokenObj.userid, userid, params, function(err, mute) {
       if (err) console.error('mutes.controller.js::deleteMute - err', err)
-      var nParams = params
+      const nParams = params
       delete nParams.before_id
       delete nParams.since_id
       if (mute) {
         ref.getUser(mute.muteeid, nParams, callback)
       } else {
         console.log('mutes.controller::deleteMute - mute not found', userid, 'for', tokenObj.userid)
-        callback('404 mute not found', [])
+        callback(new Error('404 mute not found'), [])
       }
     })
-  },
+  }
 }

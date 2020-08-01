@@ -1,5 +1,5 @@
-var channelModel
-var applyParams
+let channelModel
+let applyParams
 
 function start(options) {
   const schemaData = options.schemaData
@@ -21,7 +21,7 @@ function start(options) {
     editors: { type: schemaData.Text }, // comma separate list
     created_at: { type: Date }, // created_at isn't in the API
     inactive: { type: Date }, // date made inactive
-    last_updated: { type: Date },
+    last_updated: { type: Date }
   })
 }
 
@@ -29,12 +29,12 @@ module.exports = {
   next: null,
   start: start,
   /** channels */
-  setChannel: function (chnl, ts, callback) {
+  setChannel: function(chnl, ts, callback) {
     // created_at vs last_update
     // this only add, does not update
     // findOrCreate
     // updateOrCreate doesn't seem to work on MySQL
-    chnl.last_updated=new Date()
+    chnl.last_updated = new Date()
     channelModel.updateOrCreate({
       id: chnl.id
     }, chnl, function(err, ochnl) {
@@ -43,7 +43,7 @@ module.exports = {
       }
     })
   },
-  updateChannel: function (channelid, chnl, callback) {
+  updateChannel: function(channelid, chnl, callback) {
     //console.log('channels.model.js::updateChannel - ', channelid, chnl)
     // FIXME: maybe only update channels that are active
     channelModel.update({ id: channelid }, chnl, function(err, channel) {
@@ -55,8 +55,8 @@ module.exports = {
   },
   addChannel: function(userid, channel, callback) {
     //console.log('channels.model.js::addChannel - ', userid, channel)
-    var now=new Date()
-    var obj={
+    const now = new Date()
+    const obj = {
       ownerid: userid,
       created_at: now,
       last_updated: now,
@@ -66,18 +66,18 @@ module.exports = {
       writer: channel.writer,
       readers: channel.readers,
       writers: channel.writers,
-      editors: channel.editors,
+      editors: channel.editors
     }
     if (channel.readedit) {
-      obj.readedit=channel.readedit
+      obj.readedit = channel.readedit
     }
     if (channel.writeedit) {
-      obj.writeedit=channel.writeedit
+      obj.writeedit = channel.writeedit
     }
     if (channel.editedit) {
-      obj.editedit=channel.editedit
+      obj.editedit = channel.editedit
     }
-    var ref = this
+    const ref = this
     //console.log('channels.model.js::addChannel - final obj', obj)
     // not sure create works with memory driver...
     channelModel.create(obj, function(err, ochnl) {
@@ -91,29 +91,29 @@ module.exports = {
   },
   // FIXME: call getChannels always return an array
   getChannel: function(id, params, callback) {
-    if (id==undefined) {
+    if (id === undefined) {
       console.log('channels.model.js::getChannel - id is undefined')
-      callback('id is undefined', false, false)
+      callback(new Error('id is undefined'), false, false)
       return
     }
-    var ref=this
+    const ref = this
     // null is an object... which breaks the memory type driver rn
     // we'll remove this for now and do our own filtering for now
     // , inactive: new Date(0)
-    var criteria={ where: { id: parseInt(id), inactive: null } }
+    const criteria = { where: { id: parseInt(id), inactive: null } }
     if (params.channelParams && params.channelParams.types) {
-      criteria.where['type']={ in: params.channelParams.types.split(/,/) }
+      criteria.where.type = { in: params.channelParams.types.split(/,/) }
       //console.log('channels.model.js::getChannel - types', criteria.where['type'])
     }
     if (id instanceof Array) {
-      var cleanArr = []
-      for(var i in id) {
+      const cleanArr = []
+      for (const i in id) {
         cleanArr.push(parseInt(id[i]))
       }
-      criteria.where['id']={ in: cleanArr }
+      criteria.where.id = { in: cleanArr }
     }
     if (params.channelParams && params.channelParams.inactive) {
-      criteria.where['inactive']= { ne: null }
+      criteria.where.inactive = { ne: null }
     }
     //console.log('channels.model.js::getChannel - criteria', criteria)
     channelModel.find(criteria, function(err, channels) {
@@ -135,7 +135,7 @@ module.exports = {
     })
   },
   searchChannels: function(criteria, params, callback) {
-    var query = channelModel.find()
+    let query = channelModel.find()
     if (criteria.type) {
       query = query.where('type', criteria.type)
     }
@@ -155,25 +155,25 @@ module.exports = {
   getUserChannels: function(userid, params, callback) {
     if (userid === undefined) {
       console.trace('channels.model.js::getUserChannels - id is undefined')
-      callback('channels.model.js::getUserChannels - id is undefined', false, false)
+      callback(new Error('channels.model.js::getUserChannels - id is undefined'), false, false)
       return
     }
-    var ref=this
+    const ref = this
     // , inactive: new Date(0)
-    var criteria={ where: { ownerid: parseInt(userid), inactive: null } }
+    const criteria = { where: { ownerid: parseInt(userid), inactive: null } }
     if (params.channelParams && params.channelParams.types) {
       //console.log('channels.model.js::getUserChannels - type param', params.channelParams.types)
-      criteria.where['type']={ in: params.channelParams.types.split(/,/) }
+      criteria.where.type = { in: params.channelParams.types.split(/,/) }
       //console.log('channels.model.js::getUserChannels - types', criteria.where['type'])
     }
     if (params.channelParams && params.channelParams.inactive) {
-      criteria.where['inactive']= { ne: null }
+      criteria.where.inactive = { ne: null }
     }
     //console.log('channels.model.js::getUserChannels - criteria', criteria, criteria.where)
     channelModel.find(criteria, function(err, channels) {
       //console.log('channels.model.js::getUserChannels - result', channels)
       if (err) console.error('channels.model.js::getUserChannels - err', err)
-      if (channels==null && err==null) {
+      if (channels === null && err === null) {
         if (ref.next) {
           ref.next.getUserChannels(userid, params, callback)
           return
@@ -181,33 +181,32 @@ module.exports = {
       }
       callback(err, channels)
     })
-    return
   },
   // group is an array of user IDs
   // shouldn't it be dispatchers job to do the user lookup
   // so it can hit any caching layer
   getPMChannel: function(group, callback) {
-    var ref=this
+    const ref = this
     function processGroup(group) {
       //console.log('channels.model.js::getPMChannel - processGroup group in', group.length)
-      var groupStr=group.join(',')
+      const groupStr = group.join(',')
       channelModel.find({ where: { type: 'net.app.core.pm', writers: groupStr } }, function(err, channels) {
         if (err) {
           console.log('channels.model.js::getPMChannel - err', err)
-          callback(0, 'couldnt query existing PM channels')
+          callback(new Error('couldnt query existing PM channels'), 0)
           return
         }
         if (channels.length > 1) {
           console.log('channels.model.js::getPMChannel - too many PM channels for', group)
-          callback(0, 'too many PM channels')
+          callback(new Error('too many PM channels'), 0)
           return
         }
-        if (channels.length == 1) {
+        if (channels.length === 1) {
           console.log('channels.model.js::getPMChannel - found PM channel', channels[0].id)
           // make sure all users in the group are resub'd
-          var ts = Date.now()
-          for(var i in group) {
-            var user=group[i]
+          const ts = Date.now()
+          for (const i in group) {
+            const user = group[i]
             ref.setSubscription(channels[0].id, user, 0, ts)
             /*
             subscriptionModel.updateOrCreate({ channelid: channels[0].id, userid: user }, {
@@ -232,9 +231,9 @@ module.exports = {
           console.log('channels.model.js::getPMChannel - created PM channel', channel.id)
           //channel.writers=groupStr
           //channel.save(function() {
-          for(var i in group) {
-            var user=group[i]
-            ref.setSubscription(channel.id, user, 0, ts)
+          for (const i in group) {
+            const user = group[i]
+            ref.setSubscription(channel.id, user, 0, Date.now())
             /*
             subscriptionModel.updateOrCreate({ channelid: channel.id, userid: user }, {
               active: 1
@@ -248,10 +247,10 @@ module.exports = {
       })
     }
     //console.log('channels.model.js::getPMChannel - group in', group.length)
-    var groupids=[]
-    for(var i in group) {
-      var user=group[i]+"" // make sure it's a string
-      if (user[0]=='@') {
+    const groupids = []
+    for (const i in group) {
+      const user = group[i] + '' // make sure it's a string
+      if (user[0] === '@') {
         // username look up
         this.getUserID(user, function(userObj, err) {
           //console.log('channels.model.js::getPMChannel - username lookup', userObj, err)
@@ -260,16 +259,16 @@ module.exports = {
           } else {
             groupids.push(null)
           }
-          if (groupids.length == group.length) {
+          if (groupids.length === group.length) {
             processGroup(groupids)
           }
         })
       } else {
         groupids.push(user)
-        if (groupids.length == group.length) {
+        if (groupids.length === group.length) {
           processGroup(groupids)
         }
       }
     }
-  },
+  }
 }

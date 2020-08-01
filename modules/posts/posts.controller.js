@@ -1,65 +1,70 @@
 // copyentities
 const entitiesController = require('../users/entities.controller')
 
+let first_post_id
+let last_post_id
+
 module.exports = {
   /** posts */
   // tokenObj isn't really used at this point...
   // difference between stream and api?
   addPost: function(post, tokenObj, callback) {
-    //console.log('dispatcher::addPost post - ', post)
-    //console.log('dispatcher::addPost tokenObj - ', tokenObj)
-    var ref=this
+    //console.log('posts.controller::addPost post - ', post)
+    //console.log('posts.controller::addPost tokenObj - ', tokenObj)
+    const ref = this
     function makePost() {
-      //console.log('dispatcher::addPost annotations - ', post.annotations)
+      //console.log('posts.controller::addPost annotations - ', post.annotations)
       // text, entities, postcontext, callback
       ref.cache.addPost(post, tokenObj, function(err, dbpost, meta) {
         if (err) {
-          console.error('dispatcher::addPost - err', err)
+          console.error('posts.controller::addPost - err', err)
         }
-        //console.log('dispatcher::addPost dbpost - ', dbpost)
+
+        // well we have to wait until we have the post.id and then we can write it
+        function finishCreatingPost() {
+          ref.setEntities('post', dbpost.id, post.entities, function() {
+            //console.log('posts.controller.js::addPost - Entities set', post.entities.links)
+            ref.postToAPI(dbpost, {}, tokenObj, function(err, apiPost, meta) {
+              ref.pumpStreams({
+                id: dbpost.id,
+                type: 'post',
+                op: 'add',
+                actor: post.userid
+              }, apiPost)
+              callback(err, apiPost, meta)
+            }, meta)
+          })
+        }
+
+        //console.log('posts.controller::addPost dbpost - ', dbpost)
         if (dbpost) {
           // FIXME: annotations may not be returned on post creation
           if (post.annotations) {
             ref.setAnnotations('post', dbpost.id, post.annotations)
           }
-          //console.log('dispatcher.js::addPost - GotPost', dbpost.id)
+          //console.log('posts.controller.js::addPost - GotPost', dbpost.id)
 
-
-          //console.log('dispatcher.js::addPost - postToAPI params', params)
-          // well we have to wait until we have the post.id and then we can write it
-          function finishCreatingPost() {
-            ref.setEntities('post', dbpost.id, post.entities, function() {
-              //console.log('dispatcher.js::addPost - Entities set', post.entities.links)
-              ref.postToAPI(dbpost, {}, tokenObj, function(err, apiPost, meta) {
-                ref.pumpStreams({
-                  id:   dbpost.id,
-                  type: 'post',
-                  op:   'add',
-                  actor: post.userid
-                }, apiPost)
-                callback(err, apiPost, meta)
-              }, meta)
-            })
-          }
+          //console.log('posts.controller.js::addPost - postToAPI params', params)
 
           if (post.html.match(/{post_id}/) || post.text.match(/{post_id}/)) {
-            //console.log('dispatcher.js::addPost - {post_id} live tag detected')
-            //console.log('dispatcher.js::addPost - reading', dbpost.id, 'got', dbpost.text)
+            //console.log('posts.controller.js::addPost - {post_id} live tag detected')
+            //console.log('posts.controller.js::addPost - reading', dbpost.id, 'got', dbpost.text)
             // recalculate entities and html
             ref.textProcess(dbpost.text, false, true, function(err, textProc) {
-              //console.log('dispatcher.js::addPost - got new links', textProc.entities.links)
+              if (err) console.error('posts.controller.js::postToAPI - textProc err', err)
+              //console.log('posts.controller.js::addPost - got new links', textProc.entities.links)
               // need dbpost for the id
               //dbpost.html=textProc.html
-              //console.log('dispatcher.js::addPost - rewriting HTML to', dbpost.html, 'for', dbpost.id)
+              //console.log('posts.controller.js::addPost - rewriting HTML to', dbpost.html, 'for', dbpost.id)
               //updatePostHTML: function(postid, html, callback) {
               //ref.cache.setPost(dbpost, function(fixedPost, err) {
               ref.cache.updatePostHTML(dbpost.id, textProc.html, function(err, fixedPost) {
-                if (err) console.error('dispatcher.js::addPost - fixedPost', err)
+                if (err) console.error('posts.controller.js::addPost - fixedPost', err)
                 if (fixedPost) {
-                  //console.log('dispatcher.js::addPost - fixedPost', fixedPost)
-                  dbpost=fixedPost
-                  post.entities=textProc.entities
-                  //console.log('dispatcher.js::addPost - new entity links', post.entities.links)
+                  //console.log('posts.controller.js::addPost - fixedPost', fixedPost)
+                  dbpost = fixedPost
+                  post.entities = textProc.entities
+                  //console.log('posts.controller.js::addPost - new entity links', post.entities.links)
                   finishCreatingPost()
                 }
               })
@@ -74,22 +79,22 @@ module.exports = {
       })
     }
 
-    var postDone={
+    const postDone = {
       html: false,
-      thread: false,
+      thread: false
     }
     function setDone(type) {
-      postDone[type]=true
+      postDone[type] = true
       // if something is not done
-      //console.log('dispatcher.js::addPost - checking if done')
-      for(var i in postDone) {
+      //console.log('posts.controller.js::addPost - checking if done')
+      for (const i in postDone) {
         if (!postDone[i]) {
-          //console.log('dispatcher.js::addPost -', i, 'is not done')
+          //console.log('posts.controller.js::addPost -', i, 'is not done')
           return
         }
       }
-      //console.log('dispatcher.js::addPost - done', data, meta)
-      //console.log('dispatcher.js::addPost - done, text', data.text)
+      //console.log('posts.controller.js::addPost - done', data, meta)
+      //console.log('posts.controller.js::addPost - done, text', data.text)
       // everything is done
       makePost()
       //callback(data, null, meta)
@@ -97,9 +102,10 @@ module.exports = {
 
     function getEntities(post, cb) {
       ref.textProcess(post.text, post.entities, true, function(err, textProc) {
-        //console.log('dispatcher.js::addPost - textProc', textProc)
-        post.entities=textProc.entities
-        post.html=textProc.html
+        if (err) console.error('posts.controller.js::addPost - textProc err', err)
+        //console.log('posts.controller.js::addPost - textProc', textProc)
+        post.entities = textProc.entities
+        post.html = textProc.html
         cb()
       })
     }
@@ -111,21 +117,23 @@ module.exports = {
         return
       }
       ref.cache.getUser(post.userid, function(err, user, meta) {
+        if (err) console.error('posts.controller.js::addPost - checkTagUser err', err)
         if (post.text && post.text.match(/{username}/)) {
-          post.text=post.text.replace(new RegExp('{username}', 'g'), user.username)
+          post.text = post.text.replace(new RegExp('{username}', 'g'), user.username)
         }
         if (post.html && post.html.match(/{username}/)) {
-          post.html=post.html.replace(new RegExp('{username}', 'g'), user.username)
+          post.html = post.html.replace(new RegExp('{username}', 'g'), user.username)
         }
         cb()
       })
     }
     function getThreadID(post, cb) {
       // cache expects post to be in our internal db format
-      //console.log('dispatcher.js::addPost getThreadID post.reply_to', post.reply_to)
+      //console.log('posts.controller.js::addPost getThreadID post.reply_to', post.reply_to)
       if (post.reply_to) {
         ref.cache.getPost(post.reply_to, function(err, parentPost, meta) {
-          post.thread_id=parentPost.thread_id
+          if (err) console.error('posts.controller.js::addPost - getThreadID err', err)
+          post.thread_id = parentPost.thread_id
           //console.log('post.threadid', post.thread_id)
           cb()
         })
@@ -147,22 +155,22 @@ module.exports = {
   // deletePost
   // FIXME change API to access params
   delPost: function(postid, token, callback) {
-    //console.log('dispatcher.js::delPost - postid', postid)
-    var ref = this
+    //console.log('posts.controller.js::delPost - postid', postid)
+    const ref = this
     this.getPost(postid, {}, function(err, post, postMeta) {
-      //console.log('dispatcher.js::delPost - getPost', post)
+      //console.log('posts.controller.js::delPost - getPost', post)
       if (err) {
-        console.error('dispatcher.js::delPost - err getPost', err)
+        console.error('posts.controller.js::delPost - err getPost', err)
       }
       if (!post) {
-        console.warn('dispatcher.js::delPost - postid', postid, 'not found')
+        console.warn('posts.controller.js::delPost - postid', postid, 'not found')
         return
       }
       // this is the adn version of the post...
-      if (post.user.id != token.userid) {
-        console.warn('dispatcher.js::delPost - permissions denied, post owner', post.userid, 'token owner', token.userid)
-        callback('access denied to post', post, {
-          code: token?403:401,
+      if (post.user.id !== token.userid) {
+        console.warn('posts.controller.js::delPost - permissions denied, post owner', post.userid, 'token owner', token.userid)
+        callback(new Error('access denied to post'), post, {
+          code: token ? 403 : 401
         })
         return
       }
@@ -180,12 +188,14 @@ module.exports = {
           changedRows: 0
         }
         */
-        //console.log('dispatcher.js::delPost - returning', post)
-        var params = {
+        //console.log('posts.controller.js::delPost - returning', post)
+        /*
+        const params = {
           generalParams: {
             deleted: true
           }
         }
+        */
         // postToAPI: function(post, params, tokenObj, callback, meta) {
         //getPost: function(id, params, callback) {
         //ref.getPost(postid, params, callback)
@@ -211,31 +221,32 @@ module.exports = {
    */
   setPost: function(post, callback) {
     if (!post) {
-      console.log('dispatcher.js::setPost - post is not set!')
+      console.log('posts.controller.js::setPost - post is not set!')
       if (callback) {
         callback(null, 'setPost - post is not set!')
       }
       return
     }
     if (!post.id) {
-      console.log('dispatcher.js::setPost - no id in post', post)
+      console.log('posts.controller.js::setPost - no id in post', post)
       if (callback) {
         callback(null, 'setPost - no id in post')
       }
       return
     }
+    const ref = this
 
     // we're assuming we're getting a contiguous amount of posts...
     // get a sample of where the app stream is starting out
-    if (first_post_id==undefined) {
+    if (first_post_id === undefined) {
       // not a good way to do this,
       // some one can interact (delete?) an older post with a much lower id
-      console.log("Setting first post to ", post.id)
-      first_post_id=post.id
+      console.log('Setting first post to', post.id)
+      first_post_id = post.id
     }
 
-    post.date=new Date(post.created_at)
-    post.ts=post.date.getTime()
+    post.date = new Date(post.created_at)
+    post.ts = post.date.getTime()
 
     // update user first, to avoid proxy
     if (post.user && post.user.id) {
@@ -249,27 +260,21 @@ module.exports = {
       }
       */
       this.updateUser(post.user, post.ts, function(user, err) {
-        if (err) {
-          console.log("User Update err: "+err)
-        //} else {
-          //console.log("User Updated")
-        }
+        if (err) console.error('User Update err', err)
+        //console.log("User Updated")
       })
     }
     if (post.entities) {
       this.setEntities('post', post.id, post.entities, function(entities, err) {
-        if (err) {
-          console.log("entities Update err: "+err)
-        //} else {
-          //console.log("entities Updated")
-        }
+        if (err) console.error('entities Update err', err)
+        //console.log("entities Updated")
       })
     }
-    //console.log('dispatcher.js::setPost post id is '+post.id)
-    var dataPost=post
+    //console.log('posts.controller.js::setPost post id is '+post.id)
+    const dataPost = post
     //dataPost.id=post.id // not needed
     if (post.user) {
-      dataPost.userid=post.user.id
+      dataPost.userid = post.user.id
     } else {
       // usually on deletes, they don't include the user object
       //console.log('No Users on post ', post)
@@ -293,34 +298,35 @@ module.exports = {
   ts: 1376615429000 }
       */
     }
-    dataPost.created_at=new Date(post.created_at) // fix incoming created_at iso date to Date
+    dataPost.created_at = new Date(post.created_at) // fix incoming created_at iso date to Date
 
     function finishSending(err, dataPost, meta) {
       ref.pumpStreams({
-        id:   post.id,
+        id: post.id,
         type: 'post',
-        op:   'add', // really isn't an update
+        op: 'add', // really isn't an update
         actor: post.user.id
       }, dataPost)
       callback(dataPost, err, meta)
     }
 
-    //console.log('dispatcher::setPost - user is', post.userid)
+    //console.log('posts.controller::setPost - user is', post.userid)
     if (post.source) {
-      var ref=this
+      const ref = this
       this.cache.setSource(post.source, function(err, client) {
+        if (err) console.error('posts.controller::setPosts - setSource err', err)
         // param order is correct
         //console.log('addPost setSource returned ', client, err, dataPost)
         if (err) {
           console.log('can\'t setSource', err)
         } else {
-          dataPost.client_id=client.client_id
+          dataPost.client_id = client.client_id
         }
-        //console.log('dispatcher.js::setPost datapost id is '+dataPost.id)
+        //console.log('posts.controller.js::setPost datapost id is '+dataPost.id)
         ref.cache.setPost(dataPost, finishSending)
       })
     } else {
-      //console.log('dispatcher.js::setPost datapost id is '+dataPost.id)
+      //console.log('posts.controller.js::setPost datapost id is '+dataPost.id)
       this.cache.setPost(dataPost, finishSending)
     }
 
@@ -328,9 +334,9 @@ module.exports = {
       this.setAnnotations('post', post.id, post.annotations)
     }
 
-    if (last_post_id==undefined || post.id>last_post_id) {
+    if (last_post_id === undefined || post.id > last_post_id) {
       //console.log("Setting last post to ", post.id)
-      last_post_id=post.id
+      last_post_id = post.id
     }
     // can't clear this because we're still processing it
     //dataPost=null
@@ -345,33 +351,32 @@ module.exports = {
   // convert ADN format to DB format
   apiToPost: function(api, meta, callback) {
     if (!api.user) {
-      console.log('apiToPost - api user is missing', api.user,api)
+      console.log('apiToPost - api user is missing', api.user, api)
       if (callback) {
         callback(null, 'no api user')
       }
       return
     }
     // copy api
-    var post=JSON.parse(JSON.stringify(api))
-    post.date=new Date(api.created_at)
-    post.ts=post.date.getTime()
-    post.user.created_at=new Date(api.user.created_at)
-    post.userid=api.user.id
+    const post = JSON.parse(JSON.stringify(api))
+    post.date = new Date(api.created_at)
+    post.ts = post.date.getTime()
+    post.user.created_at = new Date(api.user.created_at)
+    post.userid = api.user.id
     // repost_of?
     // it's an object in api and an numericid in DB
     if (api.repost_of) {
       // is this right in the case of repost of a repost?
-      post.repost_of=api.repost_of.id
+      post.repost_of = api.repost_of.id
     }
     // source
     if (post.source) {
-      var ref=this
       // find it (or create it for caching later)
       this.cache.setSource(post.source, function(err, client) {
         if (err) {
           console.log('can\'t setSource ', err)
         } else {
-          post.client_id=client.client_id
+          post.client_id = client.client_id
         }
         callback(post, err, meta)
       })
@@ -389,104 +394,107 @@ module.exports = {
    * @param {object} meta - the meta data
    */
   postToAPI: function(post, params, tokenObj, callback, meta) {
-    //console.log('dispatcher.js::postToAPI('+post.id+') - start', post, params, tokenObj, meta)
+    //console.log('posts.controller.js::postToAPI('+post.id+') - start', post, params, tokenObj, meta)
     if (!post) {
-      console.log('dispatcher.js::postToAPI - no post data passed in')
+      console.log('posts.controller.js::postToAPI - no post data passed in')
       callback(null, 'no_post')
       return
     }
     if (!post.userid) {
-      console.log('dispatcher.js::postToAPI - no userid', post)
+      console.log('posts.controller.js::postToAPI - no userid', post)
       callback(null, 'no_userid')
       return
     }
-    var ref=this // back it up
+    const ref = this // back it up
 
     // set up new final object for collection
 
-    var data={}
+    const data = {}
     // , 'source', 'user'
-    var postFields=['id', 'text', 'html', 'canonical_url', 'created_at',
+    const postFields = ['id', 'text', 'html', 'canonical_url', 'created_at',
       'machine_only', 'num_replies', 'num_reposts', 'num_stars', 'thread_id',
       'entities', 'is_deleted']
-    for(var i in postFields) {
-      var f=postFields[i]
-      data[f]=post[f]
+    for (const i in postFields) {
+      const f = postFields[i]
+      data[f] = post[f]
     }
     // hack
-    if (data.text===undefined && data.html===undefined) {
-      console.log('dispatcher.js::postToAPI('+post.id+') - no text or html')
-      data.text=''
-      data.html=''
+    if (data.text === undefined && data.html === undefined) {
+      console.log('posts.controller.js::postToAPI(' + post.id + ') - no text or html')
+      data.text = ''
+      data.html = ''
     }
-    if (data.html && !data.text) data.text=data.html
-    if (!data.html && data.text) data.html=data.text
+    if (data.html && !data.text) data.text = data.html
+    if (!data.html && data.text) data.html = data.text
 
     //if (typeof(data.created_at)!=='object') {
-      //console.log('dispatcher::postToAPI - created_at isnt a date', typeof(data.created_at), data.created_at)
+    //console.log('posts.controller::postToAPI - created_at isnt a date', typeof(data.created_at), data.created_at)
     if (!data.created_at) {
-      console.log('dispatcher::postToAPI - created_at isnt object', data.created_at)
-      data.created_at=new Date(data.created_at)
-      console.log('dispatcher::postToAPI - created_at converted to', data.created_at.toString())
+      console.log('posts.controller::postToAPI - created_at isnt object', data.created_at)
+      data.created_at = new Date(data.created_at)
+      console.log('posts.controller::postToAPI - created_at converted to', data.created_at.toString())
     }
 
     // convert TS to date object
-    //console.log('dispatcher::postToAPI - created_at check', data.created_at)
+    //console.log('posts.controller::postToAPI - created_at check', data.created_at)
     if (isNaN(data.created_at.getTime())) {
       //delete data.created_at
-      data.created_at='2000-01-01T00:00:00.000Z'
-      data.is_deleted=true
+      data.created_at = '2000-01-01T00:00:00.000Z'
+      data.is_deleted = true
     } else {
-      data.created_at=new Date(data.created_at)
+      data.created_at = new Date(data.created_at)
     }
 
     //console.log(post.num_replies+' vs '+data.num_replies)
     //'repost_of'
-    var postFieldOnlySetIfValue=['reply_to']
-    for(var i in postFieldOnlySetIfValue) {
-      var f=postFieldOnlySetIfValue[i]
+    const postFieldOnlySetIfValue = ['reply_to']
+    for (const i in postFieldOnlySetIfValue) {
+      const f = postFieldOnlySetIfValue[i]
       if (post[f]) {
-        data[f]=post[f]
+        data[f] = post[f]
       }
     }
     //data.user=user
-    //console.log('dispatcher.js::postToAPI - return check', data)
+    //console.log('posts.controller.js::postToAPI - return check', data)
 
-    var postDone={
+    const postDone = {
       client: false,
       user: false,
       entities: false,
       repostOf: false,
       annotation: false,
-      context: false,
+      context: false
     }
 
     if (params && params.generalParams) {
       if (params.generalParams.starred_by) {
-        //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - write me!')
-        postDone.starred_by=false
+        //console.log('posts.controller.js::postToAPI('+post.id+') - include_starred_by - write me!')
+        postDone.starred_by = false
         this.cache.getPostStars(post.id, {}, function(err, interactions, meta) {
+          if (err) console.error('posts.controller.js::postToAPI - loadContext getUserStarPost err', err)
           if (!interactions || !interactions.length) {
-            data.starred_by=[]
+            data.starred_by = []
             setDone('starred_by')
             return
           }
-          var userids=[]
-          for(var i in interactions) {
-            var action=interactions[i]
+          const userids = []
+          for (const i in interactions) {
+            const action = interactions[i]
             userids.push(action.userid)
           }
-          //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - getting users', userids)
+          //console.log('posts.controller.js::postToAPI('+post.id+') - include_starred_by - getting users', userids)
           ref.cache.getUsers(userids, params, function(userErr, userObjs, meta) {
-            //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - got', userObjs.length)
-            var rUsers=[]
-            for(var i in userObjs) {
+            if (err) console.error('posts.controller.js::postToAPI - loadContext getUsers err', err)
+            //console.log('posts.controller.js::postToAPI('+post.id+') - include_starred_by - got', userObjs.length)
+            const rUsers = []
+            for (const i in userObjs) {
               ref.userToAPI(userObjs[i], tokenObj, function(err, adnUserObj) {
-                //console.log('dispatcher.js::postToAPI - got', adnUserObj, 'for', users[i])
+                if (err) console.error('posts.controller.js::postToAPI - userToAPI err', err)
+                //console.log('posts.controller.js::postToAPI - got', adnUserObj, 'for', users[i])
                 rUsers.push(adnUserObj)
-                //console.log('dispatcher.js::postToAPI('+post.id+') - include_starred_by - ', rUsers.length, 'vs', userids.length)
-                if (rUsers.length===userids.length) {
-                  data.starred_by=rUsers
+                //console.log('posts.controller.js::postToAPI('+post.id+') - include_starred_by - ', rUsers.length, 'vs', userids.length)
+                if (rUsers.length === userids.length) {
+                  data.starred_by = rUsers
                   //console.log('marking starred_by done')
                   setDone('starred_by')
                 }
@@ -496,33 +504,35 @@ module.exports = {
         })
       }
       if (params.generalParams.reposters) {
-        //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - write me!')
-        postDone.reposters=false
+        //console.log('posts.controller.js::postToAPI('+post.id+') - include_reposters - write me!')
+        postDone.reposters = false
         this.cache.getReposts(post.id, {}, tokenObj, function(err, posts, meta) {
+          if (err) console.error('posts.controller.js::postToAPI - getReposts err', err)
           if (!posts || !posts.length) {
-            data.reposters=[]
+            data.reposters = []
             setDone('reposters')
             return
           }
-          var userids=[]
-          for(var i in posts) {
-            var post=posts[i]
-            if (userids.indexOf(post.userid)==-1) {
+          const userids = []
+          for (const i in posts) {
+            const post = posts[i]
+            if (userids.indexOf(post.userid) === -1) {
               userids.push(post.userid)
             }
           }
-          //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - getting users', userids)
+          //console.log('posts.controller.js::postToAPI('+post.id+') - include_reposters - getting users', userids)
           ref.cache.getUsers(userids, params, function(userErr, userObjs, meta) {
-            //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - got', userObjs.length)
-            var rUsers=[]
-            for(var i in userObjs) {
+            //console.log('posts.controller.js::postToAPI('+post.id+') - include_reposters - got', userObjs.length)
+            const rUsers = []
+            for (const i in userObjs) {
               ref.userToAPI(userObjs[i], tokenObj, function(err, adnUserObj) {
-                //console.log('dispatcher.js::postToAPI - got', adnUserObj, 'for', adnUserObj.id)
+                if (err) console.error('posts.controller.js::postToAPI - userToAPI err', err)
+                //console.log('posts.controller.js::postToAPI - got', adnUserObj, 'for', adnUserObj.id)
                 rUsers.push(adnUserObj)
-                //console.log('dispatcher.js::postToAPI('+post.id+') - include_reposters - ', rUsers.length, 'vs', userids.length)
-                if (rUsers.length==userids.length) {
+                //console.log('posts.controller.js::postToAPI('+post.id+') - include_reposters - ', rUsers.length, 'vs', userids.length)
+                if (rUsers.length === userids.length) {
                   //callback(rUsers, '')
-                  data.reposters=rUsers
+                  data.reposters = rUsers
                   //console.log('marking reposters done')
                   setDone('reposters')
                 }
@@ -532,68 +542,67 @@ module.exports = {
         })
       }
     } else {
-      //if (params != {}) {
-        //console.log('dispatcher.js::postToAPI('+post.id+') - params dont have generalParams')
+      //if (params !== {}) {
+      //console.log('posts.controller.js::postToAPI('+post.id+') - params dont have generalParams')
       //}
     }
 
-
     function setDone(type) {
-      postDone[type]=true
+      postDone[type] = true
       // if something is not done
-      //console.log('dispatcher.js::postToAPI('+post.id+') - checking if done')
-      for(var i in postDone) {
+      //console.log('posts.controller.js::postToAPI('+post.id+') - checking if done')
+      for (const i in postDone) {
         if (!postDone[i]) {
-          //console.log('dispatcher.js::postToAPI('+post.id+') -', i, 'is not done')
+          //console.log('posts.controller.js::postToAPI('+post.id+') -', i, 'is not done')
           return
         }
       }
-      //console.log('dispatcher.js::postToAPI('+post.id+') - done', data, meta)
-      //console.log('dispatcher.js::postToAPI('+post.id+') - done, text', data.text)
+      //console.log('posts.controller.js::postToAPI('+post.id+') - done', data, meta)
+      //console.log('posts.controller.js::postToAPI('+post.id+') - done, text', data.text)
 
-      //console.log('dispatcher.js::postToAPI('+post.id+') - params', params)
+      //console.log('posts.controller.js::postToAPI('+post.id+') - params', params)
       // everything is done
-      callback(false, data, meta)
+      callback(null, data, meta)
     }
 
     function loadClient(post, cb) {
       if (post.repost_of) { // no need to look up client of a repost (atm but eventually should probably)
         // Alpha does need this
-        var source={
+        const source = {
           link: 'https://sapphire.moe/',
           name: 'Unknown',
-          client_id: 'Unknown',
+          client_id: 'Unknown'
         }
         cb(source) // was just ()
         return
       }
       ref.getClient(post.client_id, function(clientErr, client, clientMeta) {
-        //console.log('dispatcher.js::postToAPI('+post.id+') - gotClient')
-        var source={
+        //console.log('posts.controller.js::postToAPI('+post.id+') - gotClient')
+        let source = {
           link: 'https://sapphire.moe/',
           name: 'Unknown',
-          client_id: 'Unknown',
+          client_id: 'Unknown'
         }
         if (client) {
-          source={
+          source = {
             link: client.link,
             name: client.name,
             client_id: client.client_id
           }
         } else {
-          console.log('dispatcher.js::postToAPI('+post.id+') - client is', client, clientErr)
+          console.log('posts.controller.js::postToAPI(' + post.id + ') - client is', client, clientErr)
         }
         cb(clientErr, source, clientMeta)
       }) // getClient
     }
 
     function loadUser(userid, params, cb) {
-      //console.log('dispatcher.js::postToAPI('+post.id+') - getting user '+post.userid)
+      //console.log('posts.controller.js::postToAPI('+post.id+') - getting user '+post.userid)
       ref.getUser(userid, params, function(userErr, user, userMeta) {
-        if (userErr) console.log('dispatcher.js::postToAPI('+post.id+') userid(',userid,') - err', userErr)
-        //console.log('dispatcher.js::postToAPI('+post.id+') userid(',userid,') - got user', user)
+        if (userErr) console.log('posts.controller.js::postToAPI(' + post.id + ') userid(', userid, ') - err', userErr)
+        //console.log('posts.controller.js::postToAPI('+post.id+') userid(',userid,') - got user', user)
         if (!user) {
-          user={
+          user = {
             id: 0,
             username: 'likelydeleted',
             created_at: '2014-10-24T17:04:48Z',
@@ -604,7 +613,7 @@ module.exports = {
               url: ''
             },
             counts: {
-              following: 0,
+              following: 0
             }
           }
         }
@@ -612,9 +621,9 @@ module.exports = {
       }) // getUser
     }
 
-    var loadRepostOf=function(post, tokenObj, cb) {
-      //console.log('dispatcher.js::postToAPI - return check', data)
-      //console.log('dispatcher.js::postToAPI - Done, calling callback')
+    const loadRepostOf = function(post, tokenObj, cb) {
+      //console.log('posts.controller.js::postToAPI - return check', data)
+      //console.log('posts.controller.js::postToAPI - Done, calling callback')
       // now fix up reposts
       if (post.repost_of) {
         //console.log('converting repost_of from ', post.repost_of)
@@ -628,20 +637,20 @@ module.exports = {
         })
       } else {
         //callback(data, err, meta)
-        cb(false, false, false)
+        cb(null, false, false)
       }
     }
 
-    var loadAnnotation=function(post, cb) {
+    const loadAnnotation = function(post, cb) {
       ref.getAnnotation('post', post.id, function(err, dbNotes, noteMeta) {
         if (err) console.error('posts.controller.js::postToAPI - err', err)
-        var apiNotes=[]
-        for(var j in dbNotes) {
-          var note=dbNotes[j]
+        const apiNotes = []
+        for (const j in dbNotes) {
+          const note = dbNotes[j]
           //console.log('got note', j, '#', note.type, '/', note.value, 'for', post.id)
           apiNotes.push({
             type: note.type,
-            value: note.value,
+            value: note.value
           })
         }
         cb(err, apiNotes, noteMeta)
@@ -651,29 +660,31 @@ module.exports = {
     function loadEntites(post, cb) {
       // use entity cache (DB read or CPU calculate)
       if (1) {
-        //console.log('dispatcher.js::postToAPI('+post.id+') - getEntity post. post.userid:', post.userid)
+        //console.log('posts.controller.js::postToAPI('+post.id+') - getEntity post. post.userid:', post.userid)
         ref.getEntities('post', post.id, function(entitiesErr, entities, entitiesMeta) {
-          //console.log('dispatcher.js::postToAPI('+post.id+') - gotEntities')
+          if (entitiesErr) console.error('posts.controller.js::postToAPI - getEntities err', entitiesErr)
+          //console.log('posts.controller.js::postToAPI('+post.id+') - gotEntities')
 
-          data.entities={
+          data.entities = {
             mentions: [],
             hashtags: [],
-            links: [],
+            links: []
           }
           entitiesController.copyentities('mentions', entities.mentions, data, 1)
           entitiesController.copyentities('hashtags', entities.hashtags, data, 1)
           entitiesController.copyentities('links', entities.links, data, 1)
           // use html cache?
           if (1) {
-            //console.log('dispatcher.js::postToAPI('+post.id+') - calling final comp')
+            //console.log('posts.controller.js::postToAPI('+post.id+') - calling final comp')
             //finalcompsite(post, user, client, callback, err, meta)
             cb()
           } else {
             // generate HTML
             // text, entities, postcontext, callback
             ref.textProcess(post.text, post.entities, true, function(err, textProcess) {
+              if (err) console.error('posts.controller.js::postToAPI - textProcess err', err)
               //console.dir(textProcess)
-              data.html=textProcess.html
+              data.html = textProcess.html
               //finalcompsite(post, user, client, callback, err, meta)
               cb()
             })
@@ -681,8 +692,9 @@ module.exports = {
         }) // getEntities
       } else {
         ref.textProcess(post.text, post.entities, true, function(err, textProcess) {
-          data.entities=textProcess.entities
-          data.html=textProcess.html
+          if (err) console.error('posts.controller.js::postToAPI - textProcess err', err)
+          data.entities = textProcess.entities
+          data.html = textProcess.html
           //finalcompsite(post, user, client, callback, err, meta)
           cb()
         })
@@ -691,7 +703,7 @@ module.exports = {
 
     // any value into breaking into 3 functions?
     // removed another checkDone style function
-    var loadContext=function(post, tokenObj, cb) {
+    const loadContext = function(post, tokenObj, cb) {
       // these will need to be queried:
       //   reposters
       //     Not completet & only included if include_reposters=1 is passed to App.net
@@ -700,39 +712,41 @@ module.exports = {
       // so we have to query:
       // ok if token is a string we need to resolve it
       // otherwise we're good to go with an object
-      //console.log('dispatcher.js::postToAPI:::loadContext - tokenObj', tokenObj)
-      //console.log('dispatcher.js::postToAPI post', post.id, 'data', data.id, 'id', id)
+      //console.log('posts.controller.js::postToAPI:::loadContext - tokenObj', tokenObj)
+      //console.log('posts.controller.js::postToAPI post', post.id, 'data', data.id, 'id', id)
       if (tokenObj && tokenObj.userid) {
         // if this post is a report that we reposted
         //if (post.repost_of && post.userid==token.userid) data.you_reposted=true
-        var starDone=false
-        var repostRepostDone=false
-        var repostPostDone=false
-        var checkDone=function() {
-          //console.log('dispatcher.js::postToAPI:::loadContext - checkDone', starDone, repostRepostDone, repostPostDone)
+        let starDone = false
+        let repostRepostDone = false
+        let repostPostDone = false
+        const checkDone = function() {
+          //console.log('posts.controller.js::postToAPI:::loadContext - checkDone', starDone, repostRepostDone, repostPostDone)
           if (starDone && repostRepostDone && repostPostDone) {
             cb()
           }
         }
         ref.cache.getUserStarPost(tokenObj.userid, data.id, function(err, res) {
-          //console.log('dispatcher.js::postToAPI -  getUserStarPost got', res)
-          starDone=true
+          if (err) console.error('posts.controller.js::postToAPI - loadContext getUserStarPost err', err)
+          //console.log('posts.controller.js::postToAPI -  getUserStarPost got', res)
+          starDone = true
           //repostDone=true
-          data.you_starred=false // needs to be defined (if token only?)
-          if (res && res.id) data.you_starred=true
+          data.you_starred = false // needs to be defined (if token only?)
+          if (res && res.id) data.you_starred = true
           checkDone()
         })
         //console.log('is this post', data.id, 'by', tokenObj.userid)
 
         // what if this isn't repost but we did retweet
         ref.cache.getUserRepostPost(tokenObj.userid, post.id, function(err, res) {
-          //console.log('dispatcher.js::postToAPI:::loadContext -', post.id, 'hasRepost', res.id)
-          data.you_reposted=false
+          if (err) console.error('posts.controller.js::postToAPI - loadContext getUserRepostPost err', err)
+          //console.log('posts.controller.js::postToAPI:::loadContext -', post.id, 'hasRepost', res.id)
+          data.you_reposted = false
           if (res && res.id) {
             //console.log(post.id, 'not a repost but look up says ', tokenObj.userid, 'has reposted as', res.id)
-            data.you_reposted=true
+            data.you_reposted = true
           }
-          repostPostDone=true
+          repostPostDone = true
           checkDone()
         })
 
@@ -740,17 +754,18 @@ module.exports = {
         if (post.repost_of) {
           // we'll need to look at it
           ref.cache.getUserRepostPost(tokenObj.userid, post.thread_id, function(err, res) {
-            //console.log('dispatcher.js::postToAPI:::loadContext -', post.id, 'isRepost', res.id)
-            repostRepostDone=true
-            data.you_reposted=false
+            if (err) console.error('posts.controller.js::postToAPI - loadContext repost getUserRepostPost err', err)
+            //console.log('posts.controller.js::postToAPI:::loadContext -', post.id, 'isRepost', res.id)
+            repostRepostDone = true
+            data.you_reposted = false
             if (res && res.id) {
               //console.log(tokenObj.userid, 'has reposted', post.repost_of, 'as', res.id)
-              data.you_reposted=true
+              data.you_reposted = true
             }
             checkDone()
           })
         } else {
-          repostRepostDone=true
+          repostRepostDone = true
           checkDone()
         }
 
@@ -761,22 +776,22 @@ module.exports = {
     }
 
     // post.client_id is string(32)
-    //console.log('dispatcher.js::postToAPI - gotUser. post.client_id:', post.client_id)
+    //console.log('posts.controller.js::postToAPI - gotUser. post.client_id:', post.client_id)
     loadClient(post, function(clientErr, source, clientMeta) {
-      data.source=source
+      data.source = source
       setDone('client')
     })
-    //console.log('dispatcher.js::postToAPI - gotPost. post.userid:', post.userid)
+    //console.log('posts.controller.js::postToAPI - gotPost. post.userid:', post.userid)
     loadUser(post.userid, params, function(userErr, user, userMeta) {
-      data.user=user
+      data.user = user
       setDone('user')
     })
     loadRepostOf(post, tokenObj, function(repostErr, repost, repostMeta) {
-      if (repost) data.repost_of=repost
+      if (repost) data.repost_of = repost
       setDone('repostOf')
     })
     loadAnnotation(post, function(notesErr, apiNotes, notesMeta) {
-      data.annotations=apiNotes
+      data.annotations = apiNotes
       setDone('annotation')
     })
     // writes to data
@@ -793,24 +808,21 @@ module.exports = {
     //   num_reposts
     //   num_replies
 
-
-
     // we need post, entities, annotations
     // user, entities, annotations
     // and finally client
     // could dispatch all 3 of these in parallel
     // shouldAdd but can't no name/link data
 
-    //console.log('dispatcher.js::postToAPI - is ref this?', ref)
-
+    //console.log('posts.controller.js::postToAPI - is ref this?', ref)
   },
   // take a list of IDs and lookup posts
   idsToAPI: function(posts, params, callback, meta) {
-    //console.log('dispatcher.js::idsToAPI(', posts.length, 'posts,...,...,', meta, ') - start')
-    var ref=this
+    //console.log('posts.controller.js::idsToAPI(', posts.length, 'posts,...,...,', meta, ') - start')
+    const ref = this
     // definitely need this system
-    var apiposts={}
-    var counts=0
+    const apiposts = {}
+    let counts = 0
     //var apiposts=[]
     //console.log('posts.controller.js::idsToAPI - posts', posts)
     if (posts && posts.length) {
@@ -821,10 +833,10 @@ module.exports = {
         ref.getPost(current.id, params, function(err, post, postMeta) {
           if (post && post.text) {
             //apiposts.push(post)
-            apiposts[post.id]=post
+            apiposts[post.id] = post
           } else {
             // reposts are an example of a post without text
-            console.log('dispatcher.js::idsToAPI - no post or missing text', post, err, meta, current.id)
+            console.log('posts.controller.js::idsToAPI - no post or missing text', post, err, meta, current.id)
             // with counts we don't need to do this
             //posts.pop() // lower needed
           }
@@ -832,12 +844,12 @@ module.exports = {
           // join
           //console.log(apiposts.length+'/'+entities.length)
           //console.log(counts+'/'+posts.length)
-          if (counts===posts.length) {
+          if (counts === posts.length) {
           //if (apiposts.length===posts.length) {
-            //console.log('dispatcher.js::idsToAPI - finishing')
-            var res=[]
-            for(var i in posts) {
-              var id=posts[i].id
+            //console.log('posts.controller.js::idsToAPI - finishing')
+            const res = []
+            for (const i in posts) {
+              const id = posts[i].id
               if (apiposts[id]) {
                 //console.log('final', id)
                 res.push(apiposts[id])
@@ -857,32 +869,32 @@ module.exports = {
     } else {
       // no entities
       // this can be normal, such as an explore feed that's being polled for since_id
-      //console.log('dispatcher.js::idsToAPI - no posts')
-      callback(false, [], meta)
+      //console.log('posts.controller.js::idsToAPI - no posts')
+      callback(null, [], meta)
     }
   },
   addRepost: function(postid, tokenObj, callback) {
-    //console.log('dispatcher.js::addRepost - start', postid)
-    var ref=this
+    //console.log('posts.controller.js::addRepost - start', postid)
+    const ref = this
     // if postid is a repost_of
     this.cache.getPost(postid, function(err, srcPost) {
-      var originalPost=postid
+      if (err) console.error('posts.controller.js::addRepost - getPost err', err)
+      let originalPost = postid
       if (srcPost && srcPost.repost_of) {
-        originalPost=srcPost.thread_id
+        originalPost = srcPost.thread_id
       }
       ref.cache.addRepost(postid, originalPost, tokenObj, function(err, dbPost, meta) {
-        if (err) {
-          console.error('dispatcher.js::addRepost - err', err)
-        }
-        //console.log('dispatcher.js::addRepost - dbPost', dbPost)
+        if (err) console.error('posts.controller.js::addRepost - err', err)
+        //console.log('posts.controller.js::addRepost - dbPost', dbPost)
         // postToAPI function(post, params, token, callback, meta) {
         ref.postToAPI(dbPost, {}, tokenObj, callback, meta)
       })
     })
   },
   delRepost: function(postid, tokenObj, callback) {
-    var ref = this
+    const ref = this
     this.cache.delRepost(postid, tokenObj, function(err, success, meta) {
+      if (err) console.error('posts.controller.js::delRepost - err', err)
       // postToAPI function(post, params, token, callback, meta) {
       ref.getPost(postid, { generalParams: { deleted: true } }, callback)
     })
@@ -897,35 +909,36 @@ module.exports = {
   // we need to ignore any paging parameter, likely from the parent call
   getPost: function(id, params, callback) {
     // probably should just exception and backtrace
-    if (callback==undefined) {
-      console.log('dispatcher.js::getPost - callback undefined')
+    if (callback === undefined) {
+      console.log('posts.controller.js::getPost - callback undefined')
       return
     }
-    if (id==undefined) {
-      callback(null, 'dispatcher.js::getPost - id is undefined')
+    if (id === undefined) {
+      callback(null, 'posts.controller.js::getPost - id is undefined')
       return
     }
-    if (params==undefined) {
-      console.log('dispatcher.js::getPost - WARNING params is undefined')
+    if (params === undefined) {
+      console.log('posts.controller.js::getPost - WARNING params is undefined')
     }
-    var ref=this
-    //console.log('dispatcher.js::getPost - getting id',id)
+    const ref = this
+    //console.log('posts.controller.js::getPost - getting id',id)
     this.cache.getPost(id, function(err, post, meta) {
+      if (err) console.error('posts.controller.js::getPost - err', err)
       if (post) {
-        //console.log('dispatcher.js::getPost - GotPost', post)
-        //console.log('dispatcher.js::getPost - GotPost',post.id)
-        //console.log('dispatcher.js::getPost - postToAPI params', params)
-        ref.postToAPI(post, params, params && params.tokenobj?params.tokenobj:null, callback, meta)
+        //console.log('posts.controller.js::getPost - GotPost', post)
+        //console.log('posts.controller.js::getPost - GotPost',post.id)
+        //console.log('posts.controller.js::getPost - postToAPI params', params)
+        ref.postToAPI(post, params, params && params.tokenobj ? params.tokenobj : null, callback, meta)
       } else {
-        callback('dispatcher.js::getPost - post is not set!', false, false)
+        callback(new Error('posts.controller.js::getPost - post is not set!'), false, false)
       }
     })
   },
   // threadid or reply_to? reply_to for now
   getReplies: function(postid, params, token, callback) {
-    var ref=this
+    const ref = this
     if (!postid || postid === 'undefined') {
-      callback('empty postid', [], postid)
+      callback(new Error('empty postid'), [], postid)
       return
     }
     // userid can't be me without a token
@@ -939,46 +952,46 @@ module.exports = {
       // probably should chain these
       // because stupid if we don't have all the replies
       //console.log('apiroot', downloader.apiroot)
-      if (ref.downloader.apiroot != 'NotSet') {
+      if (ref.downloader.apiroot !== 'NotSet') {
         ref.downloader.downloadThread(post.thread_id, token)
       }
       ref.cache.getReplies(post.thread_id, params, token, function(err, posts, meta) {
         if (err) console.error('getReplies', err)
-        //console.log('dispatcher.js::getReplies - returned posts:', posts, 'meta', meta)
+        //console.log('posts.controller.js::getReplies - returned posts:', posts, 'meta', meta)
         // data is an array of entities
-        var apiposts={}, postcounter=0
-        //console.log('dispatcher.js:getReplies - mapping '+posts.length)
+        const apiposts = {}; let postcounter = 0
+        //console.log('posts.controller.js:getReplies - mapping '+posts.length)
         if (posts && posts.length) {
           posts.map(function(current, idx, Arr) {
-            //console.log('dispatcher.js:getReplies - map postid: '+current.id)
+            //console.log('posts.controller.js:getReplies - map postid: '+current.id)
             // get the post in API foromat
             ref.postToAPI(current, params, token, function(err, post, postmeta) {
-              if (err) console.error('dispatcher.js::getReplies - postToAPI err', err)
+              if (err) console.error('posts.controller.js::getReplies - postToAPI err', err)
               // can error out
               if (post) {
-                apiposts[post.id]=post
+                apiposts[post.id] = post
               }
               // always increase counter
               postcounter++
               // join
               //console.log(apiposts.length+'/'+entities.length)
-              if (postcounter==posts.length) {
-                //console.log('dispatcher.js::getReplies - finishing')
+              if (postcounter === posts.length) {
+                //console.log('posts.controller.js::getReplies - finishing')
                 // need to restore original order
-                var res=[]
-                for(var i in posts) {
+                const res = []
+                for (const i in posts) {
                   if (posts[i]) {
                     res.push(apiposts[posts[i].id])
                   }
                 }
-                //console.log('dispatcher.js::getReplies - result ', res)
+                //console.log('posts.controller.js::getReplies - result ', res)
                 callback(err, res, meta)
               }
             })
           }, ref)
         } else {
           // no posts which is fine
-          //console.log('dispatcher.js:getReplies - no replies ')
+          //console.log('posts.controller.js:getReplies - no replies ')
           callback(err, [], meta)
         }
       })
@@ -986,23 +999,23 @@ module.exports = {
   },
   getMentions: function(userid, params, token, callback) {
     // userid can't be me without a token
-    if (userid=='me') {
+    if (userid === 'me') {
       if (token && token.userid) {
-        userid=token.userid
+        userid = token.userid
       } else {
-        console.log('dispatcher.js:getMentions - me but token', token)
-        callback("need token for 'me' user", [])
+        console.log('posts.controller.js:getMentions - me but token', token)
+        callback(new Error("need token for 'me' user"), [])
         return
       }
     }
-    var ref=this
+    const ref = this
     // is this blocking execution? yes, I think it is
     this.cache.getUser(userid, function(err, user) {
       if (err) {
-        console.log('dispatcher.js::getMentions - getUser err', err)
+        console.log('posts.controller.js::getMentions - getUser err', err)
       }
-      if (user && user.following==0) {
-        if (ref.downloader.apiroot != 'NotSet') {
+      if (user && user.following === 0) {
+        if (ref.downloader.apiroot !== 'NotSet') {
           console.log('downloadMentions')
           ref.downloader.downloadMentions(userid, params, token)
           console.log('downloadMentions complete')
@@ -1013,12 +1026,12 @@ module.exports = {
     this.cache.getMentions(userid, params, function(err, entities, meta) {
       if (err) console.error('posts.controller.js::getMentions - err', err)
       // data is an array of entities
-      var apiposts={}
-      var count=0
-      //console.log('dispatcher.js:getMentions - mapping', entities.length)
+      const apiposts = {}
+      let count = 0
+      //console.log('posts.controller.js:getMentions - mapping', entities.length)
       if (entities && entities.length) {
         //for(var i in entities) {
-          //console.log('i',entities[i].typeid)
+        //console.log('i',entities[i].typeid)
         //}
         entities.map(function(current, idx, Arr) {
           // get the post in API foromat
@@ -1026,15 +1039,15 @@ module.exports = {
           ref.getPost(current.typeid, params, function(perr, post, pmeta) {
             if (perr) console.error('posts.controller.js::getMentions - getPost err', perr)
             //console.log('got post',post.id)
-            apiposts[post.id]=post
+            apiposts[post.id] = post
             count++
             // join
             //console.log(count+'/'+entities.length,'post',post.id,'entity',current.id)
-            if (count==entities.length) {
-              //console.log('dispatcher.js::getMentions - finishing', meta)
+            if (count === entities.length) {
+              //console.log('posts.controller.js::getMentions - finishing', meta)
               // restore order
-              var nlist=[]
-              for(var i in entities) {
+              const nlist = []
+              for (const i in entities) {
                 nlist.push(apiposts[entities[i].typeid])
               }
               callback(err, nlist, meta)
@@ -1053,50 +1066,50 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getGlobal: function(params, callback) {
-    var ref=this
-    //console.log('dispatcher.js::getGlobal - start')
+    const ref = this
+    //console.log('posts.controller.js::getGlobal - start')
     this.cache.getGlobal(params, function(err, posts, meta) {
       // meta is garbage
       // more yes or no
-      //console.log('dispatcher.js::getGlobal - returned meta', meta)
+      //console.log('posts.controller.js::getGlobal - returned meta', meta)
       // data is an array of entities
-      var apiposts={}, postcounter=0
-      //console.log('dispatcher.js:getGlobal - mapping', posts.length)
+      const apiposts = {}; let postcounter = 0
+      //console.log('posts.controller.js:getGlobal - mapping', posts.length)
       if (posts.length) {
         posts.map(function(current, idx, Arr) {
           if (!current) {
             console.log('posts.controller.js:getGlobal - no post', idx)
-            current={} // needs to at least be an object
+            current = {} // needs to at least be an object
           }
-          //console.log('dispatcher.js:getGlobal - map postid: '+current.id)
+          //console.log('posts.controller.js:getGlobal - map postid: '+current.id)
           //console.log('ref',ref,'this',this)
           // get the post in API foromat
           ref.postToAPI(current, params, params.tokenobj, function(err, post, postmeta) {
             if (err) console.err('posts.controller.js - postToAPI err', err)
             if (post && !post.user) {
-              console.log('posts.controller.js:getGlobal - no user from postToAPI',post.user)
+              console.log('posts.controller.js:getGlobal - no user from postToAPI', post.user)
             }
-            //console.log('dispatcher.js:getGlobal - post id check post postToAPI ',post.userid)
+            //console.log('posts.controller.js:getGlobal - post id check post postToAPI ',post.userid)
             // can error out
             if (post) {
-              apiposts[post.id]=post
+              apiposts[post.id] = post
             }
             // always increase counter
             postcounter++
             // join
             //console.log(postcounter+'/'+posts.length)
-            if (postcounter==posts.length) {
-              //console.log('dispatcher.js::getGlobal - finishing')
+            if (postcounter === posts.length) {
+              //console.log('posts.controller.js::getGlobal - finishing')
               // need to restore original order
-              var res=[]
-              for(var i in posts) {
+              const res = []
+              for (const i in posts) {
                 if (posts[i]) {
                   //console.log('id',posts[i].id,'id',apiposts[posts[i].id].id,'date',apiposts[posts[i].id].created_at)
                   res.push(apiposts[posts[i].id])
                 }
               }
               //console.log('sending',res.length,'posts to dialect')
-              //console.log('dispatcher.js::getGlobal - meta', meta)
+              //console.log('posts.controller.js::getGlobal - meta', meta)
               callback(err, res, meta)
             }
           })
@@ -1113,22 +1126,24 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getExplore: function(params, callback) {
-    var ref=this
     this.cache.getExplore(params, function(err, endpoints, meta) {
       if (err) console.error('posts.controller.js::getExplore - err', err)
-      //console.log('dispatcher.js::getExplore - returned meta', meta)
-      callback(false, endpoints, meta)
+      //console.log('posts.controller.js::getExplore - returned meta', meta)
+      callback(null, endpoints, meta)
     })
   },
   getUserStream: function(user, params, tokenObj, callback) {
-    var ref=this
-    //console.log('dispatcher.js::getUserStream - ', user)
+    const ref = this
+    //console.log('posts.controller.js::getUserStream - ', user)
     this.normalizeUserID(user, tokenObj, function(err, userid) {
-      //console.log('dispatcher.js::getUserStream - got', userid)
+      if (err) console.error('posts.controller.js::getUserStream - normalizeUserID err', err)
+      //console.log('posts.controller.js::getUserStream - got', userid)
       //console.log('posts.controller.js::getUserStream - apiroot', ref.downloader.apiroot)
       if (ref.downloader.apiroot !== 'NotSet') {
         ref.cache.getUser(userid, function(err, userdata, meta) {
+          if (err) console.error('posts.controller.js::getUserStream - getUser err', err)
           ref.cache.getFollowing(user, {}, function(err, followings) {
+            if (err) console.error('posts.controller.js::getUserStream - getFollowing err', err)
             if (!followings || !followings.length) {
               // Yer following no one
               console.log('posts.controller.js::getUserStream - likely we need to sync followers for', user, 'theyre following no-one')
@@ -1136,7 +1151,7 @@ module.exports = {
               return
             }
             console.log('posts.controller.js::getUserStream - user counts check', userdata.following, 'vs', followings.length)
-            if (userdata.following==0 || followings.length==0 || userdata.following>followings.length) {
+            if (userdata.following === 0 || followings.length === 0 || userdata.following > followings.length) {
               console.log('posts.controller.js::getUserStream - likely we need to sync followers for', user)
               ref.downloader.downloadFollowing(user, tokenObj)
               // or maybe just the follow count needs to be ran...
@@ -1145,27 +1160,27 @@ module.exports = {
         })
       }
       // ok actually build the stream
-      if (params.pageParams.count===undefined) params.pageParams.count=20
-      if (params.pageParams.before_id===undefined) params.pageParams.before_id=-1 // -1 being the very end
-      var oldcount=params.count
+      if (params.pageParams.count === undefined) params.pageParams.count = 20
+      if (params.pageParams.before_id === undefined) params.pageParams.before_id = -1 // -1 being the very end
+      //const oldcount = params.count
       // but we want to make sure it's in the right direction
       // if count is positive, then the direction is older than the 20 oldest post after before_id
       //params.pageParams.count+=1 // add one at the end to check if there's more
       // before_id
-      //console.log('dispatcher.js::getUserStream - count', params.count)
+      //console.log('posts.controller.js::getUserStream - count', params.count)
       ref.cache.getUserPostStream(userid, params, tokenObj, function(err, posts, meta) {
         // data is an array of entities
-        var apiposts={}, postcounter=0
-        //if (posts) console.log('dispatcher.js:getUserStream - mapping '+posts.length)
+        const apiposts = {}; let postcounter = 0
+        //if (posts) console.log('posts.controller.js:getUserStream - mapping '+posts.length)
         if (posts && posts.length) {
           //var min_id=posts[0].id+200,max_id=0
           posts.map(function(current, idx, Arr) {
-            //console.log('dispatcher.js:getUserPosts - map postid: '+current.id)
+            //console.log('posts.controller.js:getUserPosts - map postid: '+current.id)
             // get the post in API foromat
             ref.postToAPI(current, params, tokenObj, function(err, post, postmeta) {
               //min_id=Math.min(min_id,post.id)
               //max_id=Math.max(max_id,post.id)
-              apiposts[post.id]=post
+              apiposts[post.id] = post
               postcounter++
               // join
               //console.log(postcounter+'/'+posts.length)
@@ -1173,8 +1188,8 @@ module.exports = {
               // but is that extra in the front or back?
               // was -1 but if we're ++ here
               // on 1/1 you can't do 1/1-1
-              if (postcounter==posts.length) {
-                //console.log('dispatcher.js::getUserStream - finishing')
+              if (postcounter === posts.length) {
+                //console.log('posts.controller.js::getUserStream - finishing')
                 /*
                 var imeta={
                   code: 200,
@@ -1185,15 +1200,15 @@ module.exports = {
                   more: meta.more
                 }
                 */
-                var res=[]
+                const res = []
                 // well not all of them...
-                for(var i in posts) {
+                for (const i in posts) {
                   // well not all of them...
                   if (apiposts[posts[i].id]) {
                     res.push(apiposts[posts[i].id])
                   }
                 }
-                //console.log('dispatcher::getUserStream - meta', meta)
+                //console.log('posts.controller::getUserStream - meta', meta)
                 //console.log('imeta',imeta)
                 callback(err, res, meta)
               }
@@ -1207,27 +1222,27 @@ module.exports = {
     })
   },
   getUnifiedStream: function(user, params, token, callback) {
-    //console.log('dispatcher.js::getUnifiedStream', user)
-    var ref=this
+    //console.log('posts.controller.js::getUnifiedStream', user)
+    const ref = this
     this.cache.getUnifiedStream(user, params, function(err, posts, meta) {
       if (err) console.error('post.controllers.js::getUnifiedStream - getUnifiedStream err', err)
       // data is an array of entities
-      var apiposts={}, postcounter=0
-      //console.log('dispatcher.js:getUserPosts - mapping '+posts.length)
+      const apiposts = {}; let postcounter = 0
+      //console.log('posts.controller.js:getUserPosts - mapping '+posts.length)
       if (posts && posts.length) {
         posts.map(function(current, idx, Arr) {
-          //console.log('dispatcher.js:getUserPosts - map postid: '+current.id)
+          //console.log('posts.controller.js:getUserPosts - map postid: '+current.id)
           // get the post in API foromat
           ref.postToAPI(current, params, token, function(err, post, postmeta) {
             if (err) console.error('post.controllers.js::getUnifiedStream - postToAPI err', err)
-            apiposts[post.id]=post
+            apiposts[post.id] = post
             postcounter++
             // join
             //console.log(apiposts.length+'/'+entities.length)
-            if (postcounter==posts.length) {
-              //console.log('dispatcher.js::getUserPosts - finishing')
-              var res=[]
-              for(var i in posts) {
+            if (postcounter === posts.length) {
+              //console.log('posts.controller.js::getUserPosts - finishing')
+              const res = []
+              for (const i in posts) {
                 res.push(apiposts[posts[i].id])
               }
               callback(err, res, meta)
@@ -1239,7 +1254,7 @@ module.exports = {
         callback(err, [], meta)
       }
     })
-    //console.log('dispatcher.js::getUnifiedStream - write me')
+    //console.log('posts.controller.js::getUnifiedStream - write me')
     //callback(null, null)
   },
   /**
@@ -1249,32 +1264,33 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getUserPosts: function(user, params, callback) {
-    //console.log('dispatcher.js::getUserPosts - user:', user)
-    var ref=this
+    //console.log('posts.controller.js::getUserPosts - user:', user)
+    const ref = this
     this.normalizeUserID(user, params.tokenobj, function(err, userid) {
-      //console.log('dispatcher.js::getUserPosts - userid:', userid)
+      if (err) console.error('posts.controller.js::getUserPosts - normalize userid err', err, user)
+      //console.log('posts.controller.js::getUserPosts - userid:', userid)
       ref.cache.getUserPosts(userid, params, function(err, posts, meta) {
         // data is an array of entities
-        var apiposts={}, postcounter=0
-        //console.log('dispatcher.js:getUserPosts - mapping '+posts.length)
+        const apiposts = {}; let postcounter = 0
+        //console.log('posts.controller.js:getUserPosts - mapping '+posts.length)
         if (posts && posts.length) {
           posts.map(function(current, idx, Arr) {
-            //console.log('dispatcher.js:getUserPosts - map postid: '+current.id)
+            //console.log('posts.controller.js:getUserPosts - map postid: '+current.id)
             // get the post in API foromat
             ref.postToAPI(current, params, params.tokenobj, function(err, post, postmeta) {
               // cache?? no
-              apiposts[post.id]=post
+              apiposts[post.id] = post
               postcounter++
               // join
               //console.log(postcounter+'/'+posts.length)
-              if (postcounter==posts.length) {
-                //console.log('dispatcher.js::getUserPosts - finishing', posts)
-                var res=[]
-                for(var i in posts) {
-                  //console.log(i, 'dispatcher.js::getUserPosts - copying', posts[i].id)
+              if (postcounter === posts.length) {
+                //console.log('posts.controller.js::getUserPosts - finishing', posts)
+                const res = []
+                for (const i in posts) {
+                  //console.log(i, 'posts.controller.js::getUserPosts - copying', posts[i].id)
                   res.push(apiposts[posts[i].id])
                 }
-                //console.log('dispatcher.js::getUserPosts - callingback', res.length, 'posts')
+                //console.log('posts.controller.js::getUserPosts - callingback', res.length, 'posts')
                 callback(err, res, meta)
                 /*
                 var res={}
@@ -1324,22 +1340,22 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getHashtag: function(hashtag, params, callback) {
-    var ref=this
-    //console.log('dispatcher.js:getHashtag - start #'+hashtag)
+    const ref = this
+    //console.log('posts.controller.js:getHashtag - start #'+hashtag)
     this.cache.getHashtagEntities(hashtag, params, function(err, entities, meta) {
       // data is an array of entities
-      var apiposts=[]
-      //console.log('dispatcher.js:getHashtag - mapping '+entities.length)
+      const apiposts = []
+      //console.log('posts.controller.js:getHashtag - mapping '+entities.length)
       if (entities.length) {
         // this seems to preserve order
         entities.map(function(current, idx, Arr) {
           // get the post in API foromat
-          ref.getPost(current.typeid, params && params.tokenobj?{ tokenobj: params.tokenobj }:null, function(err, post, meta) {
+          ref.getPost(current.typeid, params && params.tokenobj ? { tokenobj: params.tokenobj } : null, function(err, post, meta) {
             apiposts.push(post)
             // join
             //console.log(apiposts.length+'/'+entities.length)
-            if (apiposts.length==entities.length) {
-              //console.log('dispatcher.js::getHashtag - finishing')
+            if (apiposts.length === entities.length) {
+              //console.log('posts.controller.js::getHashtag - finishing')
               callback(err, apiposts)
             }
           })
@@ -1351,8 +1367,8 @@ module.exports = {
     })
   },
   getExploreFeed: function(feed, params, callback) {
-    //console.log('dispatcher.js::getExploreFeed(', feed, ',...,...) - start')
-    var ref=this
+    //console.log('posts.controller.js::getExploreFeed(', feed, ',...,...) - start')
+    const ref = this
     this.cache.getExploreFeed(feed, params, function(err, posts, meta) {
       if (err) console.error('posts.controller.js::getExploreFeed - err', err)
       //console.log('posts.controller.js::getExploreFeed - posts', posts.length)
@@ -1373,7 +1389,7 @@ module.exports = {
               apiposts[post.id]=post
             } else {
               // reposts are an example of a post without text
-              console.log('dispatcher.js::getExploreFeed - no post or missing text', post, err, meta, current.id)
+              console.log('posts.controller.js::getExploreFeed - no post or missing text', post, err, meta, current.id)
               posts.pop() // lower needed
             }
             counts++
@@ -1381,7 +1397,7 @@ module.exports = {
             //console.log(apiposts.length+'/'+entities.length)
             if (counts===posts.length) {
             //if (apiposts.length===posts.length) {
-              //console.log('dispatcher.js::getExploreFeed - finishing')
+              //console.log('posts.controller.js::getExploreFeed - finishing')
               var res=[]
               for(var i in posts) {
                 var id=posts[i].id
@@ -1407,26 +1423,26 @@ module.exports = {
     })
   },
   postSearch: function(query, params, tokenObj, callback) {
-    var ref=this
-    //console.log('dispatcher.js::postSearch - query', query)
+    const ref = this
+    //console.log('posts.controller.js::postSearch - query', query)
     this.cache.searchPosts(query, params, function(err, users, meta) {
-      //console.log('dispatcher.js::userSearch - got', users.length, 'users')
+      //console.log('posts.controller.js::userSearch - got', users.length, 'users')
       if (!users.length) {
         callback(err, [], meta)
         return
       }
-      var rPosts=[]
-      for(var i in users) {
+      const rPosts = []
+      for (const i in users) {
         // postToAPI function(post, params, tokenObj, callback, meta) {
         ref.postToAPI(users[i], params, tokenObj, function(err, adnPostObj) {
-          //console.log('dispatcher.js::userSearch - got', adnUserObj, 'for', users[i])
+          //console.log('posts.controller.js::userSearch - got', adnUserObj, 'for', users[i])
           rPosts.push(adnPostObj)
-          if (rPosts.length==users.length) {
-            //console.log('dispatcher.js::userSearch - final', rUsers)
+          if (rPosts.length === users.length) {
+            //console.log('posts.controller.js::userSearch - final', rUsers)
             callback(err, rPosts, meta)
           }
         }, meta)
       }
     })
-  },
+  }
 }

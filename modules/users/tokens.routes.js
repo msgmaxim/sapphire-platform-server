@@ -4,18 +4,18 @@ module.exports = {
     const callbacks = app.callbacks
 
     // token: required
-    app.get(prefix+'/token', function(req, resp) {
+    app.get(prefix + '/token', function(req, resp) {
       // req.token convert into userid/sourceid
       //console.log('dialect.*.js::/token  - looking up usertoken', req.token)
-      if (req.token===null || req.token===undefined || req.token==='') {
+      if (req.token === null || req.token === undefined || req.token === '') {
         console.log('tokens.routes.js::/token - No token passed in')
-        var res={
+        const res = {
           meta: {
             code: 401,
-            error_message: "Call requires authentication: Authentication required to fetch token."
+            error_message: 'Call requires authentication: Authentication required to fetch token.'
           }
         }
-        resp.status(401).type('application/json').send(JSON.stringify(res))
+        resp.status(res.meta.code).type('application/json').send(JSON.stringify(res))
         return
       }
 
@@ -24,15 +24,15 @@ module.exports = {
         if (err) console.error('tokens.routes.js::/token - getUserClientByToken err', err)
         //console.log('usertoken',usertoken)
         //console.log('dialect.*.js::/token  - got usertoken')
-        if (usertoken==null) {
+        if (usertoken == null) {
           console.log('tokens.routes.js::/token - Not a valid token', req.token)
-          var res={
+          const res = {
             meta: {
               code: 401,
-              error_message: "Call requires authentication: Authentication required to fetch token."
+              error_message: 'Call requires authentication: Authentication required to fetch token.'
             }
           }
-          resp.status(401).type('application/json').send(JSON.stringify(res))
+          resp.status(res.meta.code).type('application/json').send(JSON.stringify(res))
           return
         }
         //console.log('dialect.*.js::got token for /token { userid:',usertoken.userid,'client_id:',usertoken.client_id)

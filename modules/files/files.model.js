@@ -1,6 +1,6 @@
-var fileModel
+let fileModel
 
-var applyParams
+let applyParams
 
 function start(modelOptions) {
   applyParams = modelOptions.applyParams
@@ -21,7 +21,7 @@ function start(modelOptions) {
     mime_type: { type: String, length: 255 },
     urlexpires: { type: Date },
     /* API END */
-    last_updated: { type: Date },
+    last_updated: { type: Date }
   })
 }
 
@@ -35,7 +35,7 @@ module.exports = {
       this.next.addFile(file, token, callback)
     } else {
       // if no next, then likely no upstream
-      file.last_updated=new Date()
+      file.last_updated = new Date()
       // deal with caminte short coming on mysql
       //file.type=file.type.replace(new RegExp('\\.', 'g'), '_')
       console.log('final pre file model', file)
@@ -45,10 +45,10 @@ module.exports = {
       // our local is the network tbh
       // already done in dialect
       //ipost.client_id=tokenObj.client_id
-      if (file.urlexpires === undefined) file.urlexpires=new Date(0)
-      if (file.sha1 === undefined) file.sha1=''
-      if (file.type === undefined) file.type=''; // not required per spec
-      fileModel.create(file, callback);
+      if (file.urlexpires === undefined) file.urlexpires = new Date(0)
+      if (file.sha1 === undefined) file.sha1 = ''
+      if (file.type === undefined) file.type = '' // not required per spec
+      fileModel.create(file, callback)
     }
   },
   setFile: function(file, del, ts, callback) {
@@ -58,7 +58,7 @@ module.exports = {
       //file.type=file.type.replace(new RegExp('\\.', 'g'), '_')
       fileModel.findOrCreate({
         id: file.id
-      },file, function(err, ofile) {
+      }, file, function(err, ofile) {
         //ofile.type=ofile.type.replace(new RegExp('_', 'g'), '.')
         if (callback) {
           callback(err, ofile)
@@ -68,14 +68,14 @@ module.exports = {
   },
   getFile: function(fileId, callback) {
     //console.log('dataaccess.caminte.js::getFile - id is '+id)
-    if (fileId == undefined) {
+    if (fileId === undefined) {
       callback(null, 'dataaccess.caminte.js::getFile - id is undefined')
       return
     }
-    var ref=this
+    const ref = this
     fileModel.findById(fileId, function(err, file) {
       //console.log('dataaccess.caminte.js::getFile - post, err',post,err)
-      if (file==null && err==null) {
+      if (file == null && err == null) {
         //console.log('dataaccess.caminte.js::getFile - next?',ref.next)
         if (ref.next) {
           //console.log('dataaccess.caminte.js::getFile - next')
@@ -87,8 +87,8 @@ module.exports = {
     })
   },
   getFiles: function(userid, params, callback) {
-    var query = fileModel.find().where('userid', userid)
+    const query = fileModel.find().where('userid', userid)
     //query.debug = true
     applyParams(query, params, callback)
-  },
+  }
 }

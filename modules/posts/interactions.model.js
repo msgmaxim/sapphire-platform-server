@@ -1,6 +1,7 @@
-var interactionModel
+let InteractionModel
 
-var applyParams
+let applyParams
+let schemaData
 
 function start(modelOptions) {
   applyParams = modelOptions.applyParams
@@ -11,7 +12,7 @@ function start(modelOptions) {
   // though repost could also write here in the future, making it easier to pull
   // stars are recorded only here
   /** interaction storage model */
-  interactionModel = schemaData.define('interaction', {
+  InteractionModel = schemaData.define('interaction', {
     userid: { type: Number, index: true },
     type: { type: String, length: 8, index: true }, // star,unstar,repost,unrepost,delete
     datetime: { type: Date },
@@ -33,7 +34,7 @@ module.exports = {
       //console.log('interactions.model.js::addStar - token: ', token) // obj?
       this.setInteraction(token.userid, postid, 'star', 0, 0, Date.now())
       // we're supposed to return the post
-      if (callback) callback(false, false, false)
+      if (callback) callback(null, false, false)
     }
   },
   delStar: function(postid, token, callback) {
@@ -43,7 +44,7 @@ module.exports = {
       //console.log('interactions.model.js::delStar - token: ', token) // obj?
       this.setInteraction(token.userid, postid, 'star', 0, 1, Date.now())
       // we're supposed to return the post
-      if (callback) callback(false, false, false)
+      if (callback) callback(null, false, false)
     }
   },
   // FIXME: include when to use notice
@@ -51,7 +52,7 @@ module.exports = {
   // we hacked togehter a deletion system with this...
   // out of adn spec
   addInteraction: function(type, targetid, idtype, typeid, callback) {
-    interaction = new interactionModel()
+    const interaction = new InteractionModel()
     interaction.userid   = parseInt(targetid)
     interaction.type     = type
     interaction.datetime = Date.now()
@@ -65,14 +66,15 @@ module.exports = {
   setInteraction: function(userid, postid, type, metaid, deleted, ts, callback) {
     // is there an existing match for this key (userid, postid, type)
     // wouldn't find or create be better here?
-    var ref = this
+    const ref = this
     //console.log('interactions.model.js::setInteractions', userid, postid, type, metaid, deleted)
-    interactionModel.find({ where: { userid: userid, typeid: postid, type: type } }, function(err, foundInteractions) {
-
+    InteractionModel.find({ where: { userid: userid, typeid: postid, type: type } }, function(err, foundInteractions) {
+      if (err) console.error('interactions.model.js::setInteraction - find err', err)
       function doFinalCheck(err, interactions, meta) {
-        if (err) console.error('interactions.model.js::setInteraction - doFinalCheck err', err, postDone, userDone)
-        var postDone=false
-        var userDone=false
+        if (err) console.error('interactions.model.js::setInteraction - doFinalCheck err', err)
+
+        let postDone = false
+        let userDone = false
         function checkDone() {
           if (postDone && userDone) {
             if (callback) {
@@ -80,20 +82,20 @@ module.exports = {
             }
           }
         }
-        if (type==='star') {
+        if (type === 'star') {
           // update num_stars
           ref.updatePostCounts(postid, function() {
-            postDone=true
+            postDone = true
             checkDone()
           })
           // update counts.stars
           ref.updateUserCounts(userid, function() {
-            userDone=true
+            userDone = true
             checkDone()
           })
         } else {
-          postDone=true
-          userDone=true
+          postDone = true
+          userDone = true
           checkDone()
         }
       }
@@ -103,11 +105,11 @@ module.exports = {
         //console.log('interactions.model.js::setInteractions - already in db')
         if (deleted) {
           // nuke it
-          var done=0
-          for(var i in foundInteractions) {
-            foundInteractions[i].destroy(function (err) {
+          let done = 0
+          for (const i in foundInteractions) {
+            foundInteractions[i].destroy(function(err) {
               done++
-              if (done===foundInteractions.length) {
+              if (done === foundInteractions.length) {
                 // hiding all errors previous to last one
                 doFinalCheck('', err)
               }
@@ -121,7 +123,7 @@ module.exports = {
 
       // ok star,repost
       //console.log('interactions.model.js::setInteraction - type',type)
-      if (type=='star') {
+      if (type === 'star') {
         // is this the src or trg?
         //console.log('interactions.model.js::setInteraction - userid',userid)
         // do notify
@@ -138,7 +140,7 @@ module.exports = {
             console.warn('no post for', postid)
             return
           }
-          notice = {}
+          const notice = {}
           notice.event_date   = ts
           // owner of post should be notified
           notice.notifyuserid = post.userid // who should be notified
@@ -152,7 +154,7 @@ module.exports = {
       }
 
       // is this new action newer
-      interaction = new interactionModel()
+      const interaction = new InteractionModel()
       interaction.userid   = userid
       interaction.type     = type
       interaction.datetime = ts
@@ -160,9 +162,9 @@ module.exports = {
       interaction.typeid   = postid
       interaction.asthisid = metaid
       //if (foundInteraction.id==null) {
-      //console.log('interactions.model.js::setInteraction - inserting', interactionModel)
-      //db_insert(interaction, interactionModel, function(interactions, err, meta) {
-      interactionModel.create(interaction, function(err) {
+      //console.log('interactions.model.js::setInteraction - inserting', InteractionModel)
+      //db_insert(interaction, InteractionModel, function(interactions, err, meta) {
+      InteractionModel.create(interaction, function(err) {
         doFinalCheck(err, interaction, false)
       })
       /*
@@ -189,12 +191,12 @@ module.exports = {
   // can be in context of token/user
   getInteractions: function(type, user, params, callback) {
     //console.log('Getting '+type+' for '+userid)
-    var ref=this
-    var finishfunc=function(userid) {
+    const ref = this
+    const finishfunc = function(userid) {
       //console.log('interactions.model.js::getInteractions', type, params, user, '=>', userid)
-      interactionModel.find({ where: { userid: userid, type: type, idtype: 'post' }, limit: params.count, order: "datetime DESC" }, function(err, interactions) {
+      InteractionModel.find({ where: { userid: userid, type: type, idtype: 'post' }, limit: params.count, order: 'datetime DESC' }, function(err, interactions) {
         if (err) console.error('interactions.model.js::getInteractions - err', err)
-        if (interactions==null && err==null) {
+        if (interactions === null && err === null) {
           // none found
           //console.log('interactions.model.js::getStars - check proxy?')
           // user.stars_updated vs appstream start
@@ -208,11 +210,11 @@ module.exports = {
         callback(err, interactions)
       })
     }
-    if (user[0]=='@') {
-      var username=user.substr(1)
+    if (user[0] === '@') {
+      const username = user.substr(1)
       this.getUserID(username, function(err, userobj) {
         if (err) console.error('interactions.model.js::getInteractions - err', err)
-        var id = false
+        let id = false
         if (userobj) {
           id = userobj.id
         }
@@ -228,7 +230,7 @@ module.exports = {
       console.trace('interactions.model.js::getChannelDeletions - no callback passed in')
       return
     }
-    var query = interactionModel.find().where('userid', channel_id).where('type', 'delete').where('idtype', 'message')
+    const query = InteractionModel.find().where('userid', channel_id).where('type', 'delete').where('idtype', 'message')
     applyParams(query, params, callback)
   },
   getUserStarPost: function(userid, postid, callback) {
@@ -239,7 +241,7 @@ module.exports = {
     // did this user star this post
     //, limit: params.count
     //console.log('camintejs::getUserStarPost', userid, postid)
-    interactionModel.find({ where: { userid: userid, type: 'star', typeid: postid, idtype: 'post' } }, function(err, interactions) {
+    InteractionModel.find({ where: { userid: userid, type: 'star', typeid: postid, idtype: 'post' } }, function(err, interactions) {
       callback(err, interactions[0])
     })
   },
@@ -254,6 +256,6 @@ module.exports = {
       console.trace('interactions.model.js::getPostStars - no callback passed in')
       return
     }
-    interactionModel.find({ where: { type: 'star', typeid: postid, idtype: 'post' }, limit: params.count }, callback);
-  },
+    InteractionModel.find({ where: { type: 'star', typeid: postid, idtype: 'post' }, limit: params.count }, callback)
+  }
 }

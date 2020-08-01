@@ -1,7 +1,7 @@
 // copyentities
 const entitiesController = require('./entities.controller')
 
-module.exports={
+module.exports = {
   //
   // user
   //
@@ -14,16 +14,16 @@ module.exports={
   updateUser: function(data, ts, callback) {
     if (!data) {
       console.trace('users.controller.js:updateUser - data is missing', data)
-      callback('data is missing')
+      callback(new Error('data is missing'))
       return
     }
     if (!data.id) {
       console.trace('users.controller.js:updateUser - id is missing', data)
-      callback('id is missing')
+      callback(new Error('id is missing'))
       return
     }
     // FIXME: current user last_updated
-    var ref=this
+    const ref = this
     if (data.annotations) {
       //console.log('users.controller.js:updateUser - hasNotes, userid', data.id, 'notes', data.annotations, 'full', data)
       // FIXME: only updated annotation if the timestamp is newer than we have
@@ -91,18 +91,18 @@ module.exports={
         timezone: req.body.timezone,
         description: req.body.description,
     */
-    var changes={}
-    if (request.name!==undefined) changes.name=request.name
-    if (request.locale!==undefined) changes.locale=request.locale
-    if (request.timezone!==undefined) changes.timezone=request.timezone
-    if (request.description!==undefined) {
-      if (request.description.text) changes.description=request.description.text
-      if (request.description.html) changes.descriptionhtml=request.description.html
+    const changes = {}
+    if (request.name !== undefined) changes.name = request.name
+    if (request.locale !== undefined) changes.locale = request.locale
+    if (request.timezone !== undefined) changes.timezone = request.timezone
+    if (request.description !== undefined) {
+      if (request.description.text) changes.description = request.description.text
+      if (request.description.html) changes.descriptionhtml = request.description.html
     }
     //console.log("users.controller.js::patchUser - user", tokenObj.userid, 'changes', changes)
     // params we'd have to pay attention to:
     // include_annotations, include_user_annotations, include_html
-    var ref=this
+    const ref = this
     if (request.annotations) {
       //console.log('users.controller.js::patchUser - annotations', request.annotations)
       this.setAnnotations('user', tokenObj.userid, request.annotations)
@@ -114,7 +114,7 @@ module.exports={
         ref.getUser(tokenObj.userid, params, callback)
       } else {
         console.log('users.controller.js::patchUser - no changes', changes)
-        callback('no changes', false)
+        callback(new Error('no changes'), false)
       }
       return
     }
@@ -136,15 +136,16 @@ module.exports={
   updateUserAvatar: function(avatar_url, params, tokenObj, callback) {
     if (!tokenObj.userid) {
       console.trace('users.controller.js::updateUserAvatar - no user id in tokenObj', tokenObj, tokenObj.userid)
-      return callback({}, 'not userid')
+      return callback(new Error('not userid'), {})
     }
     //console.log('users.controller.js::updateUserAvatar - avatar', avatar_url)
     // we can also set the image width/height...
-    changes = {
+    const changes = {
       avatar_image: avatar_url
     }
-    var ref=this
+    const ref = this
     this.cache.patchUser(tokenObj.userid, changes, function(err, changes, meta) {
+      if (err) console.error('users.controller.js::updateUserAvatar - err', err)
       // hrm memory driver does return the complete object...
       //console.log('users.controller.js::updateUserAvatar - changes', changes)
       if (callback) {
@@ -157,35 +158,35 @@ module.exports={
   apiToUser: function(user, callback) {
     // collapse API to db structure
     // copy what we can without linking to the orignal, so we don't destroy
-    var userData = JSON.parse(JSON.stringify(user))
+    const userData = JSON.parse(JSON.stringify(user))
     if (user.username === undefined) {
       console.log('users.controller.js::apiToUser - user', user.id, 'doesnt have a username', user)
       user.username = ''
     }
-    userData.username=user.username.toLowerCase() // so we can find it
-    userData.created_at=new Date(user.created_at) // fix incoming created_at iso date to Date
+    userData.username = user.username.toLowerCase() // so we can find it
+    userData.created_at = new Date(user.created_at) // fix incoming created_at iso date to Date
     // if there isn't counts probably a bad input
     if (user.counts) {
-      userData.following=user.counts.following
-      userData.followers=user.counts.followers
-      userData.posts=user.counts.posts
-      userData.stars=user.counts.stars
+      userData.following = user.counts.following
+      userData.followers = user.counts.followers
+      userData.posts = user.counts.posts
+      userData.stars = user.counts.stars
     }
     if (user.avatar_image === undefined) {
       console.log('users.controller.js::apiToUser - user', user.id, 'doesnt have a avatar_image', user)
       user.avatar_image = {}
     }
     // set avatar to null if is_default true
-    userData.avatar_width=user.avatar_image.width
-    userData.avatar_height=user.avatar_image.height
-    userData.avatar_image=user.avatar_image.url
+    userData.avatar_width = user.avatar_image.width
+    userData.avatar_height = user.avatar_image.height
+    userData.avatar_image = user.avatar_image.url
     if (user.cover_image === undefined) {
       console.log('users.controller.js::apiToUser - user', user.id, 'doesnt have a cover_image', user)
       user.cover_image = {}
     }
-    userData.cover_width=user.cover_image.width
-    userData.cover_height=user.cover_image.height
-    userData.cover_image=user.cover_image.url
+    userData.cover_width = user.cover_image.width
+    userData.cover_height = user.cover_image.height
+    userData.cover_image = user.cover_image.url
 
     if (user.description) {
       //console.log('user '+data.id+' has description', data.description.entities)
@@ -200,28 +201,28 @@ module.exports={
         })
       }
       // cache html version
-      userData.descriptionhtml=user.description.html
+      userData.descriptionhtml = user.description.html
       // since userData is a reference to data, we can't stomp on it until we're done
-      userData.description=user.description.text
+      userData.description = user.description.text
     }
-    callback(false, userData)
+    callback(null, userData)
     //return userData
   },
   // from internal database format
   userToAPI: function(user, token, callback, meta) {
-    //console.log('user.controller.js::userToAPI - '+user.id, callback, meta)
+    //console.log('users.controller.js::userToAPI - '+user.id, callback, meta)
     if (!user) {
       // how do we send an empty user then?
       console.trace('users.controller.js::userToAPI - no user passed in')
-      callback('users.controller.js::userToAPI - no user passed in')
+      callback(new Error('users.controller.js::userToAPI - no user passed in'))
       return
     }
     if (!user.id) {
       console.trace('users.controller.js::userToAPI - no user id passed in')
-      callback('users.controller.js::userToAPI - no user id passed in')
+      callback(new Error('users.controller.js::userToAPI - no user id passed in'))
       return
     }
-    if (!callback || typeof(callback) !== 'function') {
+    if (!callback || typeof (callback) !== 'function') {
       console.trace('users.controller.js::userToAPI - no callback passed in')
       //callback('users.controller.js::userToAPI - no callback passed in')
       return
@@ -230,7 +231,7 @@ module.exports={
     //console.log('users.controller.js::userToAPI - base user', user)
     //console.log('users.controller.js::userToAPI - base avatar_image', user.avatar_image)
     // copy user structure
-    var res={
+    const res = {
       id: user.id,
       username: user.username,
       created_at: new Date(user.created_at),
@@ -242,23 +243,23 @@ module.exports={
         url: user.avatar_image,
         width: user.avatar_width,
         height: user.avatar_height,
-        is_default: user.avatar_image==''?true:false,
+        is_default: user.avatar_image === ''
       },
       cover_image: {
         url: user.cover_image,
         width: user.cover_width,
         height: user.cover_height,
-        is_default: user.cover_image==''?true:false,
+        is_default: user.cover_image === ''
       },
       counts: {
         following: user.following,
         posts: user.posts,
         followers: user.followers,
-        stars: user.stars,
+        stars: user.stars
       }
     }
     if (user.description) {
-      res.description={
+      res.description = {
         text: user.description,
         html: user.description,
         entities: {
@@ -270,50 +271,50 @@ module.exports={
     }
     // conditionals
     if (user.name) {
-      res.name=user.name // 530 was cast as a int
+      res.name = user.name // 530 was cast as a int
     }
     if (user.verified_domain) {
-      res.verified_domain=user.verified_domain
+      res.verified_domain = user.verified_domain
       // alpha needs this and the dev doesn't seem to cover it
-      res.verified_link='http://'+user.verified_domain
+      res.verified_link = 'http://' + user.verified_domain
     }
 
     if (user.description && !res.description) {
       console.log('users.controller.js::userToAPI - sanity check failure...')
     }
 
-    var need = {
+    const need = {
       annotation: false,
-      tokenFollow: false,
+      tokenFollow: false
     }
 
     function needComplete(type) {
       need[type] = false
       // if something is not done
       //console.log('users.controller.js::userToAPI - checking if done, just finished', type)
-      for(var i in need) {
+      for (const i in need) {
         if (need[i]) {
-          if (user.debug) console.log('users.controller.js::userToAPI('+user.id+') -', i, 'is not done')
+          if (user.debug) console.log('users.controller.js::userToAPI(' + user.id + ') -', i, 'is not done')
           return
         }
       }
       // , res, meta
-      if (user.debug) console.log('users.controller.js::userToAPI ('+user.id+') - done')
-      //console.log('user.controller.js::userToAPI - done, text', data.text)
+      if (user.debug) console.log('users.controller.js::userToAPI (' + user.id + ') - done')
+      //console.log('users.controller.js::userToAPI - done, text', data.text)
       // everything is done
       reallyDone()
       //callback(data, null, meta)
     }
 
-    var ref=this
+    const ref = this
     function reallyDone() {
       // final peice
       if (user.description) {
         // use entity cache?
         if (1) {
-          //console.log('user.controller.js::userToAPI - getEntities '+user.id)
+          //console.log('users.controller.js::userToAPI - getEntities '+user.id)
           ref.getEntities('user', user.id, function(userEntitiesErr, userEntities, userEntitiesMeta) {
-            if (userEntitiesErr) console.error('user.controller.js::userToAPI - userEntitiesErr err', userEntitiesErr)
+            if (userEntitiesErr) console.error('users.controller.js::userToAPI - userEntitiesErr err', userEntitiesErr)
             if (userEntities) {
               entitiesController.copyentities('mentions', userEntities.mentions, res.description)
               entitiesController.copyentities('hashtags', userEntities.hashtags, res.description)
@@ -324,18 +325,18 @@ module.exports={
             // use html cache?
             if (1) {
               if (res.description) {
-                res.description.html=user.descriptionhtml
+                res.description.html = user.descriptionhtml
               } else {
                 console.log('users.controller.js::userToAPI - what happened to the description?!? ', user, res)
               }
-              if (user.debug) console.log('users.controller.js::userToAPI('+user.id+') - calling back')
+              if (user.debug) console.log('users.controller.js::userToAPI(' + user.id + ') - calling back')
               callback(userEntitiesErr, res)
             } else {
               // you can pass entities if you want...
               // text, entities, postcontext, callback
-              ref.textProcess(user.description, users.entities, false, function(err, textProc) {
+              ref.textProcess(user.description, user.entities, false, function(err, textProc) {
                 if (err) console.error('users.controller.js::userToAPI - textProcess err', err)
-                res.description.html=textProc.html
+                res.description.html = textProc.html
                 callback(userEntitiesErr, res)
               })
             }
@@ -345,32 +346,32 @@ module.exports={
           //console.log('users.controller.js::userToAPI - calling back', res)
           ref.textProcess(user.description, user.entities, false, function(err, textProc) {
             if (err) console.error('users.controller.js::userToAPI - textProcess err', err)
-            res.description.html=textProc.html
-            res.description.entities=textProc.entities
-            callback(false, res)
+            res.description.html = textProc.html
+            res.description.entities = textProc.entities
+            callback(null, res)
           })
         }
       } else {
         //console.log('users.controller.js::userToAPI - calling back', res)
-        callback(false, res)
+        callback(null, res)
       }
     }
 
     if (user.annotations) {
-      if (user.debug) console.log('users.controller.js::userToAPI('+user.id+') - need user annotations')
+      if (user.debug) console.log('users.controller.js::userToAPI(' + user.id + ') - need user annotations')
       need.annotation = true
-      var loadAnnotation=function(user, cb) {
-        if (user.debug) console.log('users.controller.js::userToAPI('+user.id+') - get user annotations')
+      const loadAnnotation = function(user, cb) {
+        if (user.debug) console.log('users.controller.js::userToAPI(' + user.id + ') - get user annotations')
         ref.getAnnotation('user', user.id, function(err, dbNotes, noteMeta) {
           if (err) console.error('users.controller.js::userToAPI - getAnnotation err', err)
           if (user.debug) console.log('users.controller.js::userToAPI - user', user.id, 'annotations', dbNotes.length)
-          var apiNotes = []
-          for(var j in dbNotes) {
-            var note=dbNotes[j]
+          const apiNotes = []
+          for (const j in dbNotes) {
+            const note = dbNotes[j]
             //console.log('got note', j, '#', note.type, '/', note.value, 'for', user.id)
             apiNotes.push({
               type: note.type,
-              value: note.value,
+              value: note.value
             })
           }
           cb(err, apiNotes, noteMeta)
@@ -380,7 +381,7 @@ module.exports={
       loadAnnotation(user, function(notesErr, apiNotes, notesMeta) {
         if (notesErr) console.log('users.controller.js::userToAPI - loadAnnotation err', notesErr)
         if (user.debug) console.log('final anno', apiNotes.length)
-        res.annotations=apiNotes
+        res.annotations = apiNotes
         needComplete('annotation')
       })
       //res.annotations = user.annotations
@@ -388,16 +389,16 @@ module.exports={
 
     if (token && token.userid) {
       need.tokenFollow = true
-      //console.log('user.controller.js::userToAPI - need tokenFollow')
+      //console.log('users.controller.js::userToAPI - need tokenFollow')
       // follows_you
       // you_follow
-      //console.log('user.controller.js::userToAPI - src', token.userid, 'trg', user.id)
+      //console.log('users.controller.js::userToAPI - src', token.userid, 'trg', user.id)
       this.cache.follows(token.userid, user.id, function(err, following) {
         if (err) console.error('users.controller.js::userToAPI - follows err', err)
         //console.log('do we follow this guy?', following, 'err', err)
         if (following && following.active) {
           //console.log('flagging as followed')
-          res.you_follow=true
+          res.you_follow = true
         }
         //reallyDone()
         needComplete('tokenFollow')
@@ -408,25 +409,25 @@ module.exports={
     }
   },
   getUser: function(user, params, callback) {
-    //console.log('user.controller.js::getUser - '+user, params)
+    //console.log('users.controller.js::getUser - '+user, params)
     if (!callback) {
       console.trace('users.controller.js::getUser - no callback passed in')
-      callback('users.controller.js::getUser - no callback passed in', false)
+      callback(new Error('users.controller.js::getUser - no callback passed in', false))
       return
     }
     if (!user) {
-      callback('users.controller.js::getUser - no user passed in', false)
+      callback(new Error('users.controller.js::getUser - no user passed in', false))
       return
     }
-    if (params===null || params === undefined) {
+    if (params === null || params === undefined) {
       console.trace('users.controller.js::getUser - params are null/undefined')
-      params={
+      params = {
         generalParams: {},
         tokenobj: {}
       }
     }
-    //console.log('user.controller.js::getUser - params', params)
-    var ref=this
+    //console.log('users.controller.js::getUser - params', params)
+    const ref = this
     this.normalizeUserID(user, params.tokenobj, function(err, userid) {
       if (err) {
         console.error('users.controller.js::getUser - normalizeUserID err', err, 'for user:', user)
@@ -442,7 +443,7 @@ module.exports={
           // FIXME: temp hack (until we can change the userToAPI prototype)
           userobj.annotations = params.generalParams.annotations || params.generalParams.user_annotations
         //} else {
-          //console.log('user.controller.js::getUser - not such user?', userid, 'or no generalParams?', params)
+          //console.log('users.controller.js::getUser - not such user?', userid, 'or no generalParams?', params)
         }
         //console.log('found user', userobj.id, '==', user)
         if (!userobj) {
@@ -460,18 +461,18 @@ module.exports={
       if (params.tokenobj) {
         console.dir(params.tokenobj)
         this.cache.getUser(params.tokenobj.userid, function(userobj, userErr, userMeta) {
-          //console.log('user.controller.js::getUser - gotUser', userErr)
+          //console.log('users.controller.js::getUser - gotUser', userErr)
           ref.userToAPI(userobj, params.tokenobj, callback, userMeta)
         })
       } else {
         this.getUserClientByToken(params.token, function(usertoken, err) {
           if (usertoken==null) {
-            console.log('user.controller.js::getUser - me but not token')
-            callback(null, 'user.controller.js::getUser - me but not token')
+            console.log('users.controller.js::getUser - me but not token')
+            callback(null, 'users.controller.js::getUser - me but not token')
             return
           } else {
             ref.cache.getUser(usertoken.userid, function(userobj, userErr, userMeta) {
-              //console.log('user.controller.js::getUser - gotUser', userErr)
+              //console.log('users.controller.js::getUser - gotUser', userErr)
               ref.userToAPI(userobj, params.token, callback, userMeta)
             })
           }
@@ -485,9 +486,9 @@ module.exports={
         // strip @ from beginning
         user=user.substr(1)
       }
-      //console.log('user.controller.js::getUser - calling', func)
+      //console.log('users.controller.js::getUser - calling', func)
       this.cache[func](user, function(userobj, userErr, userMeta) {
-        //console.log('user.controller.js::getUser - gotUser', userErr)
+        //console.log('users.controller.js::getUser - gotUser', userErr)
         ref.userToAPI(userobj, params.tokenobj, callback, userMeta)
       })
     }
@@ -495,7 +496,7 @@ module.exports={
   },
   // NOTE: users has to be an array!
   getUsers: function(users, params, callback) {
-    //console.log('user.controller.js::getUsers - '+user, params)
+    //console.log('users.controller.js::getUsers - '+user, params)
     if (!callback) {
       console.log('users.controller.js::getUsers - no callback passed in')
       return
@@ -504,14 +505,14 @@ module.exports={
       callback(null, 'users.controller.js::getUsers - no getUser passed in')
       return
     }
-    if (params===null) {
+    if (params === null) {
       console.log('users.controller.js::getUsers - params are null')
-      params={
+      params = {
         tokenobj: {}
       }
     }
 
-    var ref=this
+    const ref = this
     /*
     this.cache.getUsers(users, params, function(userObjs, userErr, meta) {
       if (!userObjs.length) {
@@ -521,7 +522,7 @@ module.exports={
       var rUsers=[]
       for(var i in userObjs) {
         ref.userToAPI(userObjs[i], params.tokenobj, function(adnUserObj, err) {
-          //console.log('user.controller.js::getUsers - got', adnUserObj, 'for', users[i])
+          //console.log('users.controller.js::getUsers - got', adnUserObj, 'for', users[i])
           rUsers.push(adnUserObj)
           if (rUsers.length==users.length) {
             callback(rUsers, null, meta)
@@ -530,36 +531,39 @@ module.exports={
       }
     })
     */
-    //console.log('user.controller.js::getUsers - calling', func)
-    var rUsers=[]
-    //console.log('user.controller.js::getUsers - users', users)
-    for(var i in users) {
+    //console.log('users.controller.js::getUsers - calling', func)
+    const rUsers = []
+    //console.log('users.controller.js::getUsers - users', users)
+    for (const i in users) {
       // can't trim numbers...
-      var user = users[i] && users[i].trim ? users[i].trim() : users[i];
-      //console.log('user.controller.js::getUsers - iterate user', user)
+      const user = users[i] && users[i].trim ? users[i].trim() : users[i]
+      //console.log('users.controller.js::getUsers - iterate user', user)
       this.normalizeUserID(user, params.tokenobj, function(err, userid) {
+        if (err) console.error('users.controller.js::getUsers - normalizeUserID err', err)
         if (!userid) {
           rUsers.push(false)
-          if (rUsers.length==users.length) {
-            callback(false, rUsers)
+          if (rUsers.length === users.length) {
+            callback(null, rUsers)
           }
           return
         }
         ref.cache.getUser(userid, function(userErr, userobj, userMeta) {
-          //console.log('user.controller.js::getUsers - gotUser', userErr)
+          if (userErr) console.error('users.controller.js::getUsers - getUser err', userErr)
+          //console.log('users.controller.js::getUsers - gotUser', userErr)
 
           if (userobj && params.generalParams) {
             // FIXME: temp hack (until we can change the userToAPI prototype)
             userobj.annotations = params.generalParams.annotations || params.generalParams.user_annotations
           //} else {
-            //console.log('user.controller.js::getUser - not such user?', userid, 'or no generalParams?', params)
+            //console.log('users.controller.js::getUser - not such user?', userid, 'or no generalParams?', params)
           }
 
           ref.userToAPI(userobj, params.tokenobj, function(err, adnUserObj) {
-            //console.log('user.controller.js::getUsers - got', adnUserObj, 'for', users[i])
+            if (err) console.error('users.controller.js::getUsers - userToAPI err', err)
+            //console.log('users.controller.js::getUsers - got', adnUserObj, 'for', users[i])
             rUsers.push(adnUserObj)
-            if (rUsers.length==users.length) {
-              callback(false, rUsers)
+            if (rUsers.length === users.length) {
+              callback(null, rUsers)
             }
           }, userMeta)
         })
@@ -567,24 +571,26 @@ module.exports={
     }
   },
   userSearch: function(query, params, tokenObj, callback) {
-    var ref=this
+    const ref = this
     this.cache.searchUsers(query, params, function(err, users, meta) {
-      //console.log('user.controller.js::userSearch - got', users.length, 'users')
+      if (err) console.error('users.controller.js::userSearch - err', err)
+      //console.log('users.controller.js::userSearch - got', users.length, 'users')
       if (!users.length) {
-        callback(false, [], meta)
+        callback(null, [], meta)
         return
       }
-      var rUsers=[]
-      for(var i in users) {
+      const rUsers = []
+      for (const i in users) {
         ref.userToAPI(users[i], tokenObj, function(err, adnUserObj) {
-          //console.log('user.controller.js::userSearch - got', adnUserObj, 'for', users[i])
+          if (err) console.error('users.controller.js::userSearch - userToAPI err', err)
+          //console.log('users.controller.js::userSearch - got', adnUserObj, 'for', users[i])
           rUsers.push(adnUserObj)
-          if (rUsers.length==users.length) {
-            //console.log('user.controller.js::userSearch - final', rUsers)
-            callback(false, rUsers, meta)
+          if (rUsers.length === users.length) {
+            //console.log('users.controller.js::userSearch - final', rUsers)
+            callback(null, rUsers, meta)
           }
         }, meta)
       }
     })
-  },
+  }
 }
