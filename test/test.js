@@ -129,8 +129,9 @@ const testConfig = {
 async function setupTesting() {
   describe('ensureServer', async() => {
     it('make sure we have something to test', async() => {
+      const startTime = Date.now()
       await ensureServer()
-      //console.log('platform ready')
+      console.log('platform ready after', Date.now() - startTime, 'ms')
     })
     // need the following in an `it` to make sure it only happens after the server is set up
 
