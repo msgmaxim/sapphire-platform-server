@@ -72,7 +72,7 @@ module.exports = {
         console.error('subscriptions.model::setSubscription err', err)
       }
       if (callback) {
-        callback(subscription, err)
+        callback(err, subscription)
       }
     })
   },
@@ -83,9 +83,7 @@ module.exports = {
       callback(new Error('userid is NaN'), [])
       return
     }
-    SubscriptionModel.findOne({ where: { active: 1, userid: user_id, channelid: channel_id } }, function(err, subscription) {
-      callback(subscription, err)
-    })
+    SubscriptionModel.findOne({ where: { active: 1, userid: user_id, channelid: channel_id } }, callback)
   },
   /*
   delSubscription: function (channel_id, userid, callback) {
@@ -117,43 +115,8 @@ module.exports = {
       callback(new Error('userid is NaN'), [])
       return
     }
-    //console.log('dataaccess.caminte.js::getUserSubscriptions - userid', userid);
-
-    // we actually not sort by id but by the "most recent post first"
-
-    //applyParams(query, params, callback)
     const query = SubscriptionModel.find().where('userid', userid).where('active', 1)
     applyParams(query, params, callback)
-
-    /*function(subs, err, meta) {
-    //applyParams(postModel.find().where('id', { nin: ourRepostIds }).where('userid',{ in: userids }), params, maxid, callback);
-    //SubscriptionModel.find({ where: { userid: userid, active: 1 } }, function(err, subs) {
-      callback(subs, err, meta); */
-    /*
-      // FIXME: lookup should be in dispatcher for caching reasons
-      // and that means we need to do the sorting in dispatcher
-      var channelids=[];
-      for(var i in subs) {
-        var sub=subs[i];
-        channelids.push(sub.channelid);
-      }
-      //console.log('dataaccess.caminte.js::getUserSubscriptions - channelids are', channelids);
-      if (channelids.length) {
-        //console.log('dataaccess.caminte.js::getUserSubscriptions - channelids is', channelids);
-        var channelCriteria={ where: { id: { in: channelids } } };
-        if (params.types) {
-          channelCriteria.where['type']={ in: params.types.split(/,/) };
-          //console.log('dataaccess.caminte.js::getUserSubscriptions - types', channelCriteria.where['type']);
-        }
-        channelModel.find(channelCriteria, function (err, channels) {
-          callback(channels, err, meta);
-        });
-      } else {
-        // no subs
-        callback([], '', meta);
-      }
-      */
-    //});
   },
   getChannelSubscriptionCount: function(channelids, callback) {
     if (channelids === undefined) {
