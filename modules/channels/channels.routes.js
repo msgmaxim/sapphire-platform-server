@@ -217,7 +217,6 @@ module.exports = {
         req.apiParams.tokenobj = usertoken
         //console.log('subscriptions.routes.js:GETusersMEchannels - getting list of user subs for', usertoken.userid)
         dispatcher.getUserChannels(req.apiParams, usertoken, callbacks.dataCallback(resp))
-        return
       })
     })
   }
