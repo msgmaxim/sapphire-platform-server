@@ -5,11 +5,11 @@ module.exports = {
 
     // get current user's subscribed channels (token: user)
     // token: user, scope: public_messages or messages
-    app.get(prefix + '/users/me/channels', function(req, resp) {
-      //console.log('subscriptions.routes.js::GETusersMEchannels - token:', req.token)
+    app.get(prefix + '/channels', function(req, resp) {
+      //console.log('subscriptions.routes.js::GETchannels - token:', req.token)
       dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
-        if (err) console.error('subscriptions.routes.js::GETusersMEchannels - err', err)
-        //console.log('subscriptions.routes.js:GETusersMEchannels - got token:', usertoken)
+        if (err) console.error('subscriptions.routes.js::GETchannels - err', err)
+        //console.log('subscriptions.routes.js:GETchannels - got token:', usertoken)
         if (usertoken === null) {
           console.log('subscriptions.routes.js:GETchannels - failed to get token:', req.token, typeof (req.token))
           const res = {
@@ -21,10 +21,10 @@ module.exports = {
           resp.status(401).type('application/json').send(JSON.stringify(res))
           return
         }
-        //console.log('subscriptions.routes.js:GETusersMEchannels - found a token', usertoken)
+        //console.log('subscriptions.routes.js:GETchannels - found a token', usertoken)
         req.apiParams.tokenobj = usertoken
-        //console.log('subscriptions.routes.js:GETusersMEchannels - getting list of user subs for', usertoken.userid)
-        dispatcher.getUserChannels(req.apiParams, usertoken, callbacks.dataCallback(resp))
+        //console.log('subscriptions.routes.js:GETchannels - getting list of user subs for', usertoken.userid)
+        dispatcher.getUserSubscriptions(req.apiParams, usertoken, callbacks.dataCallback(resp))
       })
     })
 
