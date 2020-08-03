@@ -88,6 +88,7 @@ function findOrCreateToken(userid) {
 const ensureServer = () => {
   return new Promise((resolve, rej) => {
     const platformURL = new URL(base_url)
+    const startTime = Date.now()
     console.log('platform port', platformURL.port)
     lokinet.portIsFree(platformURL.hostname, platformURL.port, function(free) {
       if (free) {
@@ -101,7 +102,7 @@ const ensureServer = () => {
         function portNowClaimed() {
           lokinet.portIsFree(platformURL.hostname, platformURL.port, function(free) {
             if (!free) {
-              console.log(platformURL.port, 'now claimed')
+              console.log(platformURL.port, 'now claimed after', Date.now() - startTime, 'ms')
               resolve()
             } else {
               setTimeout(portNowClaimed, 100)
