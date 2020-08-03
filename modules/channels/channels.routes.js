@@ -194,5 +194,31 @@ module.exports = {
         dispatcher.getUserSubscriptions(userid, req.apiParams, callbacks.dataCallback(resp))
       })
     })
+
+    // Returns a stream of all Channels the current user has created. (token: user)
+    // token: user, scope: public_messages or messages
+    app.get(prefix + '/users/me/channels', function(req, resp) {
+      //console.log('channels.routes.js::GETusersMEchannels - token:', req.token)
+      dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
+        if (err) console.error('channels.routes.js::GETusersMEchannels - err', err)
+        //console.log('channels.routes.js:GETusersMEchannels - got token:', usertoken)
+        if (usertoken === null) {
+          console.log('channels.routes.js:GETusersMEchannels - failed to get token:', req.token, typeof (req.token))
+          const res = {
+            meta: {
+              code: 401,
+              error_message: 'Call requires authentication: Authentication required to fetch token.'
+            }
+          }
+          resp.status(401).type('application/json').send(JSON.stringify(res))
+          return
+        }
+        //console.log('subscriptions.routes.js:GETusersMEchannels - found a token', usertoken)
+        req.apiParams.tokenobj = usertoken
+        //console.log('subscriptions.routes.js:GETusersMEchannels - getting list of user subs for', usertoken.userid)
+        dispatcher.getUserChannels(req.apiParams, usertoken, callbacks.dataCallback(resp))
+        return
+      })
+    })
   }
 }
