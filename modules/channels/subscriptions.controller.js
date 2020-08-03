@@ -40,7 +40,7 @@ module.exports = {
     const ref = this
     //channel_id, userid, del, ts, callback
     this.cache.setSubscription(channel_id, tokenobj.userid, true, new Date(), function(err, subscription) {
-      if (err) console.error('subscriptions.controller.js::setSubscription - err', err)
+      if (err) console.error('subscriptions.controller.js::delChannelSubscription - err', err)
       //delSubscription: function (channel_id, userid, callback) {
       //this.cache.delSubscription(channel_id, tokenobj.userid, function(subscription, err) {
       params.unsubscribedOpt = true
@@ -78,6 +78,8 @@ module.exports = {
       nParams.types=params.channelParams.types
     }
     */
+
+    // This stream is ordered like an inbox with the stream containing the most recent post first.
 
     this.cache.getUserSubscriptions(userid, params, function(subsErr, subs, subsMeta) {
       //console.log('subscriptions.controller.js::getUserSubscriptions - ', userid, 'has', subs.length)
