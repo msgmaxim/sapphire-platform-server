@@ -783,9 +783,13 @@ module.exports = {
     //muteModel.find({ where: { 'userid': { in: params.tokenobj.userid } } }, function(err, mutes) {
     this.getAllMutesForUser(userid, function(err, mutes) {
       if (err) console.error('posts.model.js::getAllMutedPosts - getAllMutesForUser err', err)
+      if (!mutes.length) {
+        return callback(null, [])
+      }
       for (const i in mutes) {
         mutedUserIDs.push(mutes[i].muteeid)
       }
+      //console.log('posts.model.js::getAllMutedPosts - mutedUserIDs', mutedUserIDs)
       PostModel.find({ where: { userid: { in: mutedUserIDs } } }, function(err, posts) {
         if (err) console.error('posts.model.js::getAllMutedPosts - post find err', err)
         const mutedPostIDs = []
