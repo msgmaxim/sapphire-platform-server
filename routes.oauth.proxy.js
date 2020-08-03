@@ -79,7 +79,7 @@ function checkApp(dispatcher, client_id, client_secret, redirect_uri, callback) 
   console.log('routes.oauth.proxy::OauthAccess_Token - reqBodyClient_id:', client_id, 'reqBodyClient_secret', client_secret, 'redirect_uri', redirect_uri)
   if (!redirect_uri) {
     console.log('routes.oauth.proxy::checkApp - no redirect_uri passed in')
-    callback(null)
+    callback(new Error('no redirect_uri'))
     return
   }
   dispatcher.getAppCallbacks(client_id, client_secret, function(callbacks, err) {
@@ -105,7 +105,7 @@ function checkApp(dispatcher, client_id, client_secret, redirect_uri, callback) 
       }
     }
     console.log('routes.oauth.proxy::checkApp - callback valid', valid)
-    callback(valid)
+    callback(null, valid)
   })
 }
 
@@ -187,6 +187,26 @@ module.exports.setupoauthroutes = function(app, db) {
         }
         console.log('routes.oauth.proxy::OauthRedirect_uri - access_token info')
         console.dir(data)
+        // so statusCode was 200 but we got this...
+        if (data.meta && data.meta.code !== 200) {
+          console.error('MetaCode not 200')
+          if (data.meta.error.match(/^Unknown code/)) {
+            var res = {
+              meta: {
+                code: 500,
+                error_message: 'Couldnt fetch token.' + err.toString()
+              }
+            }
+            resp.status(500).type('application/json').send(JSON.stringify(res))
+            return
+          }
+        }
+        /*
+8|overlay  | { meta:
+8|overlay  |    { code: 500,
+8|overlay  |      error: 'Unknown code[marketplace_6f33e873293dc52f9d9bffef4daa60755f27868ee6e1f] for app[2]' },
+8|overlay  |   data: [] }
+        */
         // how do we know what ses this goes back to?
         // they'll have a cookie when ADN redirecs back
         // console.log('ses_id: '+ses_id);
@@ -208,8 +228,8 @@ module.exports.setupoauthroutes = function(app, db) {
         // app.dispatcher.cache.setUser(data.token.user, Date.now(), function(user, err) {
         // FIXME: make sure token is good first tbh...
         console.log('routes.oauth.proxy::OauthRedirect_uri - token.user', data.token.user)
-        app.dispatcher.apiToUser(data.token.user, function(apiUser, err) {
-          app.dispatcher.updateUser(data.token.user, Date.now(), function(user, err) {
+        app.dispatcher.apiToUser(data.token.user, function(err, apiUser) {
+          app.dispatcher.updateUser(data.token.user, Date.now(), function(err, user) {
             console.log('routes.oauth.proxy::OauthRedirect_uri - User checked')
           })
         })
@@ -217,7 +237,7 @@ module.exports.setupoauthroutes = function(app, db) {
         // set upstream token for this user
         app.dispatcher.setUpstreamToken(ses.userid, data.access_token, data.token.scopes)
         // convert out local session into a save localUserToken
-        app.dispatcher.setToken(ses.userid, ses.client_id, ses.requested_scopes, ses.local_token, function(usertoken, err) {
+        app.dispatcher.setToken(ses.userid, ses.client_id, ses.requested_scopes, ses.local_token, function(err, usertoken) {
           console.log('routes.oauth.proxy::OauthRedirect_uri - set local_token:', usertoken)
           console.log('routes.oauth.proxy::OauthRedirect_uri - convert cookie sesid into a LocalToken:', ses.code)
           console.log('routes.oauth.proxy::OauthRedirect_uri - upstream token:', data.access_token)
@@ -240,7 +260,7 @@ module.exports.setupoauthroutes = function(app, db) {
             // app.dispatcher.getAppCallbacks(req.body.client_id, false, function(callbacks, err) {
             // we'll have to use callback for security
             // })
-            checkApp(app.dispatcher, ses.client_id, '', ses.redirect_uri, function(valid) {
+            checkApp(app.dispatcher, ses.client_id, '', ses.redirect_uri, function(err, valid) {
               console.log('routes.oauth.proxy::OauthAccess_Token - callback valid', valid)
             })
 
@@ -285,7 +305,7 @@ module.exports.setupoauthroutes = function(app, db) {
       console.log('routes.oauth.proxy::OauthAccess_Token - ses:', ses)
       // validate app
       // console.log('routes.oauth.proxy::OauthAccess_Token - reqBodyClient_id:', req.body.client_id, 'reqBodyClient_secret', req.body.client_secret);
-      checkApp(app.dispatcher, req.body.client_id, req.body.client_secret, req.body.redirect_uri, function(valid) {
+      checkApp(app.dispatcher, req.body.client_id, req.body.client_secret, req.body.redirect_uri, function(err, valid) {
         console.log('routes.oauth.proxy::OauthAccess_Token - callback valid', valid)
       })
 
@@ -293,7 +313,7 @@ module.exports.setupoauthroutes = function(app, db) {
       // return token object
       // and what if user dne?
       // 3rd param is params for getUser...
-      app.dispatcher.getToken(ses.userid, ses.client_id, {}, function(tokenobj, err) {
+      app.dispatcher.getToken(ses.userid, ses.client_id, {}, function(err, tokenobj) {
         if (tokenobj === null) {
           console.log('routes.oauth.proxy::OauthAccess_Token - no token for userid,clientid ', ses, 'err: ', err)
         } else {
