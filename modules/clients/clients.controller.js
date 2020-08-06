@@ -33,7 +33,7 @@ module.exports = {
     //console.log('dispatcher.js::getClient', client_id)
     this.cache.getClient(client_id, function(err, client, meta) {
       if (err) console.error('clients.controller.js::getClient - err', err)
-      console.log('clients.controller.js::getClient - client', client)
+      //console.log('clients.controller.js::getClient - client', client)
       if (client) {
         delete client.secret // don't expose the secret!
       }
