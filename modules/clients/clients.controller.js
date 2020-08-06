@@ -33,10 +33,11 @@ module.exports = {
     //console.log('dispatcher.js::getClient', client_id)
     this.cache.getClient(client_id, function(err, client, meta) {
       if (err) console.error('clients.controller.js::getClient - err', err)
+      console.log('clients.controller.js::getClient - client', client)
       if (client) {
         delete client.secret // don't expose the secret!
       }
-      let clientObj = false
+      let clientObj = client
       if (client === null) {
         //console.log('clients.controller.js::getClient - no such client', client_id)
         // should we just be setClient??
