@@ -51,7 +51,7 @@ module.exports = {
             //console.log('posts.controller.js::addPost - reading', dbpost.id, 'got', dbpost.text)
             // recalculate entities and html
             ref.textProcess(dbpost.text, false, true, function(err, textProc) {
-              if (err) console.error('posts.controller.js::postToAPI - textProc err', err)
+              if (err) console.error('posts.controller.js::addPost - textProc err', err)
               //console.log('posts.controller.js::addPost - got new links', textProc.entities.links)
               // need dbpost for the id
               //dbpost.html=textProc.html
