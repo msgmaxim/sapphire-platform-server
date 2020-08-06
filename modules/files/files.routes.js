@@ -11,7 +11,7 @@ module.exports = {
     const upload = multer({ storage: storage, limits: { fileSize: app.config.maxUploadSize } })
 
     app.put(prefix + '/files', function(req, resp) {
-      console.log('dialect.appdotnet_official.js:PUT/files - detect')
+      console.log('files.routes.js:PUT/files - detect')
       const res = {
         meta: {
           code: 401,
@@ -23,9 +23,9 @@ module.exports = {
 
     // create file (for attachments)
     app.post(prefix + '/files', upload.single('content'), function(req, resp) {
-      if (req.file) {
-        console.log('POSTfiles - file upload got', req.file.buffer.length, 'bytes')
-      } else {
+
+      // make sure we have a file
+      if (!req.file) {
         // no files uploaded
         console.log('POSTfiles - file upload got no content file')
         const res = {
@@ -37,6 +37,9 @@ module.exports = {
         resp.status(400).type('application/json').send(JSON.stringify(res))
         return
       }
+      console.log('POSTfiles - file upload got', req.file.buffer.length, 'bytes')
+
+      // make sure it has data
       if (!req.file.buffer.length) {
         // no files uploaded
         console.log('POSTfiles - file upload got file with 0 bytes')
@@ -49,15 +52,26 @@ module.exports = {
         resp.status(400).type('application/json').send(JSON.stringify(res))
         return
       }
+
+      if (req.file.buffer.length > app.config.maxUploadSize) {
+        console.log('POSTsapphireFIRESfree - file upload got file with', req.file.buffer.length, 'bytes, too many, rejecting')
+        const res = {
+          meta: {
+            code: 422,
+            error_message: 'File uploaded too big'
+          }
+        }
+        resp.status(res.meta.code).type('application/json').send(JSON.stringify(res))
+        return
+      }
+
       //console.log('looking for type - params:', req.params, 'body:', req.body);
       // type is in req.body.type
       //console.log('POSTfiles - req token', req.token);
       dispatcher.getUserClientByToken(req.token, function(err, usertoken) {
-        if (err) {
-          console.log('dialect.appdotnet_official.js:POSTfiles - token err', err)
-        }
+        if (err) console.error('files.routes.js:POSTfiles - token err', err)
         if (usertoken == null) {
-          console.log('dialect.appdotnet_official.js:POSTfiles - no token')
+          console.log('files.routes.js:POSTfiles - no token')
           // could be they didn't log in through a server restart
           const res = {
             meta: {
@@ -66,106 +80,107 @@ module.exports = {
             }
           }
           resp.status(401).type('application/json').send(JSON.stringify(res))
-        } else {
-          if (req.body.type === undefined) {
-            // spec doesn't say required
-            req.body.type = ''
-          }
-          console.log('dialect.appdotnet_official.js:POSTfiles - uploading to pomf')
-          const uploadUrl = dispatcher.appConfig.provider_url
-          request.post({
-            url: uploadUrl,
-            formData: {
-              //files: fs.createReadStream(__dirname+'/git/caminte/media/mysql.png'),
-              'files[]': {
-                value: req.file.buffer,
-                options: {
-                  filename: req.file.originalname,
-                  contentType: req.file.mimetype,
-                  knownLength: req.file.buffer.length
-                }
-              }
-            }
-          }, function(err, uploadResp, body) {
-            if (err) {
-              console.log('dialect.appdotnet_official.js:POSTfiles - pomf upload Error!', err)
-              const res = {
-                meta: {
-                  code: 500,
-                  error_message: 'Could not save file (Could not POST to POMF)'
-                }
-              }
-              resp.status(res.meta.code).type('application/json').send(JSON.stringify(res))
-            } else {
-              //console.log('URL: ' + body);
-              /*
-              {"success":true,"files":[
-                {
-                  "hash":"107df9aadaf6204789f966e1b7fcd31d75a121c1",
-                  "name":"mysql.png",
-                  "url":"https:\/\/my.pomf.cat\/yusguk.png",
-                  "size":13357
-                }
-              ]}
-              {
-                success: false,
-                errorcode: 400,
-                description: 'No input file(s)'
-              }
-              */
-              let data = {}
-              try {
-                data = JSON.parse(body)
-              } catch (e) {
-                console.log('couldnt json parse body', body)
-                const res = {
-                  meta: {
-                    code: 500,
-                    error_message: 'Could not save file (POMF did not return JSON as requested)'
-                  }
-                }
-                resp.status(res.meta.code).type('application/json').send(JSON.stringify(res))
-                return
-              }
-              if (!data.success) {
-                const res = {
-                  meta: {
-                    code: 500,
-                    error_message: 'Could not save file (POMF did not return success)'
-                  }
-                }
-                resp.status(res.meta.code).type('application/json').send(JSON.stringify(res))
-                return
-              }
-              //, 'from', body
-              console.log('dialect.appdotnet_official.js:POSTfiles - pomf result', data)
-              for (const i in data.files) {
-                const file = data.files[i]
-                // write this to the db dude
-                // dispatcher.appConfig.provider_url+
-                // maybe pomf.cat doesn't add the prefix
-                // but mixtape does
-                // just normalize it (add and strip it, it'll make sure it's always there)
-                //file.url = dispatcher.appConfig.provider_url + file.url.replace(dispatcher.appConfig.provider_url, '');
-                // that probably won't be the download URL
-                //file.url <= passes through
-                //file.size <= passes through
-                //file.name <= passes through
-                // copy
-                file.sha1 = file.hash // hash is sha1
-                file.mime_type = req.file.mimetype
-                // there's only image or other
-                file.kind = req.file.mimetype.match(/image/i) ? 'image' : 'other'
-                // if it's an image or video, we should get w/h
-                //console.log('type', req.body.type, typeof(req.body.type)); // it's string...
-                // warn if body.type is empty because it'll crash the server
-                file.type = req.body.type
-                dispatcher.addFile(file, usertoken, req.apiParams, callbacks.fileCallback(resp, req.token))
-              }
-            }
-            //console.log('Regular:', fs.createReadStream(__dirname+'/git/caminte/media/mysql.png'));
-          })
+          return
         }
+        if (req.body.type === undefined) {
+          // spec doesn't say required
+          req.body.type = ''
+        }
+        console.log('files.routes.js:POSTfiles - uploading to pomf')
+        const uploadUrl = dispatcher.appConfig.provider_url
+        request.post({
+          url: uploadUrl,
+          formData: {
+            //files: fs.createReadStream(__dirname+'/git/caminte/media/mysql.png'),
+            'files[]': {
+              value: req.file.buffer,
+              options: {
+                filename: req.file.originalname,
+                contentType: req.file.mimetype,
+                knownLength: req.file.buffer.length
+              }
+            }
+          }
+        }, function(err, uploadResp, body) {
+          if (err) {
+            console.log('files.routes.js:POSTfiles - pomf upload Error!', err)
+            const res = {
+              meta: {
+                code: 500,
+                error_message: 'Could not save file (Could not POST to POMF)'
+              }
+            }
+            resp.status(res.meta.code).type('application/json').send(JSON.stringify(res))
+            return
+          }
+          //console.log('URL: ' + body);
+          /*
+          {"success":true,"files":[
+            {
+              "hash":"107df9aadaf6204789f966e1b7fcd31d75a121c1",
+              "name":"mysql.png",
+              "url":"https:\/\/my.pomf.cat\/yusguk.png",
+              "size":13357
+            }
+          ]}
+          {
+            success: false,
+            errorcode: 400,
+            description: 'No input file(s)'
+          }
+          */
+          let data = {}
+          try {
+            data = JSON.parse(body)
+          } catch (e) {
+            console.log('couldnt json parse body', body)
+            const res = {
+              meta: {
+                code: 500,
+                error_message: 'Could not save file (POMF did not return JSON as requested)'
+              }
+            }
+            resp.status(res.meta.code).type('application/json').send(JSON.stringify(res))
+            return
+          }
+          if (!data.success) {
+            const res = {
+              meta: {
+                code: 500,
+                error_message: 'Could not save file (POMF did not return success)'
+              }
+            }
+            resp.status(res.meta.code).type('application/json').send(JSON.stringify(res))
+            return
+          }
+          //, 'from', body
+          console.log('files.routes.js:POSTfiles - pomf result', data)
+          for (const i in data.files) {
+            const file = data.files[i]
+            // write this to the db dude
+            // dispatcher.appConfig.provider_url+
+            // maybe pomf.cat doesn't add the prefix
+            // but mixtape does
+            // just normalize it (add and strip it, it'll make sure it's always there)
+            //file.url = dispatcher.appConfig.provider_url + file.url.replace(dispatcher.appConfig.provider_url, '');
+            // that probably won't be the download URL
+            //file.url <= passes through
+            //file.size <= passes through
+            //file.name <= passes through
+            // copy
+            file.sha1 = file.hash // hash is sha1
+            file.mime_type = req.file.mimetype
+            // there's only image or other
+            file.kind = req.file.mimetype.match(/image/i) ? 'image' : 'other'
+            // if it's an image or video, we should get w/h
+            //console.log('type', req.body.type, typeof(req.body.type)); // it's string...
+            // warn if body.type is empty because it'll crash the server
+            file.type = req.body.type
+            file.public = true
+            dispatcher.addFile(file, usertoken, req.apiParams, callbacks.fileCallback(resp, req.token))
+          }
+          //console.log('Regular:', fs.createReadStream(__dirname+'/git/caminte/media/mysql.png'));
+        })
       })
     })
 
