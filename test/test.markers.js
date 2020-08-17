@@ -2,17 +2,17 @@ const assert = require('assert')
 
 module.exports = {
   runTests: function(platformApi) {
-    it('write post marker', async () => {
+    it('write post marker', async() => {
       const res = await platformApi.serverRequest('posts/marker', {
         method: 'POST',
         objBody: {
-          name: "marker",
+          name: 'marker',
           id: 1,
           percentage: 1.0
         }
       })
       assert.equal(200, res.statusCode)
-/*
+      /*
 res {
   user_id: 234,
   top_id: 1,
@@ -25,5 +25,5 @@ res {
 }
 */
     })
-  },
+  }
 }

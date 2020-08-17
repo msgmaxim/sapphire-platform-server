@@ -5,7 +5,7 @@
     "client_secret": "secret"
   },
   "uplink": {
-    "apiroot": "https://api.app.net",
+    "apiroot": "NotSet",
     "client_id": "",
     "client_secret": "",
     "silent": false
@@ -14,10 +14,20 @@
     "provider": "catbox.moe",
     "provider_url": "https://catbox.moe/user/api.php"
   },
+  "modules": {
+    "channels": true,
+    "clients": true,
+    "files": true,
+    "follows": true,
+    "markers": true,
+    "posts": true,
+    "streams": true,
+    "users": true
+  },
   "web": {
     "port": 7070,
     "listen": "0.0.0.0",
-    "public_url": "https://localhost",
+    "public_url": "http://localhost:7070",
     "api_client_id": "AreWeConformingToAnySpecificFormatYetQuestionMark",
     "mounts": [
       {
@@ -27,6 +37,10 @@
       {
         "destination": "/stream/0",
         "dialect": "appdotnet_official"
+      },
+      {
+        "destination": "",
+        "dialect": "config"
       }
     ]
   },
@@ -38,5 +52,57 @@
   "stream": {
     "host": "",
     "port": 6379
+  },
+  "database": {
+    "default": {
+      "type": "memory",
+      "options": {
+        "database": "db",
+        "username": "user",
+        "host": "localhost",
+        "password": "pass"
+      }
+    }
+  },
+  "logging": {
+    "quiet": false,
+    "peridotic_reports": true,
+    "stream_logging": true
+  },
+  "limits": {
+    "default": {
+      "following": "unlimited",
+      "max_file_size": 100000000,
+      "storage": 1000000000
+    }
+  },
+  "dataModel": {
+    "config": {
+      "text": {
+        "uri_template_length": {
+          "post_id": 9,
+          "message_id": 12
+        }
+      },
+      "user": {
+        "annotation_max_bytes": 8192,
+        "text_max_length": 256,
+        "username_max_length": 66
+      },
+      "file": {
+        "annotation_max_bytes": 8192
+      },
+      "post": {
+        "annotation_max_bytes": 8192,
+        "text_max_length": 256
+      },
+      "message": {
+        "annotation_max_bytes": 8192,
+        "text_max_length": 2048
+      },
+      "channel": {
+        "annotation_max_bytes": 8192
+      }
+    }
   }
 }

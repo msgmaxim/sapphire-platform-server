@@ -1,38 +1,40 @@
-var obj = require('./lib.platform');
-var nconf = obj.nconf;
-var publicRouter = require('./router.public');
-var internalServer = require('./router.admin');
+var obj = require('./lib/lib.platform.js')
+var nconf = obj.nconf
+var publicRouter = require('./router.public.js')
+var internalServer = require('./router.admin.js')
 
 /**
  * Launch the server!
  */
-var webport = nconf.get('web:port') || 7070;
-var weblisten = nconf.get('web:listen') || '0.0.0.0';
-console.log('launching public webserver on', weblisten+':'+webport);
-publicRouter.listen(webport, weblisten);
+var webport = nconf.get('web:port') || 7070
+var weblisten = nconf.get('web:listen') || '0.0.0.0'
+console.log('launching public webserver on', weblisten + ':' + webport)
+publicRouter.listen(webport, weblisten)
 
-var admin_modkey=nconf.get('admin:modKey');
+var admin_modkey = nconf.get('admin:modKey')
 if (admin_modkey) {
-  var admin_port=nconf.get('admin:port') || 3000;
-  var admin_listen=nconf.get('admin:listen') || '127.0.0.1';
-  console.log('Mounting admin at / on '+admin_listen+':'+admin_port);
-  internalServer.listen(admin_port, admin_listen);
+  var admin_port = nconf.get('admin:port') || 3000
+  var admin_listen = nconf.get('admin:listen') || '127.0.0.1'
+  console.log('Mounting admin at / on ' + admin_listen + ':' + admin_port)
+  internalServer.listen(admin_port, admin_listen)
 } else {
-  console.log("admin:modKey not set in config. No admin set up!");
+  console.log('admin:modKey not set in config. No admin set up!')
 }
 
-var upstream_client_id=nconf.get('uplink:client_id') || 'NotSet';
+var upstream_client_id = nconf.get('uplink:client_id') || 'NotSet'
 
 /** set up upstream */
-if (upstream_client_id!='NotSet') {
+if (upstream_client_id !== 'NotSet') {
+  // for getting app_token
+  const auth = require('./ohe/auth')
   // send events into "dispatcher"
-  var stream_router = require('./ohe/streamrouter').create_router(app, dispatcher);
+  const stream_router = require('./ohe/streamrouter').create_router(publicRouter, publicRouter.dispatcher)
   // this blocks the API until connected =\
-  auth.get_app_token(function (token) {
-      stream_router.stream(token);
-  });
+  auth.get_app_token(function(token) {
+    stream_router.stream(token)
+  })
 } else {
-  console.log("uplink:client_id not set in config. No uplink set up!");
+  console.log('uplink:client_id not set in config. No uplink set up!')
 }
 
 // if full data store
@@ -43,6 +45,6 @@ if (upstream_client_id!='NotSet') {
 
 module.exports = {
   publicApp: publicRouter,
-  hasAdminApp: admin_modkey ? true : false,
-  adminApp: internalServer,
+  hasAdminApp: !!admin_modkey,
+  adminApp: internalServer
 }

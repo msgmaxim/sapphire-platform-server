@@ -59,18 +59,21 @@ module.exports = {
       }
     }
     let messageRes
-    it('create channel', async () => {
+    // once this was returning the subscription id instead of the channel id
+    it('create channel', async() => {
       channelRes = await platformApi.serverRequest('channels', {
         method: 'POST',
         objBody: {
-          type: 'moe.sapphire.test',
+          type: 'moe.sapphire.unittests'
         }
       })
+      //console.log('create channel res', channelRes)
       assert.equal(200, channelRes.statusCode)
-      //console.log('create channel res', res.response.data)
+      assert.equal(200, channelRes.response.meta.code)
+      assert.ok(200, channelRes.response.data.id)
     })
-
-    it('get channel', async () => {
+    // should be able to make sure the ID is valid
+    it('get channel', async() => {
       if (channelRes.response.data.id === undefined) {
         channelRes = {
           response: {
@@ -83,34 +86,34 @@ module.exports = {
       const getChannelRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id)
       assert.equal(200, getChannelRes.statusCode)
     })
-    it('update channel', async () => {
+    it('update channel', async() => {
       const getChannelRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id, {
         method: 'PUT'
       })
       assert.equal(200, getChannelRes.statusCode)
     })
 
-    it('get my channels', async () => {
+    it('get my channels', async() => {
       const multiChannelRes = await platformApi.serverRequest('users/me/channels')
       assert.equal(200, multiChannelRes.statusCode)
     })
-    it('search channel type', async () => {
+    it('search channel type', async() => {
       const searchChannelRes = await platformApi.serverRequest('channels/search', {
         params: {
-          type: 'moe.sapphire.test',
+          type: 'moe.sapphire.test'
         }
       })
       assert.equal(200, searchChannelRes.statusCode)
     })
-    it('search channel owner', async () => {
+    it('search channel owner', async() => {
       const searchChannelRes = await platformApi.serverRequest('channels/search', {
         params: {
-          creator_id: '@' + testConfig.testUsername,
+          creator_id: '@' + testConfig.testUsername
         }
       })
       assert.equal(200, searchChannelRes.statusCode)
     })
-    it('get multiple channel', async () => {
+    it('get multiple channel', async() => {
       const multiChannelRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id, {
         params: {
           ids: '@' + testConfig.testUsername
@@ -119,10 +122,10 @@ module.exports = {
       assert.equal(200, multiChannelRes.statusCode)
     })
     // subscriptions
-    it('sub to channel', async () => {
+    it('sub to channel', async() => {
       // console.log('subbing using token', platformApi.token)
       const channelSubRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/subscribe', {
-        method: 'POST',
+        method: 'POST'
       })
       assert.equal(200, channelSubRes.statusCode)
     })
@@ -132,7 +135,7 @@ module.exports = {
     // dataaccess: getChannelSubscriptionsPaged
     // docs says returns a channel Obj but logic and pnut says it should return users
     // return users
-    it('get channel subscribers', async () => {
+    it('get channel subscribers', async() => {
       const channelSubRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/subscribers')
       assert.equal(200, channelSubRes.statusCode)
       // console.log('channelSubRes data', channelSubRes.response.data)
@@ -148,8 +151,10 @@ module.exports = {
     // dataaccess: getChannelSubscriptions
     // returns an array of user IDs
     // (should be string formatted IDs)
-    it('get single channel subscribe id', async () => {
+    it('get single channel subscribe id', async() => {
+      //console.log('asking for', channelRes.response.data.id, 'using token', platformApi.token)
       const channelSingleSubIdRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/subscribers/ids')
+      // getting 401 right now... is it wrong? no param swap
       //console.log('channelSingleSubIdRes', channelSingleSubIdRes)
       assert.equal(200, channelSingleSubIdRes.statusCode)
       //console.log('channelSingleSubIdRes data', channelSingleSubIdRes.response.data)
@@ -164,7 +169,7 @@ module.exports = {
     // dataaccess: getChannelSubscriptions
     // returns an Object keyed by channel IDs with values being an array of user IDs
     // (all user/channel IDs should be string formatted)
-    it('get multi channel subscribe id', async () => {
+    it('get multi channel subscribe id', async() => {
       const channelMultipleSubIdRes = await platformApi.serverRequest('channels/subscribers/ids', {
         params: {
           ids: channelRes.response.data.id
@@ -182,14 +187,14 @@ module.exports = {
     // dispatcher: delChannelSubscription
     // dataaccess: setSubscription
     // returns channel object
-    it('unsub to channel', async () => {
+    it('unsub to channel', async() => {
       const channelSubRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/subscribe', {
-        method: 'DELETE',
+        method: 'DELETE'
       })
       assert.equal(200, channelSubRes.statusCode)
     })
     // FIXME: check subscriptions again to make sure it's zero...
-/*
+    /*
   data: {
     channel_id: '17',
     created_at: '2019-09-29T03:02:52.413Z',
@@ -217,34 +222,34 @@ module.exports = {
     }
   }
 */
-    it('create message', async () => {
+    it('create message', async() => {
       messageRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/messages', {
         method: 'POST',
         objBody: {
           text: 'test text',
-          machine_only: true,
+          machine_only: true
         }
       })
       assert.equal(200, messageRes.statusCode)
       //console.log('create message res', messageRes.response)
     })
-    it('get message', async () => {
+    it('get message', async() => {
       const getMessageRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/messages/' + messageRes.response.data.id)
       assert.equal(200, getMessageRes.statusCode)
     })
-    it('get channel messages', async () => {
-      messageRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/messages')
-      assert.equal(200, messageRes.statusCode)
+    it('get channel messages', async() => {
+      messagesRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/messages')
+      assert.equal(200, messagesRes.statusCode)
     })
 
-    it('delete message', async () => {
+    it('delete message', async() => {
       const delMessageRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id + '/messages/' + messageRes.response.data.id)
       assert.equal(200, delMessageRes.statusCode)
     })
 
-    it('delete channel', async () => {
+    it('delete channel', async() => {
       const delChannelRes = await platformApi.serverRequest('channels/' + channelRes.response.data.id, {
-        method: 'DELETE',
+        method: 'DELETE'
       })
       assert.equal(200, delChannelRes.statusCode)
       assert.equal(true, delChannelRes.response.data.is_inactive)
@@ -252,5 +257,5 @@ module.exports = {
       assert.equal(undefined, delChannelRes.response.data.is_delete)
       //console.log('delete channel res', delChannelRes.response.data)
     })
-  },
+  }
 }

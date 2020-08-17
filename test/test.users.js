@@ -1,14 +1,17 @@
 const assert = require('assert')
+const configUtil = require('../lib/lib.config.js')
 
 module.exports = {
-  runTests: function(platformApi) {
-    it('user search', async () => {
-      const res = await platformApi.serverRequest('users/search?q=test')
-      assert.equal(200, res.statusCode)
-      // FIXME: [] we're not found??
-      //console.log('user search res', res.response.data)
-    })
-    it('write user', async () => {
+  runTests: function(platformApi, options) {
+    if (!options || !options.skipUserSearch) {
+      it('user search', async() => {
+        const res = await platformApi.serverRequest('users/search?q=test')
+        assert.equal(200, res.statusCode)
+        // FIXME: [] we're not found??
+        //console.log('user search res', res.response.data)
+      })
+    }
+    it('write user', async() => {
       const res = await platformApi.serverRequest('users/me', {
         method: 'PUT',
         objBody: {
@@ -16,29 +19,30 @@ module.exports = {
           locale: 'en',
           timezone: 'US/Pacific',
           description: {
-            text: 'Test description',
+            text: 'Test description'
           }
-        },
-      })
-      assert.equal(200, res.statusCode)
-    })
-    it('update user', async () => {
-      const res = await platformApi.serverRequest('users/me', {
-        method: 'PATCH',
-        objBody: {
-          name: 'Tested User',
         }
       })
       assert.equal(200, res.statusCode)
     })
-
-    it('single user lookup', async () => {
-      const userLookupRes = await platformApi.serverRequest('users/@test')
-      assert.equal(200, userLookupRes.statusCode)
-      //console.log('single user lookup res', multiuserLookupRes.response.data)
+    it('update user', async() => {
+      const res = await platformApi.serverRequest('users/me', {
+        method: 'PATCH',
+        objBody: {
+          name: 'Tested User'
+        }
+      })
+      assert.equal(200, res.statusCode)
+      assert.ok(res.response.data.id) // make sure we have a user id
+      //console.log('patch res', res)
     })
 
-    it('multiple user lookup', async () => {
+    it('single user lookup', async() => {
+      const userLookupRes = await platformApi.serverRequest('users/@test')
+      assert.equal(200, userLookupRes.statusCode)
+    })
+
+    it('multiple user lookup', async() => {
       const multiuserLookupRes = await platformApi.serverRequest('users', {
         params: {
           ids: '@test'
@@ -48,9 +52,9 @@ module.exports = {
       //console.log('multiple user lookup res', multiuserLookupRes.response.data)
     })
 
-    it('user follow self', async () => {
+    it('user follow self', async() => {
       const res = await platformApi.serverRequest('users/@test/follow', {
-        method: 'POST',
+        method: 'POST'
       })
       assert.equal(200, res.statusCode)
       // user obj
@@ -58,13 +62,13 @@ module.exports = {
       //console.log('user follow self res', res.response.data)
     })
 
-    it('get user followings', async () => {
+    it('get user followings', async() => {
       const userFollowRes = await platformApi.serverRequest('users/@test/following')
       assert.equal(200, userFollowRes.statusCode)
       // right now just an array of a ton of posts...
       //console.log('get user followings res', userFollowRes.response.data)
     })
-    it('get user followers', async () => {
+    it('get user followers', async() => {
       const userFollowRes = await platformApi.serverRequest('users/@test/followers')
       assert.equal(200, userFollowRes.statusCode)
       // should be greater than one...
@@ -74,10 +78,9 @@ module.exports = {
       //console.log('get user followers res', userFollowRes.response.data)
     })
 
-
-    it('user unfollow self', async () => {
+    it('user unfollow self', async() => {
       const res = await platformApi.serverRequest('users/@test/follow', {
-        method: 'DELETE',
+        method: 'DELETE'
       })
       assert.equal(200, res.statusCode)
       // user obj
@@ -85,25 +88,27 @@ module.exports = {
       //console.log('user unfollow self res', res.response.data)
     })
 
-    it('get user files', async () => {
+    it('get user files', async() => {
       const res = await platformApi.serverRequest('users/me/files')
       assert.equal(200, res.statusCode)
       // right now just []
       //console.log('user files res', res.response.data)
     })
 
-    it('get user stream', async () => {
-      const res = await platformApi.serverRequest('posts/stream')
-      assert.equal(200, res.statusCode)
-      // right now just []
-      //console.log('user files res', res.response.data)
-    })
+    if (configUtil.moduleEnabled('posts')) {
+      it('get user stream', async() => {
+        const res = await platformApi.serverRequest('posts/stream')
+        assert.equal(200, res.statusCode)
+        // right now just []
+        //console.log('user files res', res.response.data)
+      })
 
-    it('get unified stream', async () => {
-      const res = await platformApi.serverRequest('posts/stream/unified')
-      assert.equal(200, res.statusCode)
-      // right now just []
-      //console.log('user files res', res.response.data)
-    })
-  },
+      it('get unified stream', async() => {
+        const res = await platformApi.serverRequest('posts/stream/unified')
+        assert.equal(200, res.statusCode)
+        // right now just []
+        //console.log('user files res', res.response.data)
+      })
+    }
+  }
 }

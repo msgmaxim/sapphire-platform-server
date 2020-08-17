@@ -1,22 +1,22 @@
 // offical_callback??
 const sendresponse = (json, resp) => {
-  const ts = new Date().getTime();
-  const diff = ts-resp.start;
+  const ts = new Date().getTime()
+  const diff = ts - resp.start
   if (diff > 1000) {
     // this could be to do the client's connection speed
     // how because we stop the clock before we send the response...
-    console.log(`${resp.path} served in ${ts - resp.start}ms`);
+    console.log(`${resp.path} served in ${ts - resp.start}ms`)
   }
   if (json.meta && json.meta.code) {
-    resp.status(json.meta.code);
+    resp.status(json.meta.code)
   }
   if (resp.prettyPrint) {
-    json=JSON.stringify(json,null,4);
+    json = JSON.stringify(json, null, 4)
   }
-  //resp.set('Content-Type', 'text/javascript');
-  resp.type('application/json');
-  resp.setHeader("Access-Control-Allow-Origin", "*");
-  resp.send(json);
+  // resp.set('Content-Type', 'text/javascript');
+  resp.type('application/json')
+  resp.setHeader('Access-Control-Allow-Origin', '*')
+  resp.send(json)
 }
 
 // FIXME verification of modKey
@@ -24,265 +24,278 @@ const sendresponse = (json, resp) => {
 // not a global
 let cache
 
-module.exports=function(app, prefix) {
-  //var dispatcher=app.dispatcher;
+module.exports = function(app, prefix) {
+  // var dispatcher=app.dispatcher;
   // set cache based on dispatcher object
-  cache = app.dispatcher.cache;
+  cache = app.dispatcher.cache
 
   // get listing
   app.get(prefix + '/:model', (req, res) => {
-    const model = req.params.model;
-    console.log('admin::list model', model);
-    switch(model) {
+    const model = req.params.model
+    console.log('admin::list model', model)
+    switch (model) {
       case 'channels':
-        cache.searchChannels({}, req.apiParams, function(channels, err, meta) {
-          const resObj={
+        cache.searchChannels({}, req.apiParams, function(err, channels, meta) {
+          if (err) console.error('dialect.admin.js::list_channels - searchChannels err', err)
+          const resObj = {
             meta: meta,
-            data: channels,
+            data: channels
           }
-          return sendresponse(resObj, res);
+          return sendresponse(resObj, res)
         })
-      break;
+        break
       default:
-        res.status(200).end("{}");
-      break;
+        res.status(200).end('{}')
+        break
     }
-  });
+  })
 
   // get single record
   app.get(prefix + '/:model/:id', (req, res) => {
-    const model = req.params.model;
-    const id = req.params.id;
-    console.log('admin::findOne model', model, 'id', id);
-    switch(model) {
+    const model = req.params.model
+    const id = req.params.id
+    console.log('admin::findOne model', model, 'id', id)
+    switch (model) {
       case 'users':
-        if (id[0] == '@') {
-          cache.getUserID(id.substring(1), function(user, err, meta) {
-            const resObj={
+        if (id[0] === '@') {
+          cache.getUserID(id.substring(1), function(err, user, meta) {
+            if (err) console.error('dialect.admin.js::findOne_users - getUserID err', err)
+            const resObj = {
               meta: meta,
-              data: user,
+              data: user
             }
-            return sendresponse(resObj, res);
-          });
+            return sendresponse(resObj, res)
+          })
         } else {
-          cache.getUser(id, function(user, err, meta) {
-            const resObj={
+          cache.getUser(id, function(err, user, meta) {
+            if (err) console.error('dialect.admin.js::findOne_users - getUser err', err)
+            const resObj = {
               meta: meta,
-              data: user,
+              data: user
             }
-            return sendresponse(resObj, res);
-          });
+            return sendresponse(resObj, res)
+          })
         }
-      break;
+        break
       case 'tokens':
         // look up by token string
-        if (id[0] == '@') {
-          cache.getAPITokenByUsername(id.substring(1), function(usertoken, err, meta) {
-            const resObj={
+        if (id[0] === '@') {
+          cache.getAPITokenByUsername(id.substring(1), function(err, usertoken, meta) {
+            if (err) console.error('dialect.admin.js::getAPITokenByUsername - err', err)
+            const resObj = {
               meta: meta,
-              data: usertoken,
+              data: usertoken
             }
-            return sendresponse(resObj, res);
-          });
+            return sendresponse(resObj, res)
+          })
         } else {
-          cache.getAPIUserToken(id, function(usertoken, err, meta) {
-            const resObj={
+          cache.getAPIUserToken(id, function(err, usertoken, meta) {
+            if (err) console.error('dialect.admin.js::getAPIUserToken - err', err)
+            const resObj = {
               meta: meta,
-              data: usertoken,
+              data: usertoken
             }
-            return sendresponse(resObj, res);
-          });
+            return sendresponse(resObj, res)
+          })
         }
-      break;
+        break
       case 'channels':
-        cache.getChannel(id, req.apiParams, function(channel, err, meta) {
-          const resObj={
+        cache.getChannel(id, req.apiParams, function(err, channel, meta) {
+          if (err) console.error('dialect.admin.js::findOne_channels - getChannel err', err)
+          const resObj = {
             meta: meta,
-            data: channel,
+            data: channel
           }
-          return sendresponse(resObj, res);
-        });
-      break;
+          return sendresponse(resObj, res)
+        })
+        break
       default:
-        res.status(200).end("{}");
-      break;
+        res.status(200).end('{}')
+        break
     }
-  });
+  })
 
   // get deletion list
   app.get(prefix + '/channels/:cid/interactions', (req, res) => {
-    const cid = req.params.cid;
-    //console.log('loading channel', cid);
-    cache.getChannelDeletions(cid, req.apiParams, function(interactions, err, meta) {
+    const cid = req.params.cid
+    // console.log('loading channel', cid);
+    cache.getChannelDeletions(cid, req.apiParams, function(err, interactions, meta) {
       if (err) {
-        console.error('getMessage err', err);
-        const resObj={
+        console.error('dialect.admin.js::getChannelDeletions err', err)
+        const resObj = {
           meta: {
             code: 500,
             error_message: err
           }
-        };
-        return sendresponse(resObj, res);
+        }
+        return sendresponse(resObj, res)
       }
-      const resObj={
+      const resObj = {
         meta: meta,
-        data: interactions,
+        data: interactions
       }
-      return sendresponse(resObj, res);
-    });
-  });
+      return sendresponse(resObj, res)
+    })
+  })
 
   // get message record
   app.get(prefix + '/channels/:cid/messages/:mid', (req, res) => {
-    const cid = req.params.cid;
-    const mid = req.params.mid;
-    //console.log('message id', mid);
-    cache.getMessage(mid, function(message, err, meta) {
+    const mid = req.params.mid
+    // console.log('admin::get message id', mid);
+    cache.getMessage(mid, function(err, message, meta) {
       if (err) {
-        console.error('getMessage err', err);
-        const resObj={
+        console.error('dialect.admin.js::getMessage err', err)
+        const resObj = {
           meta: {
             code: 500,
             error_message: err
           }
-        };
-        return sendresponse(resObj, res);
+        }
+        return sendresponse(resObj, res)
       }
-      const resObj={
+      const resObj = {
         meta: meta,
-        data: message,
+        data: message
       }
-      return sendresponse(resObj, res);
+      return sendresponse(resObj, res)
     })
-  });
+  })
 
   // nuke message record
   app.delete(prefix + '/channels/:cid/messages/:mid', (req, res) => {
-    const cid = req.params.cid;
-    const mid = req.params.mid;
-    console.log('nuke message id', mid);
+    const cid = req.params.cid
+    const mid = req.params.mid
+    console.log('admin::delete message id', mid)
     // marks it is_deleted: 1
-    cache.deleteMessage(mid, cid, function(message, err, meta) {
+    cache.deleteMessage(mid, cid, function(err, message, meta) {
       if (err) {
-        console.error('getMessage err', err);
-        const resObj={
+        console.error('dialect.admin.js::deleteMessage err', err)
+        const resObj = {
           meta: {
             code: 500,
             error_message: err
           }
-        };
-        return sendresponse(resObj, res);
+        }
+        return sendresponse(resObj, res)
       }
-      const resObj={
+      const resObj = {
         meta: meta,
-        data: message,
+        data: message
       }
-      return sendresponse(resObj, res);
+      return sendresponse(resObj, res)
     })
-  });
+  })
 
   // create record
   app.post(prefix + '/:model', (req, res) => {
-    const model = req.params.model;
-    console.log('admin::create model', model);
-    switch(model) {
+    const model = req.params.model
+    console.log('admin::create model', model)
+    switch (model) {
       case 'users':
         // "password" (2nd) parameter is not saved/used
-        cache.addUser(req.body.username, '', function(user, err, meta) {
-          const resObj={
+        cache.addUser(req.body.username, '', function(err, user, meta) {
+          if (err) console.error('dialect.admin::addUser - err', err)
+          const resObj = {
             meta: meta,
-            data: user,
+            data: user
           }
-          return sendresponse(resObj, res);
+          return sendresponse(resObj, res)
         })
-      break;
+        break
       case 'channels':
-        cache.addChannel(req.body.userid, req.body.channel, function(chnl, err, meta) {
-          const resObj={
+        cache.addChannel(req.body.userid, req.body.channel, function(err, chnl, meta) {
+          if (err) console.error('dialect.admin::addChannel - err', err)
+          const resObj = {
             meta: meta,
-            data: chnl,
+            data: chnl
           }
-          return sendresponse(resObj, res);
-        });
-      break;
-      case 'tokens':
-        const tokenIn = req.body;
-        //console.log('creating token', tokenIn);
+          return sendresponse(resObj, res)
+        })
+        break
+      case 'tokens': {
+        const tokenIn = req.body
+        // console.log('creating token', tokenIn);
         if (tokenIn.expireInMins !== undefined && tokenIn.token) {
-          cache.addUnconstrainedAPIUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, tokenIn.token, tokenIn.expireInMins, function(token, err, meta) {
-            const resObj={
+          cache.addUnconstrainedAPIUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, tokenIn.token, tokenIn.expireInMins, function(err, token, meta) {
+            if (err) console.log('dialect.admin.js::addUnconstrainedAPIUserToken - err', err)
+            const resObj = {
               meta: meta,
-              data: token,
+              data: token
             }
-            return sendresponse(resObj, res);
-          });
+            return sendresponse(resObj, res)
+          })
         } else {
-          cache.createOrFindUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, function(usertoken, err, meta) {
-            const resObj={
+          cache.createOrFindUserToken(tokenIn.user_id, tokenIn.client_id, tokenIn.scopes, function(err, usertoken, meta) {
+            if (err) console.log('dialect.admin.js::createOrFindUserToken - err', err)
+            const resObj = {
               meta: meta,
-              data: usertoken,
+              data: usertoken
             }
-            return sendresponse(resObj, res);
-          });
+            return sendresponse(resObj, res)
+          })
         }
-      break;
+        break
+      }
       case 'annotations':
-        cache.addAnnotation(req.body.idtype, req.body.id, req.body.type, req.body.value, function(note, err, meta) {
-          const resObj={
+        cache.addAnnotation(req.body.idtype, req.body.id, req.body.type, req.body.value, function(err, note, meta) {
+          if (err) console.log('dialect.admin.js::addAnnotation - err', err)
+          const resObj = {
             meta: meta,
-            data: note,
+            data: note
           }
-          return sendresponse(resObj, res);
-        });
-      break;
+          return sendresponse(resObj, res)
+        })
+        break
       default:
-        res.status(200).end("{}");
-      break;
+        res.status(200).end('{}')
+        break
     }
-  });
+  })
 
   // update some fields
   app.patch(prefix + '/:model/:id', (req, res) => {
-    const model = req.params.model;
-    const id = req.params.id;
-    console.log('admin::update model', model, 'id', id);
-    switch(model) {
+    const model = req.params.model
+    const id = req.params.id
+    console.log('admin::update model', model, 'id', id)
+    switch (model) {
       case 'channels':
-        cache.getChannel(id, req.apiParams, function(channel, err, meta) {
+        cache.getChannel(id, req.apiParams, function(err, channel, meta) {
+          if (err) console.log('dialect.admin.js::getChannel - err', err)
           // FIXME: WRITE ME
-          const resObj={
+          const resObj = {
             meta: meta,
-            data: channel,
+            data: channel
           }
-          return sendresponse(resObj, res);
+          return sendresponse(resObj, res)
         })
-      break;
+        break
       default:
-        res.status(200).end("{}");
-      break;
+        res.status(200).end('{}')
+        break
     }
-  });
+  })
 
   // set is_deleted=1
   app.delete(prefix + '/:model/:id', (req, res) => {
-    const model = req.params.model;
-    const id = req.params.id;
-    console.log('admin::delete model', model, 'id', id);
-    switch(model) {
+    const model = req.params.model
+    const id = req.params.id
+    console.log('admin::delete model', model, 'id', id)
+    switch (model) {
       case 'tokens':
-        cache.delAPIUserToken(id, function(delToken, err) {
-          const resObj={
+        cache.delAPIUserToken(id, function(err, delToken) {
+          if (err) console.log('dialect.admin.js::delAPIUserToken - err', err)
+          const resObj = {
             meta: {
-              code: 200,
+              code: 200
             },
-            data: delToken,
+            data: delToken
           }
-          return sendresponse(resObj, res);
-        });
-      break;
+          return sendresponse(resObj, res)
+        })
+        break
       default:
-        res.status(200).end("{}");
-      break;
+        res.status(200).end('{}')
+        break
     }
   })
 }

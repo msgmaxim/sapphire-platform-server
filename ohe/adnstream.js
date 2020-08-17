@@ -1,95 +1,95 @@
 // this consumes a stream (HTTP long poll)
-var request = require('request');
-var es = require('event-stream');
-var EventEmitter = require('events').EventEmitter;
-var util = require('util');
-var url = require('url');
-var nconf = require('nconf');
+var request = require('request')
+var es = require('event-stream')
+var EventEmitter = require('events').EventEmitter
+var util = require('util')
+var url = require('url')
+var nconf = require('nconf')
 
-var stream_url_override = nconf.get('adn:stream_url_override');
+var stream_url_override = nconf.get('adn:stream_url_override')
 
 // Constructor
 function ADNStream(endpoint) {
-    EventEmitter.call(this); // call EventEmitter constructor
+  EventEmitter.call(this) // call EventEmitter constructor
 
-    this.headers = {};
+  this.headers = {}
 
-    // Here is where some of our infrastructure details leak
-    // into something we're open sourcing. Sorry about this, y'all.
-    if (stream_url_override) {
-        var parsed_endpoint = url.parse(endpoint);
-        var parsed_override = url.parse(stream_url_override);
-        this.headers.host = parsed_endpoint.hostname;
-        parsed_override.pathname = parsed_endpoint.pathname;
-        endpoint = url.format(parsed_override);
-    }
+  // Here is where some of our infrastructure details leak
+  // into something we're open sourcing. Sorry about this, y'all.
+  if (stream_url_override) {
+    var parsed_endpoint = new URL(endpoint)
+    var parsed_override = new URL(stream_url_override)
+    this.headers.host = parsed_endpoint.hostname
+    parsed_override.pathname = parsed_endpoint.pathname
+    endpoint = url.format(parsed_override)
+  }
 
-    this.endpoint = endpoint;
+  this.endpoint = endpoint
 }
 // Extend EventEmitter
-util.inherits(ADNStream, EventEmitter);
+util.inherits(ADNStream, EventEmitter)
 
 // process method
-ADNStream.prototype.process = function (purge) {
-    var self = this;
-    var qs = {};
+ADNStream.prototype.process = function(purge) {
+  var self = this
+  var qs = {}
 
-    if (purge) {
-        qs.purge = 1;
+  if (purge) {
+    qs.purge = 1
+  }
+
+  this.request = request({
+    url: this.endpoint,
+    method: 'GET',
+    headers: this.headers,
+    qs: qs
+  })
+
+  this.request.on('error', function(error) {
+    this.emit('error', error)
+  })
+
+  this.request.on('response', function(response) {
+    console.info('Got response:', response.statusCode)
+    if (response.statusCode === 200) {
+      console.info('Connected to stream')
+    } else if (response.statusCode === 429) {
+      console.info('Rate limited, that\'s bad...')
+      var stop = new Date().getTime()
+      // wait 30 sesc
+      while (new Date().getTime() < stop + 30 * 1000) {
+        // this block all incoming web requests
+        ;
+      }
+      console.log('Trying again...')
+    } else {
+      console.error('Unexpected status code:', response.statusCode)
     }
 
-    this.request = request({
-        url: this.endpoint,
-        method: 'GET',
-        headers: this.headers,
-        qs: qs
-    });
+    response.on('end', function() {
+      self.emit('end')
+    })
+  })
 
-    this.request.on('error', function (error) {
-        this.emit('error', error);
-    });
+  var processor = es.through(function(data) {
+    var s = data.toString('utf-8')
+    if (!s.length) { return }
 
-    this.request.on('response', function (response) {
-        console.info('Got response:', response.statusCode);
-        if (response.statusCode === 200) {
-            console.info('Connected to stream');
-        } else if (response.statusCode === 429) {
-          console.info('Rate limited, that\'s bad...');
-          var stop = new Date().getTime();
-          // wait 30 sesc
-          while(new Date().getTime() < stop + 30*1000) {
-            // this block all incoming web requests
-              ;
-          }
-          console.log("Trying again...");
-        } else {
-            console.error('Unexpected status code:', response.statusCode);
-        }
+    var obj
+    try {
+      obj = JSON.parse(s)
+    } catch (err) {
+      return
+    }
 
-        response.on('end', function () {
-            self.emit('end');
-        });
-    });
+    //console.log("Processing "+obj.meta.type);
 
-    var processor = es.through(function (data) {
-        var s = data.toString('utf-8');
-        if (!s.length) { return; }
+    // dispatch event
+    self.emit(obj.meta.type, obj)
+  })
 
-        var obj;
-        try {
-           obj = JSON.parse(s);
-        } catch(err) {
-            return;
-        }
+  // execute request and pipe each command separated by \r\n into processor
+  this.request.pipe(es.pipeline(es.split('\r\n'), processor))
+}
 
-        //console.log("Processing "+obj.meta.type);
-
-        // dispatch event
-        self.emit(obj.meta.type, obj);
-    });
-
-    // execute request and pipe each command separated by \r\n into processor
-    this.request.pipe(es.pipeline(es.split('\r\n'), processor));
-};
-
-module.exports.ADNStream = ADNStream;
+module.exports.ADNStream = ADNStream

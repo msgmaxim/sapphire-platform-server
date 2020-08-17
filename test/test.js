@@ -1,29 +1,37 @@
 const path = require('path')
-const nconf = require('nconf')
+const configUtil = require('../lib/lib.config.js')
 const assert = require('assert')
 const lokinet = require('loki-launcher/lokinet')
-const { URL } = require('url') // node 8.x support
+const URL = require('url').URL // node 8.x backfill
+const nconf = configUtil.nconf
+
+//require('longjohn')
+
 const ADN_SCOPES = 'stream'
 
 // Look for a config file
-const config_path = path.join(__dirname, '/../config.json')
+// const config_path = path.join(__dirname, '/../config.json')
 // and a model file
 //const config_model_path = path.join(__dirname, '/config.models.json')
-nconf.argv().env('__').file({file: config_path})
+// nconf.argv().env('__').file({file: config_path})
 //.file('model', {file: config_model_path})
 
-const cache = require('../dataaccess.proxy-admin')
+const cache = require('../dataaccess/dataaccess.proxy-admin')
 cache.start(nconf)
 cache.dispatcher = {
   // ignore local user updates
-  updateUser: (user, ts, cb) => { cb(user) },
+  updateUser: (user, ts, cb) => { cb(false, user) },
   // ignore local message updates
-  setMessage: (message, cb) => { if (cb) cb(message) },
+  setMessage: (message, cb) => { if (cb) cb(message) }
 }
 
-let webport = nconf.get('web:port') || 7070
-const base_url = 'http://' + (nconf.get('web:listen') || '127.0.0.1') + ':' + webport + '/'
-const platform_admin_url = 'http://' + (nconf.get('admin:listen') || '127.0.0.1') + ':' + (nconf.get('admin:port') || 3000)
+const ifToHostname = iface => (!iface || iface === '0.0.0.0') ? '127.0.0.1' : iface
+
+const webport = nconf.get('web:port') || 7070
+
+// what about HTTPS detection?
+const base_url = 'http://' + ifToHostname(nconf.get('web:listen')) + ':' + webport + '/'
+const platform_admin_url = 'http://' + ifToHostname(nconf.get('admin:listen')) + ':' + (nconf.get('admin:port') || 3000)
 console.log('platform url', base_url)
 console.log('admin    url', platform_admin_url)
 
@@ -38,26 +46,26 @@ const adminApi    = new adnServerAPI(platform_admin_url, nconf.get('admin:modKey
 function findOrCreateUser(username) {
   if (!username) return false
   return new Promise((resolve, rej) => {
-
     // does our test user exist?
-    cache.getUserID(username, function(user, err) {
+    cache.getUserID(username, function(err, user) {
       if (err) {
-        console.error('findOrCreateUser::getUserID', err)
+        console.error('findOrCreateUser::getUserID err', err)
         return rej(err)
       }
-      if (user !== null) {
+      // why did it shift form null to undefined?
+      //console.log('findOrCreateUser::getUserID result', user)
+      if (user !== null && user !== undefined) {
         //console.log('found user', user)
         return resolve(user.id)
       }
       // create test user
       console.log('creating test user', username)
-      cache.addUser(username, '', function(user, err) {
+      cache.addUser(username, '', function(err, user) {
         if (err) {
           console.error('findOrCreateUser::addUser', err)
           return rej(err)
         }
-        //console.log('created user', user.toString())
-        //console.log('created user', user)
+        //console.log('created user', user.id, user.toString())
         resolve(user.id)
       })
     })
@@ -67,7 +75,7 @@ function findOrCreateUser(username) {
 function findOrCreateToken(userid) {
   if (!userid) return false
   return new Promise((resolve, rej) => {
-    cache.createOrFindUserToken(userid, 'mocha_platform_test', ADN_SCOPES, function(usertoken, err) {
+    cache.createOrFindUserToken(userid, 'mocha_platform_test', ADN_SCOPES, function(err, usertoken) {
       if (err) {
         console.error('findOrCreateToken::addAPIUserToken', err)
         rej(err)
@@ -80,9 +88,11 @@ function findOrCreateToken(userid) {
 const ensureServer = () => {
   return new Promise((resolve, rej) => {
     const platformURL = new URL(base_url)
+    const startTime = Date.now()
     console.log('platform port', platformURL.port)
     lokinet.portIsFree(platformURL.hostname, platformURL.port, function(free) {
       if (free) {
+        console.log('starting server')
         // ini overrides server/config.json in unit testing (if platform isn't running where it should)
         // override any config to make sure it runs the way we request
         process.env.web__port = platformURL.port
@@ -92,7 +102,7 @@ const ensureServer = () => {
         function portNowClaimed() {
           lokinet.portIsFree(platformURL.hostname, platformURL.port, function(free) {
             if (!free) {
-              console.log(platformURL.port, 'now claimed')
+              console.log(platformURL.port, 'now claimed after', Date.now() - startTime, 'ms')
               resolve()
             } else {
               setTimeout(portNowClaimed, 100)
@@ -110,22 +120,27 @@ const ensureServer = () => {
 
 const testConfig = {
   platformApi,
-  testUsername: 'test',
+  testUsername: 'test'
   //testUserid set in setupTesting()
 }
 
 //const nodeFetch = require('node-fetch')
 
 async function setupTesting() {
-
-  describe('ensureServer', async () => {
-    it('make sure we have something to test', async () => {
+  describe('ensureServer', async() => {
+    it('make sure we have something to test', async() => {
+      const startTime = Date.now()
       await ensureServer()
-      console.log('platform ready')
+      console.log('platform ready after', Date.now() - startTime, 'ms')
     })
     // need the following in an `it` to make sure it only happens after the server is set up
-    it('setting up token to use with testing', async () => {
+
+    it('setting up token to use with testing', async() => {
       testConfig.testUserid = await findOrCreateUser('test')
+      if (testConfig.testUserid === undefined) {
+        console.error('Couldnt create/find user to test with')
+        process.exit(1)
+      }
       // console.log('testUserId', testConfig.testUserid)
       token = await findOrCreateToken(testConfig.testUserid)
       // assert we have a token...
@@ -137,7 +152,9 @@ async function setupTesting() {
       // console.log('baseUrl', platformApi.base_url)
       // only on file-server rn
       //const res = await platformApi.serverRequest('loki/v1/config')
-      const res = await platformApi.serverRequest('loki/v1/user_info')
+      const res = await platformApi.serverRequest('loki/v1/user_info', {
+        noJson: true
+      })
       console.log('loki test', res.statusCode)
       if (res.statusCode === 403) {
         // we're in whitelist mode...
@@ -157,7 +174,7 @@ async function setupTesting() {
 
         // so lets assume tokens for userid are whitelisted...
         await new Promise(resolve => {
-          cache.getUser(1, function(user, err) {
+          cache.getUser(1, function(err, user) {
             if (err) console.error('getUser for user 1 err', err)
             if (!user) {
               console.log('No user 1')
@@ -167,7 +184,7 @@ async function setupTesting() {
             testConfig.testUsername = user.username
             testConfig.testUserid = user.id
             // console.log('testUserId', testConfig.testUserid)
-            cache.getAPITokenByUsername(user.username, async function(usertoken, err, meta) {
+            cache.getAPITokenByUsername(user.username, async function(err, usertoken, meta) {
               if (err) consoel.error('getAPIUserToken for user 1 err', err)
               if (!usertoken) {
                 console.log('No token for user 1')
@@ -179,7 +196,7 @@ async function setupTesting() {
               platformApi.token = usertoken.token
               // whitelist @test
               const result = await platformApi.serverRequest('loki/v1/moderation/whitelist/@test', {
-                method: 'POST',
+                method: 'POST'
               })
               console.log('whitelist result', result)
               // no we need to run tests as user 1
@@ -198,7 +215,6 @@ async function setupTesting() {
       console.log('using @' + testConfig.testUsername + '(' + testConfig.testUserid + ')')
     })
   })
-
 }
 
 setupTesting()
@@ -206,31 +222,45 @@ setupTesting()
 // for rdev
 // web__port=7082 admin__modKey=CHANGEME pomf__provider_url=http://localhost:7082/upload admin__port=3005
 
+// we're group these in order of documentation groups
+// but I wonder if we should re-org by our internal module process
+// like get user files (/users/me/files) doesn't belong in users...
+
+// MySQL may need --timeout 5000
+
 function runIntegrationTests() {
-  describe('#token', async () => {
+  describe('#token', async() => {
     require('./test.tokens').runTests(platformApi)
   })
-    describe('#users', async () => {
-      require('./test.users').runTests(platformApi)
+  describe('#users', async() => {
+    require('./test.users').runTests(platformApi, {})
+  })
+  if (configUtil.moduleEnabled('files')) {
+    describe('#files', async() => {
+      require('./test.files').runTests(platformApi, nconf)
     })
-      describe('#files', async () => {
-        require('./test.files').runTests(platformApi, nconf)
-      })
-      describe('#mutes', async () => {
-        require('./test.mutes').runTests(platformApi)
-      })
-      describe('#posts', async () => {
-        require('./test.posts').runTests(platformApi)
-      })
-        describe('#markers', async () => {
-          require('./test.markers').runTests(platformApi)
-        })
-        describe('#interactions', async () => {
-          require('./test.interactions').runTests(platformApi)
-        })
-      describe('#channels', async () => {
-        require('./test.channels').runTests(platformApi, testConfig)
-      })
+  }
+  describe('#mutes', async() => {
+    require('./test.mutes').runTests(platformApi)
+  })
+  if (configUtil.moduleEnabled('posts')) {
+    describe('#posts', async() => {
+      require('./test.posts').runTests(platformApi)
+    })
+    describe('#interactions', async() => {
+      require('./test.interactions').runTests(platformApi)
+    })
+  }
+  if (configUtil.moduleEnabled('markers')) {
+    describe('#markers', async() => {
+      require('./test.markers').runTests(platformApi)
+    })
+  }
+  if (configUtil.moduleEnabled('channels')) {
+    describe('#channels', async() => {
+      require('./test.channels').runTests(platformApi, testConfig)
+    })
+  }
 }
 
 runIntegrationTests()
