@@ -227,6 +227,11 @@ module.exports = {
   },
   addMessage: function(channel_id, postdata, params, tokenobj, callback) {
     //console.log('message.controller.js::addMessage - channel_id', channel_id)
+    if (!channel_id) {
+      console.error('message.controller.js::addMessage - channel_id is falsish')
+      callback('message.controller.js::addMessage - channel_id is falsish')
+      return
+    }
     const ref = this
     // change channel permissions
     function continueAddMessage(channel_id) {
@@ -267,7 +272,7 @@ module.exports = {
       // the annotations are written all the way through
       // it prevents bounces in the bridges
       const message = {
-        channel_id: postdata.annotations ? 0 : channel_id,
+        channel_id: postdata.annotations ? 0 : parseInt(channel_id),
         annotation_channel_id: channel_id,
         text: postdata.text,
         html: postdata.text, // FIXME: generate HTML from text
@@ -328,12 +333,12 @@ module.exports = {
             if (postdata.annotations) {
               //console.log('messages.controller.js::addMessage - detected annotations', channel_id, postdata.annotations)
               // fix up channel_id for msg pump
-              msg.channel_id = channel_id
+              message.channel_id = channel_id
               ref.setAnnotations('message', msg.id, postdata.annotations, function() {
                 console.log('write channel_id', channel_id)
                 ref.cache.setMessage({
                   id: msg.id,
-                  channel_id: channel_id
+                  channel_id: parseInt(channel_id)
                 }, function(err, omsg) {
                   if (err) console.error('messages.controllers.js::addMessage - setAnnotations err', err)
                   // omsg will be 1 if it's an update
@@ -472,7 +477,8 @@ module.exports = {
     const ref = this
     //console.log('messages.controller.js::getMessage - cache', this.cache.name)
     //console.log('messages.controller.js::getMessage - cache.next', this.cache.next.name)
-    this.cache.getMessage(mids, function(err, messages, meta) {
+    this.cache.getMessage(mids, params, function(err, messages, meta) {
+      if (err) console.error('messages.controller.js::getMessage - err', err)
       // make messages an array if not
       if (!(messages instanceof Array)) {
         messages = [messages]
@@ -546,6 +552,7 @@ module.exports = {
       */
 
       ref.cache.getChannelMessages(cid, params, function(err, messages, meta) {
+        if (channelErr) console.error('messages.controller.js::getChannelMessages - err', err)
         //console.log('messages.controller.js::getChannelMessages -', cid, 'has', messages.length)
         if (!messages.length) {
           callback(err, [])
@@ -558,6 +565,7 @@ module.exports = {
           for (const i in messages) {
             // channel, params, tokenObj, callback, meta
             ref.messageToAPI(messages[i], params, params.tokenobj, function(cErr, message) {
+              if (cErr) console.error('messages.controller.js::getChannelMessages - messageToAPI err', cErr)
               //console.log('messages.controller.js::getChannelMessages - pushing', message.id)
               //apis.push(message)
               apis[message.id] = message
@@ -601,14 +609,14 @@ module.exports = {
    * @param {metaCallback} callback - function to call after completion
    */
   getChannelMessage: function(cid, mids, params, callback) {
-    //console.log('messages.controller.js::getChannelMessage - start')
+    //console.log('messages.controller.js::getChannelMessage - start', cid, mids)
     if (mids === 'undefined') {
       console.trace('messages.controller.js::getChannelMessage - message ids are string undefined', cid, mids)
       callback(new Error('undefined message ID'))
       return
     }
     const ref = this
-    this.cache.getMessage(mids, function(err, messages, meta) {
+    this.cache.getMessage(mids, params, function(err, messages, meta) {
       if (err) console.error('messages.controller.js::getChannelMessage - err', err)
       if (messages === undefined) {
         console.trace('messages.controller.js::getMessage - messages is undefined')
@@ -624,6 +632,7 @@ module.exports = {
       const apis = []
       for (const i in messages) {
         const message = messages[i]
+        //console.log('messages.controller.js::getMessage - message', JSON.stringify(message))
         if (message && message.channel_id !== parseInt(cid)) {
           apis.push(false)
           if (apis.length === messages.length) {
@@ -633,6 +642,7 @@ module.exports = {
         }
         // messageToAPI: function(message, params, tokenObj, callback, meta) {
         ref.messageToAPI(message, params, params.tokenObj, function(err, api) {
+          if (err) console.error('messages.controller.js::getChannelMessage - messageToAPI err', err)
           apis.push(api)
           //console.log(apis.length, '/', messages.length)
           if (apis.length === messages.length) {
