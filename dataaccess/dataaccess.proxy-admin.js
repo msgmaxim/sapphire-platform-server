@@ -1426,14 +1426,15 @@ module.exports = {
           // single, drop array container
           res.data = res.data[0]
         }
-        ref.dispatcher.setMessage(res.data, function(msg, err) {
+        ref.dispatcher.setMessage(res.data, function(err, msg) {
+          if (err) console.error('dataaccess.proxy-admin.js::getMessage - setMessage err', err)
           if (msg === null && err === null) {
             if (this.next) {
               this.next.getMessage(id, callback)
             }
           } else {
             // FIXME: convert back to db object...
-            callback(msg, err, res.meta)
+            callback(err, msg, res.meta)
           }
         })
       } else {
