@@ -616,9 +616,9 @@ module.exports = {
       callback(null, null)
     }
   },
-  getMessage: function(id, callback) {
+  getMessage: function(id, params, callback) {
     if (this.next) {
-      this.next.getMessage(id, callback)
+      this.next.getMessage(id, params, callback)
     } else {
       console.log('dataaccess.base.js::getMessage - write me!')
       callback(null, null)

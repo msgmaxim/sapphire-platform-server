@@ -26,6 +26,9 @@ module.exports = {
   setMessage: function(msg, callback) {
     // If a Message has been deleted, the text, html, and entities properties will be empty and may be omitted.
     //console.log('setMessage - id', msg.id, 'updates', msg)
+    // I think this is the controller's responsibility
+    // this ops need to be fast, controller needs to be able to handle all input
+    //if (msg.channel_id) msg.channel_id = parseInt(msg.channel_id)
     // findOrCreate didn't work
     // updateOrCreate expects a full object
     messageModel.findOne({ where: { id: msg.id } }, function(err, omsg) {
@@ -91,7 +94,11 @@ module.exports = {
       }
     })
   },
-  getMessage: function(id, callback) {
+  getMessage: function(id, params, callback) {
+    if (callback === undefined) {
+      console.trace('messages.model.js::getMessage - callback is undefined')
+      return
+    }
     if (id === undefined) {
       console.trace('messages.model.js::getMessage - id is undefined')
       callback(new Error('id is undefined'))
@@ -103,7 +110,12 @@ module.exports = {
       return
     }
     //console.log('dataaccess.caminte.js::getMessage - id', id)
-    const criteria = { where: { id: id, is_deleted: 0 } }
+    const criteria = { where: { id: id } }
+    // don't include deleted
+    if (!params.generalParams.deleted) {
+      criteria.where.is_deleted = 0
+    }
+
     if (id instanceof Array) {
       // this wasn't necessary
       const newList = []
