@@ -102,6 +102,9 @@ module.exports = {
             }
           }
         }, function(err, uploadResp, body) {
+
+          console.error("Got file upload response");
+
           if (err) {
             console.log('files.routes.js:POSTfiles - pomf upload Error!', err)
             const res = {
@@ -144,6 +147,9 @@ module.exports = {
             return
           }
           if (!data.success) {
+
+            console.error("File upload wasn't successful");
+
             const res = {
               meta: {
                 code: 500,
@@ -153,6 +159,10 @@ module.exports = {
             resp.status(res.meta.code).type('application/json').send(JSON.stringify(res))
             return
           }
+
+
+          console.error("File upload was successful");
+          console.error("Data: ", data);
           //, 'from', body
           console.log('files.routes.js:POSTfiles - pomf result', data)
           for (const i in data.files) {
